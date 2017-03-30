@@ -1,26 +1,21 @@
 export Node, Branch, Root, grad
 
-abstract Node{T<:Union{AbstractFloat, AbstractArray}}
+abstract Node{T}
 
-""" Zero the dval according to the type. """
-@inline getzero{T<:AbstractFloat}(val::T) = 0.0
-@inline getzero{T<:AbstractArray}(val::T) = zeros(val)
+"""
+An element at the 'bottom' of the computational graph.
 
-""" Set the dval to one according to the type. """
-@inline getone{T<:AbstractFloat}(val::T) = 1.0
-@inline getone{T<:AbstractArray}(val::T) = ones(val)
-
-""" Increment the counter variable if it's a Node. """
-@inline increment!(x::Node) = (x.count += 1; return x)
-@inline increment!(x) = x
-
-""" Decrement the counter variable if it's a Node. """
-@inline decrement!(x::Node) = (x.count -= 1; return x)
-@inline decrement!(x) = x
-
-""" Simple helper function to remove values from boxes if they're a Node. """
-@inline unbox(x::Node) = x.val
-@inline unbox(x) = x
+Fields:
+val - the value of the node.
+dval - the reverse-mode sensitivity of the node.
+count - the number of active uses that this Branch has.
+"""
+type Root{T} <: Node{T}
+    val::T
+    dval::T
+    count::Int
+end
+Root(val) = Root(val, getzero(val), 0)
 
 
 """
@@ -40,27 +35,28 @@ type Branch{T} <: Node{T}
     f::Function
     args::Tuple
     count::Int
-    function Branch(f::Function, args::Tuple)
-        val = f(map(unbox, args)...)
-        return new(val, getzero(val), f, map(increment!, args), 0)
-    end
+end
+function Branch(f::Function, args::Tuple)
+    val = f(map(unbox, args)...)
+    return Branch(val, getzero(val), f, map(increment!, args), 0)
 end
 
 
-"""
-An element at the 'bottom' of the computational graph.
+""" Increment the counter variable if it's a Node. """
+@inline increment!(x::Node) = (x.count += 1; return x)
+@inline increment!(x) = x
 
-Fields:
-val - the value of the node.
-dval - the reverse-mode sensitivity of the node.
-count - the number of active uses that this Branch has.
-"""
-type Root{T} <: Node{T}
-    val::T
-    dval::T
-    count::Int
-    Root(val::T) = new(val, getzero(val), 0)
-end
+""" Decrement the counter variable if it's a Node. """
+@inline decrement!(x::Node) = (x.count -= 1; return x)
+@inline decrement!(x) = x
+
+""" Simple helper function to remove values from boxes if they're a Node. """
+@inline unbox(x::Node) = x.val
+@inline unbox(x) = x
+
+""" Update the gradient accumulator if it's a Node. """
+@inline accumulate!(x::Node, darg) = (x.dval += darg)
+@inline accumulate!(x, darg) = nothing
 
 
 """
@@ -68,22 +64,30 @@ Perform the backward pass given a node object.
 
 Inputs:
 y - the node from which you wish to perform the backwards pass.
+init (optional) - initial value for the reverse-mode sensitivities. Useful for testing and
+    for evaluating subsets of the computational graph. Defaults to the appropriate 1 value.
 """
-grad(y) = nothing
-function grad(y::Branch)
-    y.dval = getone(y.val)
+function grad{T}(y::Node{T}, init::T)
+    y.dval = init
     grad_(y)
 end
+grad(y::Node) = grad(y, getone(y.val))
 
 
 """ The workhorse for grad. """
+grad_(y) = nothing
 function grad_(y::Branch)
     if y.count == 0
-        dargs = y.f(y.dval, y.val, map(unbox, y.args)...)
+        dargs = y.f(y, y.val, y.dval, map(unbox, y.args)...)
         for (arg, darg) in zip(y.args, dargs)
             decrement!(arg)
-            arg.dval += darg
-            grad(arg)
+            accumulate!(arg, darg)
+            grad_(arg)
         end
     end
 end
+
+# TODO: Add semantic sugar to allow you to write things like ∇(x, y) to obtain the gradient
+# of y w.r.t. x cleanly. How would you detect if this isn't a meaningful statement? (ie.
+# gradient w.r.t. y is zero? You could just initialise the result to the corresponding zero
+# element or something.)
