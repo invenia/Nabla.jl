@@ -17,8 +17,6 @@ Returns:
 """
 function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans::Function=x->x)
 
-    println("f is ", f)
-
     # If diff doesn't contain anything, then differentiate all arguments.
     diff = diff == [] ? [true for j in x0] : diff
 
@@ -34,11 +32,9 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
             x[n] = Root(x0[n])
             y = f(x...)
             grad(y)
-            println("dval is ", x[n].dval)
 
             # Estimate x̄ using finite differencing.
             x̄ = estimate_x̄(f, x0, δ, x0[n], n, trans)
-            println("x̄ is ", x̄)
 
             # Compute absolute and relative errors for this argument.
             push!(δ_abs, abs(x̄ - x[n].dval))

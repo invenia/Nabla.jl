@@ -29,11 +29,11 @@ args - a Tuple of values passed into f to generate value. The types of these may
        mixture of Node and other types. Nodes are treated specially.
 count - the number of active uses that this Branch has.
 """
-type Branch{T} <: Node{T}
+type Branch{T, V <: Tuple} <: Node{T}
     val::T
     dval::T
     f::Function
-    args::Tuple
+    args::V
     count::Int
 end
 function Branch(f::Function, args::Tuple)
