@@ -15,7 +15,7 @@ type Root{T} <: Node{T}
     dval::T
     count::Int
 end
-Root(val) = Root(val, getzero(val), 0)
+Root(val) = Root(val, getzero(val), 0   )
 
 
 """
@@ -55,7 +55,8 @@ end
 @inline unbox(x) = x
 
 """ Update the gradient accumulator if it's a Node. """
-@inline accumulate!(x::Node, darg) = (x.dval += darg)
+@inline accumulate!{T}(x::Node{T}, darg::T) = (x.dval += darg)
+@inline accumulate!{T, V}(x::Node{T}, darg::V) = error("Type of val and dval not the same.")
 @inline accumulate!(x, darg) = nothing
 
 
