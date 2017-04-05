@@ -2,6 +2,10 @@ print("sensitivities/blas.jl... ")
 
 let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
+    # Helper functions to for correctness checking.
+    check_abs(x) = all(x .< ϵ_abs)
+    check_rel(x) = all(x .< ϵ_rel)
+
     # Testing for dot.
     let x = randn(10), y = randn(6)
         δ_abs, δ_rel = discrepancy(dot, ((x[1:5]), (y[1:5])), δ)
@@ -46,8 +50,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         δ_abs_3, δ_rel_3 = discrepancy(BLAS.gemm, ('n', 'T', α, A, B), δ, diff)
         δ_abs_4, δ_rel_4 = discrepancy(BLAS.gemm, ('T', 't', α, A, B), δ, diff)
 
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
         @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
         @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
@@ -60,8 +62,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         δ_abs_1, δ_rel_1 = discrepancy(BLAS.gemv, ('N', α, A, x), δ, diff)
         δ_abs_2, δ_rel_2 = discrepancy(BLAS.gemv, ('T', α, A, x), δ, diff)
 
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
         @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
     end
@@ -74,8 +74,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         δ_abs_3, δ_rel_3 = discrepancy(BLAS.syrk, ('L', 'T', α, A), δ, diff, tril)
         δ_abs_4, δ_rel_4 = discrepancy(BLAS.syrk, ('U', 'T', α, A), δ, diff, triu)
 
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
         @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
         @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
@@ -90,8 +88,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         δ_abs_3, δ_rel_3 = discrepancy(BLAS.symm, ('R', 'L', α, A, B2), δ, diff)
         δ_abs_4, δ_rel_4 = discrepancy(BLAS.symm, ('R', 'U', α, A, B2), δ, diff)
 
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
         @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
         @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
@@ -104,16 +100,12 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         δ_abs_1, δ_rel_1 = discrepancy(BLAS.symv, ('L', α, A, B), δ, diff)
         δ_abs_2, δ_rel_2 = discrepancy(BLAS.symv, ('U', α, A, B), δ, diff)
 
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
         @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
     end
 
     # Testing for trmm.
     let α = randn(), A = randn(3, 3), B = randn(3, 3)
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         diff = [false, false, false, false, true, true, true]
         for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
             δ_abs, δ_rel = discrepancy(BLAS.trmm, (side, ul, tA, dA, α, A, B), δ, diff)
@@ -123,8 +115,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
     # Testing for trmv.
     let A = randn(3, 3), B = randn(3)
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         diff = [false, false, false, true, true]
         for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
             δ_abs, δ_rel = discrepancy(BLAS.trmv, (ul, tA, dA, A, B), δ, diff)
@@ -134,8 +124,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
     # Testing for trsm.
     let α = randn(), A = randn(3, 3), B = randn(3, 3)
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         diff = [false, false, false, false, true, true, true]
         for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
             δ_abs, δ_rel = discrepancy(BLAS.trsm, (side, ul, tA, dA, α, A, B), δ, diff)
@@ -145,8 +133,6 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
     # Testing for trsv.
     let A = randn(3, 3), B = randn(3)
-        check_abs(x) = all(x .< ϵ_abs)
-        check_rel(x) = all(x .< ϵ_rel)
         diff = [false, false, false, true, true]
         for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
             δ_abs, δ_rel = discrepancy(BLAS.trsv, (ul, tA, dA, A, B), 1e-8, diff)

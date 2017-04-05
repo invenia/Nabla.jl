@@ -1,94 +1,137 @@
-export Node, Branch, Root, grad
+import Base: push!, length, show, getindex, setindex!, endof, eachindex
+export Tape, Node, Branch, Root, ∇, grad
 
 abstract Node{T}
+
+immutable Tape
+    tape::Vector{Any}
+    Tape() = new(Vector{Any}())
+    Tape(N::Int) = new(Vector{Any}(N))
+end
+
+function show(io::IO, tape::Tape)
+    if length(tape) == 0
+        println("Empty tape.")
+    else
+        for n in eachindex(tape)
+            println(io, isdefined(tape.tape, n) ? tape[n] : "#undef")
+        end
+    end
+end
+@inline getindex(tape::Tape, n::Int) = tape.tape[n]
+@inline getindex(tape::Tape, node::Node) = getindex(tape, node.pos)
+@inline endof(tape::Tape) = length(tape)
+@inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
+@inline eachindex(tape::Tape) = eachindex(tape.tape)
 
 """
 An element at the 'bottom' of the computational graph.
 
 Fields:
 val - the value of the node.
-dval - the reverse-mode sensitivity of the node.
-count - the number of active uses that this Branch has.
+tape - The Tape to which this Root is assigned.
+pos - the location of this Root in the tape to which it is assigned.
 """
-type Root{T} <: Node{T}
+immutable Root{T} <: Node{T}
     val::T
-    dval::T
-    count::Int
+    tape::Tape
+    pos::Int
 end
-Root(val) = Root(val, getzero(val), 0   )
-
+function Root(val, tape::Tape)
+    root = Root(val, tape, length(tape) + 1)
+    push!(tape, root)
+    return root
+end
+function show{T}(io::IO, tape::Root{T})
+    print(io, "Root{$T} $(tape.val)")
+end
 
 """
-A Node is the middle of the computational graph.
+A Branch is a Node with parents (args).
 
 Fields:
 val - the value of this node produced in the forward pass.
-dval - the reverse-mode sensitivity of this node. Computed by child nodes.
 f - the function used to generate this Node.
-args - a Tuple of values passed into f to generate value. The types of these may be a
-       mixture of Node and other types. Nodes are treated specially.
-count - the number of active uses that this Branch has.
+args - Values indicating which elements in the tape will require updating by this node.
+tape - The Tape to which this Branch is assigned.
+pos - the location of this Branch in the tape to which it is assigned.
 """
-type Branch{T, V <: Tuple} <: Node{T}
+immutable Branch{T, V <: Tuple} <: Node{T}
     val::T
-    dval::T
     f::Function
     args::V
-    count::Int
+    tape::Tape
+    pos::Int
 end
-function Branch(f::Function, args::Tuple)
-    val = f(map(unbox, args)...)
-    return Branch(val, getzero(val), f, map(increment!, args), 0)
+function Branch(f::Function, args::Tuple, tape::Tape)
+    branch = Branch(f(map(unbox, args)...), f, args, tape, length(tape) + 1)
+    push!(tape, branch)
+    return branch
+end
+function show{T, V}(io::IO, branch::Branch{T, V})
+    print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 end
 
+function push!(tape::Tape, root::Root)
+    push!(tape.tape, root)
+    return tape
+end
+function push!(tape::Tape, branch::Branch)
+    push!(tape.tape, branch)
+    return tape
+end
+length(tape::Tape) = length(tape.tape)
 
-""" Increment the counter variable if it's a Node. """
-@inline increment!(x::Node) = (x.count += 1; return x)
-@inline increment!(x) = x
-
-""" Decrement the counter variable if it's a Node. """
-@inline decrement!(x::Node) = (x.count -= 1; return x)
-@inline decrement!(x) = x
-
-""" Simple helper function to remove values from boxes if they're a Node. """
+# Get the value from the Node if the passed object is a Node.
 @inline unbox(x::Node) = x.val
 @inline unbox(x) = x
 
-""" Update the gradient accumulator if it's a Node. """
-@inline accumulate!{T}(x::Node{T}, darg::T) = (x.dval += darg)
-@inline accumulate!{T, V}(x::Node{T}, darg::V) = error("Type of val and dval not the same.")
-@inline accumulate!(x, darg) = nothing
+# Update the gradient accumulator if it's a Node.
+function accumulate!{T}(x::Node{T}, darg::T, reverse_tape::Tape)
+    n = x.pos
+    reverse_tape[n] = isdefined(reverse_tape.tape, n) ? reverse_tape[n] + darg : darg
+    return nothing
+end
+accumulate!{T, V}(x::Node{T}, darg::V, rvs) = error("Type of val and dval not the same.")
+accumulate!(x, darg, rvs) = nothing
 
 
 """
-Perform the backward pass given a node object.
+Perform the reverse pass.
 
 Inputs:
-y - the node from which you wish to perform the backwards pass.
-init (optional) - initial value for the reverse-mode sensitivities. Useful for testing and
-    for evaluating subsets of the computational graph. Defaults to the appropriate 1 value.
+tape - a tape object. Forward pass will already have been done.
+
+Outputs:
+reverse-mode sensitivities w.r.t. every Node.
 """
-function grad{T}(y::Node{T}, init::T)
-    y.dval = init
-    grad_(y)
-end
-grad(y::Node) = grad(y, getone(y.val))
+@inline ∇(node::Node) = ∇(node.tape, node.pos)
+@inline ∇(tape::Tape) = ∇(tape, length(tape))
+function ∇(forward_tape::Tape, N::Int)
 
+    N > length(forward_tape) && throw(ArgumentError("N > length(tape)."))
 
-""" The workhorse for grad. """
-grad_(y) = nothing
-function grad_(y::Branch)
-    if y.count == 0
-        dargs = y.f(y, y.val, y.dval, map(unbox, y.args)...)
+    # Construct reverse tape and initialise the last element.
+    reverse_tape = Tape(length(forward_tape))
+    reverse_tape[end] = getone(forward_tape.tape[end].val)
+
+    # Roots do nothing, Branches compute their own sensitivities and update others.
+    g(y::Root, n::Int, N::Int) = nothing
+    function g(y::Branch, n::Int, N::Int)
+        !isdefined(reverse_tape.tape, N - n) && return
+        dargs = y.f(y, y.val, reverse_tape[N - n], map(unbox, y.args)...)
         for (arg, darg) in zip(y.args, dargs)
-            decrement!(arg)
-            accumulate!(arg, darg)
-            grad_(arg)
+            accumulate!(arg, darg, reverse_tape)
         end
     end
+
+    # Iterate backwards through the reverse tape.
+    N = length(forward_tape) + 1
+    for n in eachindex(reverse_tape)
+        g(forward_tape.tape[N - n], n, N)
+    end
+
+    # Extract 
+    return reverse_tape
 end
 
-# TODO: Add semantic sugar to allow you to write things like ∇(x, y) to obtain the gradient
-# of y w.r.t. x cleanly. How would you detect if this isn't a meaningful statement? (ie.
-# gradient w.r.t. y is zero? You could just initialise the result to the corresponding zero
-# element or something.)

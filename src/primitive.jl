@@ -96,8 +96,7 @@ Expr representing the method.
 """
 function constructboxedfunc(fname::ExSym, pairs::Vector, box::Vector{Bool})
     ex = Expr(:(=))
-    push!(ex.args, constructcall(fname, pairs, box))
-    push!(ex.args, constructbranch(fname, pairs))
+    push!(ex.args, constructcall(fname, pairs, box), constructbranch(fname, pairs, box))
     return ex
 end
 
@@ -135,9 +134,29 @@ pairs - argument (name, DataType) pairs.
 Returns:
 An expression which can be used to define the function.
 """
-function constructbranch(fname::Expr, pairs::Vector)
-    return Expr(:call, :Branch, fname.args[1], Expr(:tuple, [a for (a, b) in pairs]...))
+constructbranch(fname::Expr, pairs, box) = constructbranch(fname.args[1], pairs, box)
+function constructbranch(fname::Symbol, pairs::Vector, box::Vector{Bool})
+    args = [a for (a, b) in pairs]
+    return Expr(:call, :Branch, fname, Expr(:tuple, args...), gettape(pairs, box))
 end
-function constructbranch(fname::Symbol, pairs::Vector)
-    return Expr(:call, :Branch, fname, Expr(:tuple, [a for (a, b) in pairs]...))
+
+"""
+Identify the first of the arguments that will contain a tape object by finding the first
+element whos type is a subtype of Node.
+
+Inputs:
+pairs - argument value-type pairings.
+
+Returns:
+An expression to get the tape from one of the arguments.
+"""
+function gettape(pairs::Vector, box::Vector{Bool})
+    for j in eachindex(box)
+        if box[j] == true
+            # dump(Expr(:., pairs[j][1], :tape))
+            # return Expr(:., pairs[j][1], :tape)
+            return :($(pairs[j][1]).tape)
+        end
+    end
+    throw(ArgumentError("None of the arguments are Nodes."))
 end

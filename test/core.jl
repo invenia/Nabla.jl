@@ -1,8 +1,5 @@
 print("core.jl... ")
 
-# @primitive sum{T<:AbstractArray}(x::T) y ȳ ȳ * ones(x)
-# @primitive sumabs2{T<:AbstractArray}(x::T) y ȳ 2 * ȳ * x
-
 # Test the core functionality of the package manually.
 function check_basics_sum()
 
@@ -11,12 +8,12 @@ function check_basics_sum()
     df_manual(x) = ones(x)
 
     # Perform computation.
-    x = Root(randn(5))
+    x = Root(randn(5), Tape())
     y = f(x)
-    grad(y)
+    rvs_tape = ∇(y)
 
     # Compare hand-coded with AD.
-    return all(df_manual(x.val) == x.dval)
+    return all(df_manual(x.val) == rvs_tape[x])
 end
 @test check_basics_sum()
 
@@ -28,12 +25,12 @@ function check_basics_sumabs2()
     df_manual(x) = 2 * x
 
     # Perform computation.
-    x = Root(randn(5))
+    x = Root(randn(5), Tape())
     y = f(x)
-    grad(y)
+    rvs_tape = ∇(y)
 
     # Compare hand-coded with AD.
-    return all(df_manual(x.val) == x.dval)
+    return all(df_manual(x.val) == rvs_tape[x])
 end
 @test check_basics_sumabs2()
 

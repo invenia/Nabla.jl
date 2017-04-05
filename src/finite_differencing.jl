@@ -29,15 +29,14 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
 
             # Compute x̄ using AutoDiff.
             x = collect(Any, x0)
-            x[n] = Root(x0[n])
-            y = f(x...)
-            grad(y)
+            x[n] = Root(x0[n], Tape())
+            df = ∇(f(x...))
 
             # Estimate x̄ using finite differencing.
             x̄ = estimate_x̄(f, x0, δ, x0[n], n, trans)
 
             # Compute absolute and relative errors for this argument.
-            push!(δ_abs, abs(x̄ - x[n].dval))
+            push!(δ_abs, abs(x̄ - df[x[n]]))
             push!(δ_rel, δ_abs[n] ./ abs(x̄ + 1e-15))
         else
             push!(δ_abs, 0.0)
