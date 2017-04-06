@@ -1,11 +1,15 @@
 import Base: push!, length, show, getindex, setindex!, endof, eachindex
-export Tape, Node, Branch, Root, ∇, grad
+export Tape, Node, Branch, Root, ∇
 
 abstract Node{T}
 
-immutable Tape
+type Tape
     tape::Vector{Any}
-    Tape() = new(Vector{Any}())
+    function Tape()
+        tape = new(Vector{Any}())
+        sizehint!(tape.tape, 100)
+        return tape
+    end
     Tape(N::Int) = new(Vector{Any}(N))
 end
 
@@ -71,15 +75,7 @@ end
 function show{T, V}(io::IO, branch::Branch{T, V})
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 end
-
-function push!(tape::Tape, root::Root)
-    push!(tape.tape, root)
-    return tape
-end
-function push!(tape::Tape, branch::Branch)
-    push!(tape.tape, branch)
-    return tape
-end
+push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
 length(tape::Tape) = length(tape.tape)
 
 # Get the value from the Node if the passed object is a Node.
@@ -134,4 +130,3 @@ function ∇(forward_tape::Tape, N::Int)
     # Extract 
     return reverse_tape
 end
-

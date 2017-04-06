@@ -36,6 +36,7 @@ let f = :(asum{T <: AbstractArray})
     @eval @primitive $f(n::Int, x::T, inc::Int) z z̄ false $x̄ false
 end
 
+# Some weird stuff going on that I haven't figured out yet.
 # let f = :(scal{T <: AbstractArray, V <: AbstractFloat})
 #     ā = :(blascopy!(n, z̄, inc, zeros(X), inc) .* X)
 #     X̄ = :(scal!(n, a, z̄, inc))

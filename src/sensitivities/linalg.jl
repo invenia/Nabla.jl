@@ -34,7 +34,7 @@ rdiv = [
     (:Ac_rdiv_Bc, :(Ac_ldiv_Bc(B, Ȳ)), :(-Ac_ldiv_Bc(B, Ȳ) * Y)),
 ]
 
-# Primitive definition and unit testing for ldiv operations.
+# Iterate through primitive definitions and add methods for each.
 for (f, Ā, B̄) in vcat(matmul, ldiv, rdiv)
     @eval @primitive $f{T, V <: AbstractArray}(A::T, B::V) Y Ȳ $Ā $B̄
 end

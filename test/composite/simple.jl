@@ -29,7 +29,9 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
     end
 
-    # Simple over-writing of variables.
+    # Simple over-writing of variables. This used to be a problem because you wind up having
+    # some undefined elements in your reverse tape. This is actually the correct behaviour,
+    # just just have to handle it properly.
     let
         ftape = Tape()
         xr = Root(randn(5), ftape)
@@ -37,7 +39,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         z = xr .* yr
         z = xr .+ yr
         rtape = ∇(xr)
-        @test all(rtape[xr] == 1.0) && all(rtape[yr] == 1.0) && !isdefined(rtape, 3)
+        @test all(rtape[xr] .== 1.0) && all(rtape[yr] .== 1.0) && !isdefined(rtape, 3)
     end
 end
 
