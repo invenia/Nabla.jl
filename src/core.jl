@@ -88,7 +88,11 @@ function accumulate!{T}(x::Node{T}, darg::T, reverse_tape::Tape)
     reverse_tape[n] = isdefined(reverse_tape.tape, n) ? reverse_tape[n] + darg : darg
     return nothing
 end
-accumulate!{T, V}(x::Node{T}, darg::V, rvs) = error("Type of val and dval not the same.")
+function accumulate!{T, V}(x::Node{T}, darg::V, rvs)
+    println("typeof(x) = $(typeof(x))")
+    println("typeof(darg) = $(typeof(darg))")
+    error("Type of val and dval not the same.")
+end
 accumulate!(x, darg, rvs) = nothing
 
 

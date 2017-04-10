@@ -10,8 +10,8 @@ end
 
 # Sensitivities for elementwise versions of binary operators.
 binary_sensitivities_elementwise = [
-    (:.+, :(z̄),               :(z̄),               (lb, ub), (lb, ub)),
-    (:.-, :(z̄),               :(-z̄),              (lb, ub), (lb, ub)),
+    (:.+, :(copy(z̄)),         :(copy(z̄)),         (lb, ub), (lb, ub)),
+    (:.-, :(copy(z̄)),         :(-z̄),              (lb, ub), (lb, ub)),
     (:.*, :(z̄ .* y),          :(z̄ .* x),          (lb, ub), (lb, ub)),
     (:./, :(z̄ ./ y),          :(-z̄ .* x ./ y.^2), (lb, ub), (lb, ub)),
     (:.\, :(-z̄ .* y ./ x.^2), :(z̄ ./ x),          (lb, ub), (lb, ub)),
