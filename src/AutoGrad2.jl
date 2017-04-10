@@ -1,5 +1,9 @@
 module AutoGrad2
 
+# Some aliases used repeatedly throughout the package.
+typealias SymOrExpr Union{Symbol, Expr}
+typealias ArrayOrFloat Union{AbstractArray, AbstractFloat}
+
 # Core functionality.
 include("basic_types.jl")
 include("core.jl")
@@ -7,9 +11,10 @@ include("primitive.jl")
 include("finite_differencing.jl")
 
 # Reverse-mode sensitivities.
-include("sensitivities/scalar.jl")
+lb, ub = -5., 5.
+# include("sensitivities/scalar.jl")
 include("sensitivities/array.jl")
-include("sensitivities/linalg.jl")
-include("sensitivities/blas.jl")
+# include("sensitivities/linalg.jl")
+# include("sensitivities/blas.jl")
 
 end # module

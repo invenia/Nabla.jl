@@ -1,9 +1,11 @@
+using BenchmarkTools
+
 import Base: push!, length, show, getindex, setindex!, endof, eachindex
 export Tape, Node, Branch, Root, ∇
 
 abstract Node{T}
 
-type Tape
+immutable Tape
     tape::Vector{Any}
     function Tape()
         tape = new(Vector{Any}())
@@ -12,7 +14,6 @@ type Tape
     end
     Tape(N::Int) = new(Vector{Any}(N))
 end
-
 function show(io::IO, tape::Tape)
     if length(tape) == 0
         println("Empty tape.")
@@ -27,6 +28,9 @@ end
 @inline endof(tape::Tape) = length(tape)
 @inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
 @inline eachindex(tape::Tape) = eachindex(tape.tape)
+@inline length(tape::Tape) = length(tape.tape)
+@inline push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
+
 
 """
 An element at the 'bottom' of the computational graph.
@@ -50,6 +54,7 @@ function show{T}(io::IO, tape::Root{T})
     print(io, "Root{$T} $(tape.val)")
 end
 
+
 """
 A Branch is a Node with parents (args).
 
@@ -67,7 +72,7 @@ immutable Branch{T, V <: Tuple} <: Node{T}
     tape::Tape
     pos::Int
 end
-function Branch(f::Function, args::Tuple, tape::Tape)
+@inline function Branch(f::Function, args::Tuple, tape::Tape)
     branch = Branch(f(map(unbox, args)...), f, args, tape, length(tape) + 1)
     push!(tape, branch)
     return branch
@@ -75,58 +80,44 @@ end
 function show{T, V}(io::IO, branch::Branch{T, V})
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 end
-push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
-length(tape::Tape) = length(tape.tape)
+
+
+# Location of Node on tape. -1 if not a Node object.
+pos(x::Node) = x.pos
+pos(x) = -1
 
 # Get the value from the Node if the passed object is a Node.
-@inline unbox(x::Node) = x.val
-@inline unbox(x) = x
+unbox(x::Node) = x.val
+unbox(x) = x
 
-# Update the gradient accumulator if it's a Node.
-function accumulate!{T}(x::Node{T}, darg::T, reverse_tape::Tape)
-    n = x.pos
-    reverse_tape[n] = isdefined(reverse_tape.tape, n) ? reverse_tape[n] + darg : darg
+# Roots do nothing, Branches compute their own sensitivities and update others.
+@inline propagate_sensitivities(y::Root, δ::Int, rvs_tape::Tape) = nothing
+@inline function propagate_sensitivities(y::Branch, δ::Int, rvs_tape::Tape)
+    a = map(unbox, y.args)
+    b = map(pos, y.args)
+    y.f(rvs_tape, y.val, y.pos, a..., b...)::Void
     return nothing
 end
-accumulate!{T, V}(x::Node{T}, darg::V, rvs) = error("Type of val and dval not the same.")
-accumulate!(x, darg, rvs) = nothing
-
 
 """
 Perform the reverse pass.
 
 Inputs:
-tape - a tape object. Forward pass will already have been done.
+node - The Node w.r.t. which we will computed gradients.
 
 Outputs:
-reverse-mode sensitivities w.r.t. every Node.
+a Tape containing the reverse-mode sensitivities w.r.t. node of every node in node.tape.
 """
-@inline ∇(node::Node) = ∇(node.tape, node.pos)
-@inline ∇(tape::Tape) = ∇(tape, length(tape))
-function ∇(forward_tape::Tape, N::Int)
-
-    N > length(forward_tape) && throw(ArgumentError("N > length(tape)."))
+function ∇(node::Node)
 
     # Construct reverse tape and initialise the last element.
-    reverse_tape = Tape(length(forward_tape))
-    reverse_tape[end] = getone(forward_tape.tape[end].val)
+    fwd_tape, rvs_tape = node.tape, Tape(node.pos)
+    rvs_tape[end] = getone(node.val)
 
-    # Roots do nothing, Branches compute their own sensitivities and update others.
-    g(y::Root, n::Int, N::Int) = nothing
-    function g(y::Branch, n::Int, N::Int)
-        !isdefined(reverse_tape.tape, N - n) && return
-        dargs = y.f(y, y.val, reverse_tape[N - n], map(unbox, y.args)...)
-        for (arg, darg) in zip(y.args, dargs)
-            accumulate!(arg, darg, reverse_tape)
-        end
+    # Iterate backwards through the reverse tape and return the result.
+    for n in eachindex(rvs_tape)
+        δ = node.pos - n + 1
+        isdefined(rvs_tape.tape, δ) && propagate_sensitivities(fwd_tape[δ], δ, rvs_tape)
     end
-
-    # Iterate backwards through the reverse tape.
-    N = length(forward_tape) + 1
-    for n in eachindex(reverse_tape)
-        g(forward_tape.tape[N - n], n, N)
-    end
-
-    # Extract 
-    return reverse_tape
+    return rvs_tape
 end

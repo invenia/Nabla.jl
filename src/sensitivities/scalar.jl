@@ -18,7 +18,6 @@ import Base: +, -, *, /, \, ^, sqrt, cbrt,
 # erfinv, erfcinv, real, imag, reim, conj, angle, cis, gamma, lgamma, lfact, digamma, invdigamma,
 # trigamma, polygamma, airy, airyprime, airyaiprime, airybi, airybiprime, airyx, + all of the other special functions.
 
-lb, ub = -5., 5.
 π180 = π / 180
 
 
