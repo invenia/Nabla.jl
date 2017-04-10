@@ -16,7 +16,7 @@ end
 
 # A simple Multilayer Feedforward Neural Network (Multi-layer Perceptron (MLP)) example for
 # classifying the MNIST data set.
-function demo_mlp()
+function demo_mlp(itrs::Int, sz::Int)
 
     # Load the data.
     println("Loading data.")
@@ -34,17 +34,17 @@ function demo_mlp()
 
     # Initialise the AdaGrad optimiser. (Currently one for each set of parameters, legacy issue
     # with optimisation code, should be sorted out before showing this to anyone...)
-    optW1 = AdaGrad(zeros(W1), 1e-2)
-    optW2 = AdaGrad(zeros(W2), 1e-2)
-    optW3 = AdaGrad(zeros(W3), 1e-2)
+    η = 3e-2
+    optW1 = AdaGrad(zeros(W1), η)
+    optW2 = AdaGrad(zeros(W2), η)
+    optW3 = AdaGrad(zeros(W3), η)
 
     # Iterate to learn the parameters.
     println("Starting learning.")
-    itrs, sz = 100, 25
     scal = size(xtr, 2) / sz
     for itr in 1:itrs
 
-        # Mini-batch the data.
+        # Pick the mini batch.
         idx = rand(eachindex(ytr_), sz)
         xtr_batch = view(xtr, :, idx)
         ytr_batch = view(ytr, :, idx)
@@ -63,7 +63,7 @@ function demo_mlp()
 
         # Compute the log probability of the observations.
         ϵ = 1e-15
-        loglik = scal * sum(ytr_batch .* log(f .+ ϵ) .+ (1 .- ytr_batch) .* log(1 .- f .+ ϵ))
+        loglik = scal * sum(ytr_batch .* log(f .+ ϵ) .+ (1 .- ytr_batch) .* log((1 + ϵ) .- f))
 
         # Compute gradient of log-joint w.r.t. each of the parameters.
         logp = loglik .+ logprior
@@ -73,6 +73,6 @@ function demo_mlp()
         iterate!(W1, ∇logp[W1r], optW1)
         iterate!(W2, ∇logp[W2r], optW2)
         iterate!(W3, ∇logp[W3r], optW3)
-        println("logp is $(logp.val) at iterate $itr.")
+        println("logp is $(logp.val) at iterate $itr. Mean loglik is $(loglik.val / size(xtr, 2))")
     end
 end
