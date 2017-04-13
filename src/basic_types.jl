@@ -1,8 +1,5 @@
 export getzero, getone
 
-# Currently support scalars, arrays and Tuples. Should also support Sets and Dicts.
-typealias BasicAGL Union{AbstractFloat, AbstractArray, Tuple}
-
 @inline dictit(val::Dict, f::Function) = Dict(n => f(val[n]) for n in eachindex(val))
 
 # Define functionality to return a type-appropriate zero / one / random element.
