@@ -41,6 +41,14 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         rtape = ∇(xr)
         @test all(rtape[xr] .== 1.0) && all(rtape[yr] .== 1.0) && !isdefined(rtape, 3)
     end
+
+    # Check that the gradients of a simple MLP are correct.
+    let X = randn(5, 10), W1 = randn(7, 5), W2 = randn(3, 7), Y = randn(3, 10)
+        f(W1, W2, X, Y) = -0.5 * sumabs2(Y .- W2 * tanh(W1 * X))
+        δ_abs, δ_rel = discrepancy(f, (W1, W2, X, Y), δ, [true, true, true, true])
+        @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
+    end
+
 end
 
 println("passing.")

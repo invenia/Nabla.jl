@@ -167,3 +167,4 @@ function sumabs2{T <: AbstractArray, V}(tape::Tape, y::V, ypos::Int, x::T, xpos:
     return nothing
 end
 primitive(:sumabs2, (:(T <: ArrayOrFloat),), (:T,), (true,))
+

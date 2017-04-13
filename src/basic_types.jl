@@ -1,20 +1,17 @@
 export getzero, getone
 
-# Currently support scalars, arrays and Tuples. Should also support Sets and Dicts.
-typealias BasicAGL Union{AbstractFloat, AbstractArray, Tuple}
+@inline dictit(val::Dict, f::Function) = Dict(n => f(val[n]) for n in eachindex(val))
 
-# Function to return appropriate multiplicative zero data for each supported type.
-@inline getzero(val::AbstractFloat) = 0.0
-@inline getzero(val::AbstractArray) = zeros(val)
-@inline getzero(val::Tuple) = map(getzero, val)
+# Define functionality to return a type-appropriate zero / one / random element.
+returns_basic = [
+    (:AbstractFloat, :(0.0), :(1.0), :(rand() * (ub - lb) + lb)),
+    (:AbstractArray, :(zeros(val)), :(ones(val)), :(rand(size(val)) * (ub - lb) + lb)),
+    (:(Union{Set, Tuple}), :(map(getzero, val)), :(map(getone, val)), :(map(getrand, val))),
+    (:Dict, :(dictit(val, getzero)), :(dictit(val, getone)), :(dictit(val, getrand))),
+]
 
-# Function to return appropriate multiplicative one data for each supported type.
-@inline getone(val::AbstractFloat) = 1.0
-@inline getone(val::AbstractArray) = ones(val)
-@inline getone(val::Tuple) = map(getone, val)
-
-# Function to return random uniformly distributed numbers of the correct shape for
-# each supported type.
-@inline getrand(val::AbstractFloat, lb, ub) = rand() * (ub - lb) + lb
-@inline getrand(val::AbstractArray, lb, ub) = rand(size(val)) * (ub - lb) + lb
-@inline getrand(val::Tuple, lb, ub) = map(getrand, val)
+for (dtype, zeroexpr, oneexpr, randexpr) in returns_basic
+    @eval @inline getzero(val::$dtype) = $zeroexpr
+    @eval @inline getone(val::$dtype) = $oneexpr
+    @eval @inline getrand(val::$dtype) = $randexpr
+end
