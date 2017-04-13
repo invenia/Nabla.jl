@@ -38,3 +38,21 @@ for (f, x̄) in reduce
     @eval @primitive $f{T <: Union{AbstractFloat, AbstractArray}}(x::T) y ȳ ȳ .* $x̄
     @eval @primitive $f{T <: Union{AbstractFloat, AbstractArray}}(x::T, dims) y ȳ ȳ .* $x̄ false
 end
+
+
+function unbroadcast(x, dx)
+    if size(x)==size(dx)
+        return dx
+    elseif isa(getval(x),Number)
+        return sum(dx)
+    else
+        d = []
+        for i=1:ndims(dx)
+            size(x,i) == size(dx,i) > 1 && continue
+            size(x,i) != 1 && throw(DimensionMismatch())
+            push!(d,i)
+        end
+        length(d)==1 && (d=d[1])
+        return reshape(sum(dx, d), size(x))
+    end
+end

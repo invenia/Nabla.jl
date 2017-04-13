@@ -1,4 +1,5 @@
-using MNIST, MyOptimisers
+using MNIST, MyOptimisers, BenchmarkTools
+export demo_mlp
 
 function to1hot(y_::Vector)
     y = Matrix{Int}(10, length(y_))
@@ -9,14 +10,12 @@ function to1hot(y_::Vector)
     end
     return y
 end
-
-@inline function logistic(x)
-    return 1 ./ (1 .+ exp(-x))
-end
+accuracy(Y, Ypr) = mean(all(Y .== Ypr, 1))
+@inline logistic(x) = 1 ./ (1 .+ exp(-x))
 
 # A simple Multilayer Feedforward Neural Network (Multi-layer Perceptron (MLP)) example for
 # classifying the MNIST data set.
-function demo_mlp(itrs::Int, sz::Int)
+function demo_mlp(itrs::Int, sz::Int, η::Float64)
 
     # Load the data.
     println("Loading data.")
@@ -28,16 +27,16 @@ function demo_mlp(itrs::Int, sz::Int)
 
     # Initialise parameters.
     println("Initialising parameters.")
-    d0, d1, d2, d3 = size(xtr, 1), 100, 100, size(ytr, 1)
+    d0, d1, d2, d3 = size(xtr, 1), 500, 300, size(ytr, 1)
     W1, W2, W3 = 0.1 * randn(d1, d0), 0.1 * randn(d2, d1), 0.1 * randn(d3, d2)
     λ = 1e-3 # I forget what the advice is re. setting different priors for different layers.
 
     # Initialise the AdaGrad optimiser. (Currently one for each set of parameters, legacy issue
     # with optimisation code, should be sorted out before showing this to anyone...)
-    η = 3e-2
-    optW1 = AdaGrad(zeros(W1), η)
-    optW2 = AdaGrad(zeros(W2), η)
-    optW3 = AdaGrad(zeros(W3), η)
+    α, β1, β2, ϵ = 1e-3, 0.9, 0.999, 1e-8
+    optW1 = Adam(W1, α, β1, β2, ϵ)
+    optW2 = Adam(W2, α, β1, β2, ϵ)
+    optW3 = Adam(W3, α, β1, β2, ϵ)
 
     # Iterate to learn the parameters.
     println("Starting learning.")
@@ -69,10 +68,17 @@ function demo_mlp(itrs::Int, sz::Int)
         logp = loglik .+ logprior
         ∇logp = ∇(logp)
 
+        # Compute ML classification rate for each prediction made this iteration.
+        ypr = zeros(d3, sz)
+        for n in 1:sz
+            ypr[indmax(f.val[:, n]), n] = 1.
+        end
+        acc = accuracy(ytr_batch, ypr)
+
         # Update the parameters using AdaGrad by indexing into the ∇logp tape.
         iterate!(W1, ∇logp[W1r], optW1)
         iterate!(W2, ∇logp[W2r], optW2)
         iterate!(W3, ∇logp[W3r], optW3)
-        println("logp is $(logp.val) at iterate $itr. Mean loglik is $(loglik.val / size(xtr, 2))")
+        println("logp is $(logp.val) at iterate $itr. Mean loglik is $(loglik.val / size(xtr, 2)). Accuracy is $acc")
     end
 end

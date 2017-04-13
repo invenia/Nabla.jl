@@ -14,5 +14,6 @@ include("sensitivities/blas.jl")
 
 # Demos and examples.
 include("examples/mlp.jl")
+include("examples/vae.jl")
 
 end # module
