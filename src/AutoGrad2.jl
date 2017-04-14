@@ -5,10 +5,8 @@ typealias SymOrExpr Union{Symbol, Expr}
 typealias ArrayOrFloat Union{AbstractArray, AbstractFloat}
 
 # Core functionality.
-include("basic_types.jl")
 include("core.jl")
 include("primitive.jl")
-include("finite_differencing.jl")
 
 # Reverse-mode sensitivities.
 lb, ub = -5., 5.
