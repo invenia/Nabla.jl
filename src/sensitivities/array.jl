@@ -12,7 +12,7 @@ import Base: .+, .-, .*, ./, .\,
 
 # Sensitivities for elementwise versions of binary operators of the form z = x (op) y.
 binary_sensitivities_elementwise = [
-    (:.+, :(z̄), :(z̄[n]), :(z̄), :(z̄[n]), (lb, ub), (lb, ub)),
+    # (:.+, :(z̄), :(z̄[n]), :(z̄), :(z̄[n]), (lb, ub), (lb, ub)),s
     # (:.-, :(copy(z̄)),         :(-z̄),              (lb, ub), (lb, ub)),
     # (:.*, :(z̄ .* y),          :(z̄ .* x),          (lb, ub), (lb, ub)),
     # (:./, :(z̄ ./ y),          :(-z̄ .* x ./ y.^2), (lb, ub), (lb, ub)),
