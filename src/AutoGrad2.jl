@@ -7,6 +7,7 @@ typealias ArrayOrFloat Union{AbstractArray, AbstractFloat}
 # Core functionality.
 include("core.jl")
 include("primitive.jl")
+include("util.jl")
 
 # Reverse-mode sensitivities.
 lb, ub = -5., 5.

@@ -147,7 +147,7 @@ end
 
 # sumabs2.
 function sumabs2{T <: AbstractFloat, V}(tape::Tape, y::V, ypos::Int, x::T, xpos::Int)
-    isdefined(tape, xpos) ? tape[xpos] += 2x * ȳ : tape[xpos] = 2x * ȳ
+    return isdefined(tape, xpos) ? tape[xpos] += 2x * ȳ : tape[xpos] = 2x * ȳ
 end
 function sumabs2{T <: AbstractArray, V}(tape::Tape, y::V, ypos::Int, x::T, xpos::Int)
     if isdefined(tape.tape, xpos)

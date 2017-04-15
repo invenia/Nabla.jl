@@ -7,6 +7,7 @@ include("primitive.jl")
 include("core.jl")
 include("finite_differencing.jl")
 include("finite_differencing_test.jl")
+include("util.jl")
 
 # include("sensitivities/scalar.jl")
 include("sensitivities/array.jl")
