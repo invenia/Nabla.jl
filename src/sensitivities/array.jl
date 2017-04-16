@@ -1,5 +1,5 @@
 import Base: .+, .-, .*, ./, .\,
-             sum, sumabs, sumabs2, prod, maximum, minimum, maxabs, minabs
+    sum, sumabs, sumabs2, prod, maximum, minimum, maxabs, minabs
 
 # # All unary functions of scalars can be performed elementwise. This functionality
 # # enforces that. May change with Julia v0.6 when elementwise functions become dotty
@@ -18,14 +18,18 @@ binary_sensitivities_elementwise = [
     # (:./, :(z̄ ./ y),          :(-z̄ .* x ./ y.^2), (lb, ub), (lb, ub)),
     # (:.\, :(-z̄ .* y ./ x.^2), :(z̄ ./ x),          (lb, ub), (lb, ub)),
 ]
+# binary_sensitivities_elementwise = [
+#     (:.+,
+#         :()
+#         :())
+# ]
+
 for (f, x̄_sc, x̄_ar, ȳ_sc, ȳ_ar) in binary_sensitivities_elementwise
-    eval(:(
-    function $f{T <: AbstractFloat, U <: AbstractFloat, V <: AbstractFloat}(
-        tape::Tape, z::T, zn::Int, x::U, y::V, xn::Int, yn::Int)
-        z̄::T, v = tape[zn], tape.tape
-        xn > 0 && isdefined(v, xn) ? tape[xn] += $(x̄_sc) : tape[xn] = $(x̄_sc)
-        yn > 0 && isdefined(v, yn) ? tape[yn] += $(ȳ_sc) : tape[yn] = $(ȳ_sc)
-    end))
+    eval(compute_sensitivity_method(f,
+        [:(T <: AbstractFloat), :(U <: AbstractFloat), :(V <: AbstractFloat)],
+        [:x, :y], [:x̄, :ȳ], [:U, :V], :z, :z̄,
+        [:(x̄ = z̄), :(ȳ = z̄)], [:(x̄ += z̄), :(ȳ += z̄)]
+    ))
     eval(:(function $f{T <: AbstractArray, U <: AbstractFloat, V <: AbstractArray}(
         tape::Tape, z::T, zn::Int, x::U, y::V, xn::Int, yn::Int)
         z̄::T, v = tape[zn], tape.tape
@@ -108,63 +112,46 @@ end
 
 # Basic reductions of a single argument.
 reduce = [
-    (:sum,     :(tape[ypos]),              :(ȳ)),
-    (:sumabs,  :(sign(x) * ȳ),             :(sign(x[n]) * ȳ)),
-    (:prod,    :(ȳ * y / x),               :(ȳ * y / x[n])),
-    (:maximum, :(ȳ * (y == x)),            :(ȳ * (y == x[n]))),
-    (:minimum, :(ȳ * (y == x)),            :(ȳ * (y == x[n]))),
-    (:maxabs,  :(sign(x) * (y == abs(x))), :(sign(x[n]) * (y == abs(x[n])))),
-    (:minabs,  :(sign(x) * (y == abs(x))), :(sign(x[n]) * (y == abs(x[n])))),
+    (:sum,
+        :(x̄ = broadcast!(x->x, similar(x), ȳ)),
+        :(broadcast!(+, x̄, x̄, ȳ))),
+    (:sumabs,
+        :(x̄ = broadcast!((x, ȳ)->sign(x) * ȳ, similar(x), x, ȳ)),
+        :(broadcast!((x̄, x, ȳ)->x̄ + sign(x) * ȳ, x̄, x̄, x, ȳ))),
+    (:sumabs2,
+        :(x̄ = broadcast!((x, ȳ)->2 * x * ȳ, similar(x), x, ȳ)),
+        :(broadcast!((x̄, x, y)->x̄ + 2 * x * ȳ, x̄, x̄, x, y))),
+    (:prod,
+        :(x̄ = broadcast!((x, y, ȳ)->ȳ * y / x, similar(x), x, y, ȳ)),
+        :(broadcast!((x̄, x, y, ȳ)-> x̄ + ȳ * y / x, x̄, x̄, x, y, ȳ))),
+    (:maximum,
+        :(x̄ = broadcast!((x, y, ȳ)->ȳ * (y == x), similar(x), x, y, ȳ)),
+        :(broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * (y == x), x̄, x̄, x, y, ȳ))),
+    (:minimum,
+        :(x̄ = broadcast!((x, y, ȳ)->ȳ * (y == x), similar(x), x, y, ȳ)),
+        :(broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * (y == x), x̄, x̄, x, y, ȳ))),
+    (:maxabs,
+        :(x̄ = broadcast!((x, y)->sign(x) * (y == abs(x)), similar(x), x, y)),
+        :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
+    (:minabs,
+        :(x̄ = broadcast!((x, y)->sign(x) * (y == abs(x)), similar(x), x, y)),
+        :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
 ]
 
 # Each of the reduce operations, except for sumabs2 which doesn't quite fit the same
 # format as the other reduce operations without sacrificing some efficiency.
-for (f, ex_fl, ex_ar) in reduce
-    eval(:(
-        function $f{T <: AbstractFloat, V}(tape::Tape, y::V, ypos::Int, x::T, xpos::Int)
-            isdefined(tape, xpos) ? tape[xpos] += $ex_fl : tape[xpos] = $ex_fl
-        end
-    ))
-    eval(:(
-        function $f{T <: AbstractArray, V}(tape::Tape, y::V, ypos::Int, x::T, xpos::Int)
-            if isdefined(tape.tape, xpos)
-                x̄::T, ȳ::V = tape[xpos], tape[ypos]
-                @inbounds for n in eachindex(x̄)
-                    x̄[n] += $ex_ar
-                end
-            else
-                x̄, ȳ = similar(x)::T, tape[ypos]::V
-                @inbounds for n in eachindex(x̄)
-                    x̄[n] = $ex_ar
-                end
-                tape[xpos] = x̄
-            end
-            return nothing
-        end
-    ))
-    primitive(f, (:(T <: ArrayOrFloat),), (:T,), (true,))
-end
+for (f, new_x̄, update_x̄) in reduce
 
-# sumabs2.
-function sumabs2{T <: AbstractFloat, V}(tape::Tape, y::V, ypos::Int, x::T, xpos::Int)
-    return isdefined(tape, xpos) ? tape[xpos] += 2x * ȳ : tape[xpos] = 2x * ȳ
-end
-function sumabs2{T <: AbstractArray, V}(tape::Tape, y::V, ypos::Int, x::T, xpos::Int)
-    if isdefined(tape.tape, xpos)
-        x̄, ȳ = tape[xpos]::T, tape[ypos]::V
-        ȳ2 = 2ȳ
-        @inbounds for n in eachindex(x̄)
-            x̄[n] += x[n] * ȳ2
-        end
-    else
-        x̄, ȳ = similar(x), tape[ypos]::V
-        ȳ2 = 2ȳ
-        @inbounds for n in eachindex(x̄)
-            x̄[n] = x[n] * ȳ2
-        end
-        tape[xpos] = x̄
-    end
-    return nothing
-end
-primitive(:sumabs2, (:(T <: ArrayOrFloat),), (:T,), (true,))
+    # Define the single argument sensitivity.
+    eval(compute_sensitivity_method(
+        f, [:(T <: AbstractArray)], [:x], [:x̄], [:T], [true], :y, :ȳ, [new_x̄], [update_x̄]
+    ))
+    primitive(f, (:(T <: AbstractArray),), (:T,), (true,))
 
+    # Define the multiple-argument sensitivity.
+    eval(compute_sensitivity_method(
+        f, [:(T <: AbstractArray)], [:x, :dims], [:x̄, :nothing], [:T, :Any], [true, false],
+            :y, :ȳ, [new_x̄, :nothing], [update_x̄, :nothing]
+    ))
+    primitive(f, (:(T <: AbstractArray),), (:T, :Any), (true, false))
+end

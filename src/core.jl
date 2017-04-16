@@ -111,7 +111,7 @@ unbox(x) = x
 @inline function propagate_sensitivities(y::Branch, δ::Int, rvs_tape::Tape)
     a = map(unbox, y.args)
     b = map(pos, y.args)
-    y.f(rvs_tape, y.val, y.pos, a..., b...)::Void
+    y.f(rvs_tape, y.val, rvs_tape.tape[y.pos], a..., b...)::Void
     return nothing
 end
 

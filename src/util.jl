@@ -1,7 +1,19 @@
 export compute_sensitivity_method
 
 """
-    compute_methods(f::Symbol, sensitivities::Tuple, preprocess::SymOrExpr=:nothing)
+    compute_sensitivity_method(
+        f::Symbol,
+        typepars::Vector,
+        x::Vector{Symbol},
+        x̄::Vector{Symbol},
+        xtypes::Vector,
+        diffs::Vector{Bool},
+        y::Symbol,
+        ȳ::Symbol,
+        x̄0::Vector,
+        x̄_update::Vector,
+        preprocess::SymOrExpr=:nothing
+    )
 
 Inputs:\\\
 `f` - function to generate method for.\\\
@@ -9,10 +21,11 @@ Inputs:\\\
 `x` - inputs to `f` in the forward-pass.\\\
 `x̄` - current values of reverse-mode sensitivities of the corresponding elements of `x`.\\\
 `xtypes` - the type of each element of `x` respectively.\\\
+`diffs` - indicates which argument are differentiable.
 `y` - output of `f` from the forward-pass.\\\
 `ȳ` - reverse-mode sensitivities of the corresponding elements of `y`.\\\
 `x̄0` - expressions to create sensitivites `x̄` if currently uninitialised.\\\
-`x̄_update' - expressions to update the sensitivites `x̄`.\\\
+`x̄_update` - expressions to update the sensitivites `x̄`.\\\
 """
 function compute_sensitivity_method(
     f::Symbol,
@@ -20,6 +33,7 @@ function compute_sensitivity_method(
     x::Vector{Symbol},
     x̄::Vector{Symbol},
     xtypes::Vector,
+    diffs::Vector{Bool},
     y::Symbol,
     ȳ::Symbol,
     x̄0::Vector,
@@ -56,10 +70,15 @@ function compute_sensitivity_method(
     # the existing value if present, otherwise creating a new value. Always assign in the
     # end.
     for n in eachindex(x)
-        tape_index = :($(tape)[$(x̄id[n])])
-        update_x̄ = Expr(:block, Expr(:(=), x̄[n], tape_index), x̄_update[n])
-        push!(body.args, Expr(:if, :($(x̄id[n]) < 1), x̄0[n], update_x̄)) 
-        push!(body.args, Expr(:(=), tape_index, x̄[n]))
+        if diffs[n]
+            tape_index = :($tape.tape[$(x̄id[n])])
+            update_x̄ = Expr(:block, Expr(:(=), x̄[n], tape_index), x̄_update[n])
+            push!(body.args,
+                Expr(:if, :($(x̄id[n]) > 0), Expr(:block,
+                    Expr(:if, :(isdefined($tape.tape, $(x̄id[n]))), update_x̄, x̄0[n]),
+                    Expr(:(=), tape_index, x̄[n]))))
+            push!(body.args, Expr(:return, :nothing))
+        end
     end
 
     return Expr(:function, signature, body)
