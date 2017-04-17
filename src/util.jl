@@ -1,7 +1,7 @@
-export compute_sensitivity_method
+export generate_primitive
 
 """
-    compute_sensitivity_method(
+    generate_primitive(
         f::Symbol,
         typepars::Vector,
         x::Vector{Symbol},
@@ -27,7 +27,7 @@ Inputs:\\\
 `x̄0` - expressions to create sensitivites `x̄` if currently uninitialised.\\\
 `x̄_update` - expressions to update the sensitivites `x̄`.\\\
 """
-function compute_sensitivity_method(
+function generate_primitive(
     f::Symbol,
     typepars::Vector,
     x::Vector{Symbol},
@@ -81,7 +81,8 @@ function compute_sensitivity_method(
     end
 
     push!(body.args, Expr(:return, :nothing))
-    return Expr(:function, signature, body)
+    eval(Expr(:function, signature, body))
+    primitive(f, typepars, xtypes, diffs)
 end
 
 

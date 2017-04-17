@@ -57,12 +57,8 @@ binary_sensitivities_elementwise = [
 ]
 
 for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, xr, yr) in binary_sensitivities_elementwise
-    eval(compute_sensitivity_method(f,
-        [:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)],
-        [:x, :y], [:x̄, :ȳ], [:T, :U], [true, true],
-        :z, :z̄, [new_x̄, new_ȳ], [update_x̄, update_ȳ]
-    ))
-    primitive(f, (:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)), (:T, :U), (true, true))
+    generate_primitive(f, [:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)], [:x, :y], [:x̄, :ȳ],
+        [:T, :U], [true, true], :z, :z̄, [new_x̄, new_ȳ], [update_x̄, update_ȳ])
 end
 
 # Basic reductions of a single argument.
@@ -98,15 +94,10 @@ reduce = [
 for (f, new_x̄, update_x̄) in reduce
 
     # Define the single argument sensitivity.
-    eval(compute_sensitivity_method(
-        f, [:(T <: AbstractArray)], [:x], [:x̄], [:T], [true], :y, :ȳ, [new_x̄], [update_x̄]
-    ))
-    primitive(f, (:(T <: AbstractArray),), (:T,), (true,))
+    generate_primitive(f, [:(T <: AbstractArray)], [:x], [:x̄], [:T], [true], :y, :ȳ,
+        [new_x̄], [update_x̄])
 
     # Define the multiple-argument sensitivity.
-    eval(compute_sensitivity_method(
-        f, [:(T <: AbstractArray)], [:x, :dims], [:x̄, :nothing], [:T, :Any], [true, false],
-            :y, :ȳ, [new_x̄, :nothing], [update_x̄, :nothing]
-    ))
-    primitive(f, (:(T <: AbstractArray),), (:T, :Any), (true, false))
+    generate_primitive(f, [:(T <: AbstractArray)], [:x, :dims], [:x̄, :nothing], [:T, :Any],
+        [true, false], :y, :ȳ, [new_x̄, :nothing], [update_x̄, :nothing])
 end

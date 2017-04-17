@@ -1,11 +1,11 @@
 export primitive
 
 """
-    primitive(f::Symbol, typepars::Tuple, argtypes::Tuple, diffs::Tuple)
+    primitive(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector)
 Construct the methods of `f` required to enable it propagate derivatives correctly. `diffs`
 indicates the arguments which are differentiable.
 """
-function primitive(f::Symbol, typepars::Tuple, argtypes::Tuple, diffs::Tuple)
+function primitive(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector)
     function primitive_(states::Vector{Bool}, pos::Int)
         if pos > length(states)
             any(states .== true) && eval(constructboxedfunc(f, typepars, argtypes, states))
@@ -23,27 +23,27 @@ end
 
 
 """
-    constructboxedfunc(f::Symbol, tpars::Tuple, argts::Tuple, diffs::Vector{Bool})
+    constructboxedfunc(f::Symbol, tpars::Vector, argts::Vector, diffs::Vector{Bool})
 Construct a method of the Function `f`, with parametric typess `tpars`, arguments with the
 types specified by `argts`. Arguments which are expected to be `Node` objects should be
 indicated by `true` values in `diffs`.
 """
-function constructboxedfunc(f::Symbol, tpars::Tuple, argts::Tuple, diffs::Vector{Bool})
+function constructboxedfunc(f::Symbol, tpars::Vector, argts::Vector, diffs::Vector{Bool})
     Expr(:(=), callexpr(f, tpars, argts, diffs), branchexpr(f, diffs))
 end
 
 
 """
-    callexpr(f::Symbol, typepars::Tuple, argtypes::Tuple, diffs::Vector{Bool})
+    callexpr(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector{Bool})
 Compute Expr which creates a new function call.
 
 Inputs:\\\
 `f::Symbol` - Function to call.\\
-`typepars::Tuple` - Parametric type information.\\
-`argtypes::Tuple` - the type of the arguments. Can refer to something in `typepars`.\\
+`typepars::Vector` - Parametric type information.\\
+`argtypes::Vector` - the type of the arguments. Can refer to something in `typepars`.\\
 `diffs::Vector{Bool}` - the arguments which will be Nodes.
 """
-function callexpr(f::Symbol, typepars::Tuple, argtypes::Tuple, diffs::Vector{Bool})
+function callexpr(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector{Bool})
     ex = Expr(:call, Expr(:curly, f, typepars...))
     for n in eachindex(diffs)
         datatype = diffs[n] ? Expr(:curly, :Node, argtypes[n]) : argtypes[n]
