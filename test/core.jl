@@ -33,7 +33,7 @@ function check_basics_sum()
     # Compare hand-coded with AD.
     return all(df_manual(x.val) == rvs_tape[x])
 end
-# @test check_basics_sum()
+@test check_basics_sum()
 
 # Test the core functionality of the package manually.
 function check_basics_sumabs2()
@@ -50,6 +50,6 @@ function check_basics_sumabs2()
     # Compare hand-coded with AD.
     return all(df_manual(x.val) == rvs_tape[x])
 end
-# @test check_basics_sumabs2()
+@test check_basics_sumabs2()
 
 println("passing.")

@@ -108,12 +108,16 @@ unbox(x) = x
 
 # Roots do nothing, Branches compute their own sensitivities and update others.
 @inline propagate_sensitivities(y::Root, δ::Int, rvs_tape::Tape) = nothing
-@inline function propagate_sensitivities(y::Branch, δ::Int, rvs_tape::Tape)
+function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
     a = map(unbox, y.args)
     b = map(pos, y.args)
-    y.f(rvs_tape, y.val, rvs_tape.tape[y.pos], a..., b...)::Void
+    c = y.val
+    d = rvs_tape.tape[y.pos]::T
+    f = y.f
+    f(rvs_tape, c, d, a..., b...)::Void
     return nothing
 end
+
 
 """
 Perform the reverse pass.

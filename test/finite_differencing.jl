@@ -37,7 +37,7 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
 
             # Compute absolute and relative errors for this argument.
             push!(δ_abs, abs(x̄ - df[x[n]]))
-            push!(δ_rel, δ_abs[n] ./ abs(x̄ + 1e-15))
+            push!(δ_rel, δ_abs[n] ./ abs(x̄ + 1e-3))
         else
             push!(δ_abs, 0.0)
             push!(δ_rel, 0.0)

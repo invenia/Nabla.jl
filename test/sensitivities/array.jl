@@ -1,4 +1,4 @@
-println("sensitivities/array.jl... ")
+print("sensitivities/array.jl... ")
 
 let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
@@ -15,10 +15,21 @@ let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # end
 
     # Check sensitivities for elementwise application of functions of two arguments.
-    for (f, x̄, ȳ, x̄1, x̄2, ȳ1, ȳ2, range_x, range_y) in AutoGrad2.binary_sensitivities_elementwise
+    for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, range_x, range_y) in AutoGrad2.binary_sensitivities_elementwise
         x = rand(N) * (range_x[2] - range_x[1]) - range_x[1]
         y = rand(N) * (range_y[2] - range_y[1]) - range_y[1]
 
+        δ_abs, δ_rel = discrepancy(eval(f), (x, y), δ, [true, true])
+        @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
+
+        # Testing with previously allocated memory.
+        g = :((x, y)->$f($f($f(x, y), y), x))
+        δ_abs, δ_rel = discrepancy(eval(g), (x, y), δ, [true, true])
+        @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
+
+        # Testing with different sized arrays.
+        x = randn(N, 4, 1) * (range_x[2] - range_x[1]) - range_x[1]
+        y = randn(1, 1, 6) * (range_y[2] - range_y[1]) - range_y[1]
         δ_abs, δ_rel = discrepancy(eval(f), (x, y), δ, [true, true])
         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
     end
@@ -26,7 +37,6 @@ let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # Test sensitivities for reduce functions of a single argument.
     M, P = 2, 3
     for (f, x̄) in AutoGrad2.reduce
-        println(f)
         # Generate some random dense arrays.
         x1, x2, x3 = randn(N), randn(N, M), randn(N, M, P)
         x1[1], x2[1], x3[1] = x1[1] + 100.0, x2[1] + 100.0, x3[1] + 100.0

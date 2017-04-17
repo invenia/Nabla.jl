@@ -77,10 +77,10 @@ function compute_sensitivity_method(
                 Expr(:if, :($(x̄id[n]) > 0), Expr(:block,
                     Expr(:if, :(isdefined($tape.tape, $(x̄id[n]))), update_x̄, x̄0[n]),
                     Expr(:(=), tape_index, x̄[n]))))
-            push!(body.args, Expr(:return, :nothing))
         end
     end
 
+    push!(body.args, Expr(:return, :nothing))
     return Expr(:function, signature, body)
 end
 

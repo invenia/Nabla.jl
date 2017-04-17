@@ -10,7 +10,7 @@ function check_discrepancy(g, ϵ_abs=1e-4, ϵ_rel=1e-3)
     δ_abs, δ_rel = discrepancy(f, (x0,), 1e-5)
     return all(map(all, map(.<, δ_abs, ϵ_abs))) && all(map(all, map(.<, δ_rel, ϵ_rel)))
 end
-# @test check_discrepancy(sum)
-# @test check_discrepancy(sumabs2)
+@test check_discrepancy(sum)
+@test check_discrepancy(sumabs2)
 
 println("passing.")

@@ -1,112 +1,67 @@
 import Base: .+, .-, .*, ./, .\,
     sum, sumabs, sumabs2, prod, maximum, minimum, maxabs, minabs
+import Base.Broadcast.broadcast_shape
 
-# # All unary functions of scalars can be performed elementwise. This functionality
-# # enforces that. May change with Julia v0.6 when elementwise functions become dotty
-# # functions.
-# let stype = :AbstractArray
-#     for (f, x̄, range) in unary_sensitivities
-#         @eval @primitive $f{T <: $stype}(x::T) y ȳ $x̄
-#     end
-# end
+
+"""
+    broadcastsum!(f::Function, add::Bool, z, As...)
+
+Broadcast f over As and reduce to z by summing. If add is true, then the result is added to
+the current value of z, otherwise it is overwritten.
+"""
+function broadcastsum!(f::Function, add::Bool, z, As...)
+    tmp_shape = map(x->x.stop, broadcast_shape(As...))
+    if size(z) != tmp_shape
+        tmp = Array(eltype(z), tmp_shape)
+        return sum!(z, broadcast!((x...)->f(x...), tmp, As...), init=!add)
+    else
+        return add ?
+            broadcast!((z, x...)->z + f(x...), z, z, As...) :
+            broadcast!((x...)->f(x...), z, As...)
+    end
+end
+
 
 # Sensitivities for elementwise versions of binary operators of the form z = x (op) y.
 binary_sensitivities_elementwise = [
-    # (:.+, :(z̄), :(z̄[n]), :(z̄), :(z̄[n]), (lb, ub), (lb, ub)),s
-    # (:.-, :(copy(z̄)),         :(-z̄),              (lb, ub), (lb, ub)),
-    # (:.*, :(z̄ .* y),          :(z̄ .* x),          (lb, ub), (lb, ub)),
-    # (:./, :(z̄ ./ y),          :(-z̄ .* x ./ y.^2), (lb, ub), (lb, ub)),
-    # (:.\, :(-z̄ .* y ./ x.^2), :(z̄ ./ x),          (lb, ub), (lb, ub)),
+    (:.+,
+        :(x̄ = broadcastsum!(z̄->z̄, false, similar(x), z̄)),
+        :(ȳ = broadcastsum!(z̄->z̄, false, similar(y), z̄)),
+        :(x̄ = broadcastsum!(z̄->z̄, true, x̄, z̄)),
+        :(ȳ = broadcastsum!(z̄->z̄, true, ȳ, z̄)),
+        (lb, ub), (lb, ub)),
+    (:.-,
+        :(x̄ = broadcastsum!(z̄->z̄, false, similar(x), z̄)),
+        :(ȳ = broadcastsum!(z̄->-z̄, false, similar(y), z̄)),
+        :(x̄ = broadcastsum!(z̄->z̄, true, x̄, z̄)),
+        :(ȳ = broadcastsum!(z̄->-z̄, true, ȳ, z̄)),
+        (lb, ub), (lb, ub)),
+    (:.*,
+        :(x̄ = broadcastsum!((y, z̄)->y * z̄, false, similar(x), y, z̄)),
+        :(ȳ = broadcastsum!((x, z̄)->x * z̄, false, similar(y), x, z̄)),
+        :(x̄ = broadcastsum!((y, z̄)->y * z̄, true, x̄, y, z̄)),
+        :(ȳ = broadcastsum!((x, z̄)->x * z̄, true, ȳ, x, z̄)),
+        (lb, ub), (lb, ub)),
+    (:./,
+        :(x̄ = broadcastsum!((y, z̄)->z̄ / y, false, similar(x), y, z̄)),
+        :(ȳ = broadcastsum!((x, y, z̄)->-z̄ * x / y^2, false, similar(y), x, y, z̄)),
+        :(x̄ = broadcastsum!((y, z̄)->z̄ / y, true, x̄, y, z̄)),
+        :(ȳ = broadcastsum!((x, y, z̄)->-z̄ * x / y^2, true, ȳ, x, y, z̄)),
+        (lb, ub), (lb, ub)),
+    (:.\,
+        :(x̄ = broadcastsum!((x, y, z̄)-> -z̄ * y / x^2, false, similar(x), x, y, z̄)),
+        :(ȳ = broadcastsum!((x, z̄)->z̄ / x, false, similar(y), x, z̄)),
+        :(x̄ = broadcastsum!((x, y, z̄)-> -z̄ * y / x^2, true, x̄, x, y, z̄)),
+        :(ȳ = broadcastsum!((x, z̄)->z̄ / x, true, ȳ, x, z̄)),
+        (lb, ub), (lb, ub)),
 ]
-# binary_sensitivities_elementwise = [
-#     (:.+,
-#         :()
-#         :())
-# ]
 
-for (f, x̄_sc, x̄_ar, ȳ_sc, ȳ_ar) in binary_sensitivities_elementwise
+for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, xr, yr) in binary_sensitivities_elementwise
     eval(compute_sensitivity_method(f,
-        [:(T <: AbstractFloat), :(U <: AbstractFloat), :(V <: AbstractFloat)],
-        [:x, :y], [:x̄, :ȳ], [:U, :V], :z, :z̄,
-        [:(x̄ = z̄), :(ȳ = z̄)], [:(x̄ += z̄), :(ȳ += z̄)]
+        [:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)],
+        [:x, :y], [:x̄, :ȳ], [:T, :U], [true, true],
+        :z, :z̄, [new_x̄, new_ȳ], [update_x̄, update_ȳ]
     ))
-    eval(:(function $f{T <: AbstractArray, U <: AbstractFloat, V <: AbstractArray}(
-        tape::Tape, z::T, zn::Int, x::U, y::V, xn::Int, yn::Int)
-        z̄::T, v = tape[zn], tape.tape
-        x̄ = isdefined(v[xn]) ? v[xn]::U : similar(x)
-        ȳ = isdefined(v[yn]) ? v[yn]::V : similar(y)
-        if xn > 0
-            tmp = 0.0
-            @simd for n in eachindex(z̄)
-                @inbounds tmp += $x̄_ar
-            end
-            v[xn] = isdefined(v, xn) ? v[xn] + tmp : tmp
-        end
-        if yn > 0
-            if isdefined(v, yn)
-                for n in eachindex(z̄)
-                    @inbounds ȳ[n] += $ȳ_ar
-                end
-            else
-                for n in eachindex(z̄)
-                    @inbounds ȳ[n] = $ȳ_ar
-                end
-                v[yn] = ȳ
-            end
-        end
-        return nothing
-    end))
-    eval(:(function $f{T <: AbstractArray, U <: AbstractArray, V <: AbstractFloat}(
-        tape::Tape, z::T, zn::Int, x::U, y::V, xn::Int, yn::Int)
-        z̄::T, v = tape[zn], tape.tape
-        x̄ = isdefined(v[xn]) ? v[xn]::U : similar(x)
-        ȳ = isdefined(v[yn]) ? v[yn]::V : similar(y)
-        if xn > 0
-            if isdefined(v, xn)
-                @inbounds for n in eachindex(z̄)
-                    x̄[n] += $x̄_ar
-                end
-            else
-                @inbounds for n in eachindex(z̄)
-                    x̄[n] = $x̄_ar
-                end
-                v[xn] = x̄
-            end
-        end
-        if yn > 0
-            tmp = 0.0
-            @simd for n in eachindex(z̄)
-                @inbounds tmp += $ȳ_ar
-            end
-            v[yn] = isdefined(v, xn) ? v[yn] + tmp : tmp
-        end
-        return nothing
-    end))
-    eval(:(function $f{T <: AbstractArray, U <: AbstractArray, V <: AbstractArray}(
-        tape::Tape, z::T, zn::Int, x::U, y::V, xn::Int, yn::Int)
-        z̄::T, v = tape[zn], tape.tape
-        if xn > 0
-            if isdefined(v, xn)
-                x̄::U = v[xn]
-                @inbounds for n in eachindex(z̄)
-                    x̄[n] += z̄[n]
-                end
-            else
-                v[xn] = copy(z̄)
-            end
-        end
-        if yn > 0
-            if isdefined(v, yn)
-                ȳ::V = v[yn]
-                @inbounds for n in eachindex(z̄)
-                    ȳ[n] += z̄[n]
-                end
-            else
-                v[yn] = copy(z̄)
-            end
-        end
-        return nothing
-    end))
     primitive(f, (:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)), (:T, :U), (true, true))
 end
 
