@@ -43,7 +43,7 @@ function g(x)
     return sum(y)
 end
 
-N = 2;
+N = 50;
 M = 10000;
 x = ones(M);
 @benchmark f1($x)
