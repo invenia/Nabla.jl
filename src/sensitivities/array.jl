@@ -22,35 +22,56 @@ function broadcastsum!(f::Function, add::Bool, z, As...)
 end
 
 
+"""
+    broadcastsum(f::Function, add::Bool, z::AbstractArray, As...)
+
+Allocating version of broadcastsum! specialised for Arrays.
+"""
+function broadcastsum(f::Function, add::Bool, z::AbstractArray, As...)
+    return broadcastsum!(f, add, similar(z), As...)
+end
+
+
+"""
+    broadcastsum(f::Function, add::Bool, z::Number, As...)
+
+Specialisation of broadcastsum to Number-sized outputs.
+"""
+function broadcastsum(f::Function, add::Bool, z::Number, As...)
+    tmp = Array(eltype(z), map(x->x.stop, broadcast_shape(As...)))
+    return sum(broadcast!((x...)->f(x...), tmp, As...)) + add ? z : 0.
+end
+
+
 # Sensitivities for elementwise versions of binary operators of the form z = x (op) y.
 binary_sensitivities_elementwise = [
     (:.+,
-        :(x̄ = broadcastsum!(z̄->z̄, false, similar(x), z̄)),
-        :(ȳ = broadcastsum!(z̄->z̄, false, similar(y), z̄)),
+        :(x̄ = broadcastsum(z̄->z̄, false, x, z̄)),
+        :(ȳ = broadcastsum(z̄->z̄, false, y, z̄)),
         :(x̄ = broadcastsum!(z̄->z̄, true, x̄, z̄)),
         :(ȳ = broadcastsum!(z̄->z̄, true, ȳ, z̄)),
         (lb, ub), (lb, ub)),
     (:.-,
-        :(x̄ = broadcastsum!(z̄->z̄, false, similar(x), z̄)),
-        :(ȳ = broadcastsum!(z̄->-z̄, false, similar(y), z̄)),
+        :(x̄ = broadcastsum(z̄->z̄, false, x, z̄)),
+        :(ȳ = broadcastsum(z̄->-z̄, false, y, z̄)),
         :(x̄ = broadcastsum!(z̄->z̄, true, x̄, z̄)),
         :(ȳ = broadcastsum!(z̄->-z̄, true, ȳ, z̄)),
         (lb, ub), (lb, ub)),
     (:.*,
-        :(x̄ = broadcastsum!((y, z̄)->y * z̄, false, similar(x), y, z̄)),
-        :(ȳ = broadcastsum!((x, z̄)->x * z̄, false, similar(y), x, z̄)),
+        :(x̄ = broadcastsum((y, z̄)->y * z̄, false, x, y, z̄)),
+        :(ȳ = broadcastsum((x, z̄)->x * z̄, false, y, x, z̄)),
         :(x̄ = broadcastsum!((y, z̄)->y * z̄, true, x̄, y, z̄)),
         :(ȳ = broadcastsum!((x, z̄)->x * z̄, true, ȳ, x, z̄)),
         (lb, ub), (lb, ub)),
     (:./,
-        :(x̄ = broadcastsum!((y, z̄)->z̄ / y, false, similar(x), y, z̄)),
-        :(ȳ = broadcastsum!((x, y, z̄)->-z̄ * x / y^2, false, similar(y), x, y, z̄)),
+        :(x̄ = broadcastsum((y, z̄)->z̄ / y, false, x, y, z̄)),
+        :(ȳ = broadcastsum((x, y, z̄)->-z̄ * x / y^2, false, y, x, y, z̄)),
         :(x̄ = broadcastsum!((y, z̄)->z̄ / y, true, x̄, y, z̄)),
         :(ȳ = broadcastsum!((x, y, z̄)->-z̄ * x / y^2, true, ȳ, x, y, z̄)),
         (lb, ub), (lb, ub)),
     (:.\,
-        :(x̄ = broadcastsum!((x, y, z̄)-> -z̄ * y / x^2, false, similar(x), x, y, z̄)),
-        :(ȳ = broadcastsum!((x, z̄)->z̄ / x, false, similar(y), x, z̄)),
+        :(x̄ = broadcastsum((x, y, z̄)-> -z̄ * y / x^2, false, x, x, y, z̄)),
+        :(ȳ = broadcastsum((x, z̄)->z̄ / x, false, y, x, z̄)),
         :(x̄ = broadcastsum!((x, y, z̄)-> -z̄ * y / x^2, true, x̄, x, y, z̄)),
         :(ȳ = broadcastsum!((x, z̄)->z̄ / x, true, ȳ, x, z̄)),
         (lb, ub), (lb, ub)),
@@ -90,13 +111,15 @@ reduce = [
 ]
 
 # Each of the reduce operations. Both forms are supported.
-for (f, new_x̄, update_x̄) in reduce
+let par_types = [:(T <: Union{AbstractArray, Number})]
+    for (f, new_x̄, update_x̄) in reduce
 
-    # Define the single argument sensitivity.
-    generate_primitive(f, [:(T <: AbstractArray)], [:x], [:x̄], [:T], [true], :y, :ȳ,
-        [new_x̄], [update_x̄])
+        # Define the single argument sensitivity.
+        generate_primitive(f, par_types, [:x], [:x̄], [:T], [true], :y, :ȳ, [new_x̄],
+            [update_x̄])
 
-    # Define the multiple-argument sensitivity.
-    generate_primitive(f, [:(T <: AbstractArray)], [:x, :dims], [:x̄, :nothing], [:T, :Any],
-        [true, false], :y, :ȳ, [new_x̄, :nothing], [update_x̄, :nothing])
+        # Define the multiple-argument sensitivity.
+        generate_primitive(f, par_types, [:x, :dims], [:x̄, :nothing], [:T, :Any],
+            [true, false], :y, :ȳ, [new_x̄, :nothing], [update_x̄, :nothing])
+    end
 end

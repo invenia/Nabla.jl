@@ -66,7 +66,9 @@ unary_sensitivities = [
 ]
 
 for (f, x̄, range) in unary_sensitivities
-    @eval @primitive $f{T<:AbstractFloat}(x::T) y ȳ $x̄
+    new_x̄, update_x̄ = :(x̄ = $x̄), :(x̄ += $x̄)
+    generate_primitive(f, [:(T <: Union{Number, AbstractArray})], [:x], [:x̄], [:T],
+        [true], :y, :ȳ, [new_x̄], [update_x̄])
 end
 
 # Definitions for functions of two arguments written as z = f(x, y).
@@ -80,7 +82,11 @@ binary_sensitivities = [
 ]
 
 for (f, x̄, ȳ, range) in binary_sensitivities
-    @eval @primitive $f{T, V<:AbstractFloat}(x::T, y::V) z z̄ $x̄ $ȳ
+    new_x̄, update_x̄ = :(x̄ = $x̄), :(x̄ += $x̄)
+    new_ȳ, update_ȳ = :(ȳ = $ȳ), :(ȳ += $ȳ)
+    generate_primitive(f, [:(T <: Number), :(V <: Number)],
+        [:x, :y], [:x̄, :ȳ], [:T, :V], [true, true], :z, :z̄,
+        [new_x̄, new_ȳ], [update_x̄, update_ȳ])
 end
 
 # Other functions defined in julia/base/math.jl

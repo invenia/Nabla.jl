@@ -1,4 +1,4 @@
-println("sensitivities/linalg.jl... ")
+print("sensitivities/linalg.jl... ")
 
 let ϵ_abs = 1e-3, ϵ_rel = 1e-2, δ = 1e-6, N = 5
 
@@ -52,7 +52,6 @@ let ϵ_abs = 1e-3, ϵ_rel = 1e-2, δ = 1e-6, N = 5
 
     # Test solving sensitivities.
     for (f, C, tA, tB, arg1, arg2) in AutoGrad2.strided_ldiv
-        println(f)
 
         # Test allocating sensitivities.
         A, B = randn(5, 5), randn(5, 5)

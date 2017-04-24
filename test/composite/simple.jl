@@ -38,7 +38,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         yr = Root(randn(5), ftape)
         z = xr .* yr
         z = xr .+ yr
-        rtape = ∇(xr)
+        rtape = ∇(z)
         @test all(rtape[xr] .== 1.0) && all(rtape[yr] .== 1.0) && !isdefined(rtape, 3)
     end
 
@@ -48,6 +48,8 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         δ_abs, δ_rel = discrepancy(f, (W1, W2, X, Y), δ, [true, true, true, true])
         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
     end
+
+    demo_mlp(1, 100, 1e-2)
 
 end
 

@@ -29,6 +29,7 @@ function demo_mlp(itrs::Int, sz::Int, η::Float64)
     println("Initialising parameters.")
     d0, d1, d2, d3 = size(xtr, 1), 500, 300, size(ytr, 1)
     W1, W2, W3 = 0.1 * randn(d1, d0), 0.1 * randn(d2, d1), 0.1 * randn(d3, d2)
+    b1, b2, b3 = 0.1 * randn(d1), 0.1 * randn(d2), 0.1 * randn(d3)
     λ = 1e-3 # I forget what the advice is re. setting different priors for different layers.
 
     # Initialise the AdaGrad optimiser. (Currently one for each set of parameters, legacy issue
@@ -37,6 +38,9 @@ function demo_mlp(itrs::Int, sz::Int, η::Float64)
     optW1 = Adam(W1, α, β1, β2, ϵ)
     optW2 = Adam(W2, α, β1, β2, ϵ)
     optW3 = Adam(W3, α, β1, β2, ϵ)
+    optb1 = Adam(b1, α, β1, β2, ϵ)
+    optb2 = Adam(b2, α, β1, β2, ϵ)
+    optb3 = Adam(b3, α, β1, β2, ϵ)
 
     # Iterate to learn the parameters.
     println("Starting learning.")
@@ -51,13 +55,14 @@ function demo_mlp(itrs::Int, sz::Int, η::Float64)
         # Initialise computational graph.
         tape = Tape()
         W1r, W2r, W3r = Root(W1, tape), Root(W2, tape), Root(W3, tape)
+        b1r, b2r, b3r = Root(b1, tape), Root(b2, tape), Root(b3, tape)
 
         # Compute log prior of paramter values. Note that we don't want gradients w.r.t. λ,
         # the prior precision, so we don't bother to make it a Node.
-        logprior = -0.5 .* λ .* (sumabs2(W1r) + sumabs2(W2r) + sumabs(W3r))
+        logprior = -0.5 * λ * (sumabs2(W1r) + sumabs2(W2r) + sumabs(W3r))
 
         # Compute new data representation via MLP on a subset of the data.
-        f = logistic(W3r * tanh(W2r * tanh(W1r * xtr_batch)))
+        f = logistic(W3r * tanh(W2r * tanh(W1r * xtr_batch .+ b1r) .+ b2r) .+ b3r)
         f = f ./ sum(f, 1)
 
         # Compute the log probability of the observations.
@@ -65,7 +70,7 @@ function demo_mlp(itrs::Int, sz::Int, η::Float64)
         loglik = scal * sum(ytr_batch .* log(f .+ ϵ) .+ (1 .- ytr_batch) .* log((1 + ϵ) .- f))
 
         # Compute gradient of log-joint w.r.t. each of the parameters.
-        logp = loglik .+ logprior
+        logp = loglik + logprior
         ∇logp = ∇(logp)
 
         # Compute ML classification rate for each prediction made this iteration.
