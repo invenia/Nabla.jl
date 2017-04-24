@@ -89,8 +89,7 @@ reduce = [
         :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
 ]
 
-# Each of the reduce operations, except for sumabs2 which doesn't quite fit the same
-# format as the other reduce operations without sacrificing some efficiency.
+# Each of the reduce operations. Both forms are supported.
 for (f, new_x̄, update_x̄) in reduce
 
     # Define the single argument sensitivity.

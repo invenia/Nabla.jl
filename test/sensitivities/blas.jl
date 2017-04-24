@@ -9,13 +9,13 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # Testing for dot.
     let x = randn(10), y = randn(6)
         δ_abs, δ_rel = discrepancy(dot, ((x[1:5]), (y[1:5])), δ)
-        @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel) &&
-              all(δ_abs[2] .< ϵ_abs) && all(δ_rel[2] .< ϵ_rel)
+        @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)
+        @test all(δ_abs[2] .< ϵ_abs) && all(δ_rel[2] .< ϵ_rel)
 
         diff = [false, true, false, true, false]
         δ_abs, δ_rel = discrepancy(dot, (5, x, 2, y, 1), δ, diff)
-        @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel) &&
-              all(δ_abs[2] .< ϵ_abs) && all(δ_rel[2] .< ϵ_rel)
+        @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)
+        @test all(δ_abs[2] .< ϵ_abs) && all(δ_rel[2] .< ϵ_rel)
     end
 
     # Testing for nrm2.
