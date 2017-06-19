@@ -19,7 +19,7 @@ for (dtype, zeroexpr, oneexpr, randexpr) in returns_basic
 end
 
 
-abstract Node{T}
+abstract type Node{T} end
 
 immutable Tape
     tape::Vector{Any}

@@ -1,69 +1,92 @@
-export primitive
+export sensitivity, branchexpr
 
-"""
-    primitive(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector)
-Construct the methods of `f` required to enable it propagate derivatives correctly. `diffs`
-indicates the arguments which are differentiable.
-"""
-function primitive(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector)
-    function primitive_(states::Vector{Bool}, pos::Int)
-        if pos > length(states)
-            any(states .== true) && eval(constructboxedfunc(f, typepars, argtypes, states))
-        else
-            states[pos] = false
-            primitive_(states, pos + 1)
-            if diffs[pos]
-                states[pos] = true
-                primitive_(states, pos + 1)
-            end
+sensitivity(
+    expr::Expr,
+    x̄::Tuple,
+    y::Symbol,
+    ȳ::Symbol,
+    preprocess::SymOrExpr=:nothing) =
+    primitive(expr, [x̄], y, ȳ, preprocess)
+
+function sensitivity(
+    expr::Expr,
+    x̄::Vector{Tuple},
+    y::Symbol,
+    ȳ::Symbol,
+    preprocess::SymOrExpr=:nothing)
+
+    # Format inputs and check that they aren't `Any`.
+    expr.head == :call || error("expr is not a function call")
+    args_typed = expr.args[2:end]
+    foo, args = expr.args[1], [parsearg(arg) for arg in args_typed]
+    (name, tpars) = isa(foo, Expr) ? (foo.args[1], foo.args[2:end]) : (foo, [])
+    any([arg[2] == :Any for arg in args]) && error("Types of args must not be Any.")
+
+    # Construct the signature for the generated function.
+    syms = [gensym() for arg in args]
+    tpars = vcat(tpars, [Expr(:(<:), [syms[j], arg[2]]...) for (j, arg) in enumerate(args)])
+    node_params = [Expr(:(::), arg[1], Expr(:curly, :Union, syms[j], :(Node{$(syms[j])})))
+                   for (j, arg) in enumerate(args)]
+    call = Expr(:call, Expr(:curly, name, tpars...), node_params...)
+
+    # Construct the body of the generated function.
+    body = Vector{SymOrExpr}()
+    push!(body, :(argts = $[arg[1] for arg in args]))
+    push!(body, Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)))
+    push!(body, Expr(:return, Expr(:call, :branchexpr, :(:foo), :argts, :diffs)))
+
+    # Construct generated function definition.
+    intercept =  Expr(:macrocall, Symbol(:@generated),
+        Expr(:function, call, Expr(:block, body...)))
+
+    # Symbols for the tape and indices into `tape` to get `x̄`.
+    tape, x̄id = gensym(), [gensym() for _ in eachindex(x̄)]
+
+    # Construct signature for the reverse-mode sensitivity computations method.
+    typedname = Expr(:curly, name, tpars...)
+    typedname = Expr(:curly, name)
+    tape_arg = Expr(:(::), tape, :Tape)
+    x̄id_typed = [Expr(:(::), a, Int) for a in x̄id]
+    ∇call = Expr(:call, foo, tape_arg, y, ȳ, args_typed..., x̄id_typed...)
+
+    # Construct body for the reverse-mode sensitivity computations method.
+    ∇body = Vector{SymOrExpr}()
+    preprocess != :nothing && push!(∇body, preprocess)
+
+    # For each argument in `x`, add code to compute the reverse-mode sensitivity, updating
+    # the existing value if present, otherwise creating a new value. Always assign in the
+    # end.
+    for n in eachindex(args)
+        if x̄[n][1] != :nothing
+            tape_index = :($tape.tape[$(x̄id[n])])
+            update_x̄ = Expr(:block, Expr(:(=), x̄[n][1], tape_index), x̄[n][3])
+            push!(∇body,
+                Expr(:if, :($(x̄id[n]) > 0), Expr(:block,
+                    Expr(:if, :(isdefined($tape.tape, $(x̄id[n]))), update_x̄, x̄[n][2]),
+                    Expr(:(=), tape_index, x̄[n][1]))))
         end
     end
-    primitive_(collect(diffs), 1)
+    push!(∇body, Expr(:return, :nothing))
+
+    # Construct expression to compute rvs mode sensitivities.
+    sensitivity = Expr(:macrocall, Symbol(:@inline),
+        Expr(:function, ∇call, Expr(:block, ∇body...)))
+
+    return intercept, sensitivity
 end
 
-
-"""
-    constructboxedfunc(f::Symbol, tpars::Vector, argts::Vector, diffs::Vector{Bool})
-Construct a method of the Function `f`, with parametric typess `tpars`, arguments with the
-types specified by `argts`. Arguments which are expected to be `Node` objects should be
-indicated by `true` values in `diffs`.
-"""
-function constructboxedfunc(f::Symbol, tpars::Vector, argts::Vector, diffs::Vector{Bool})
-    Expr(:(=), callexpr(f, tpars, argts, diffs), branchexpr(f, diffs))
-end
-
-
-"""
-    callexpr(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector{Bool})
-Compute Expr which creates a new function call.
-
-Inputs:\\\
-`f::Symbol` - Function to call.\\
-`typepars::Vector` - Parametric type information.\\
-`argtypes::Vector` - the type of the arguments. Can refer to something in `typepars`.\\
-`diffs::Vector{Bool}` - the arguments which will be Nodes.
-"""
-function callexpr(f::Symbol, typepars::Vector, argtypes::Vector, diffs::Vector{Bool})
-    ex = Expr(:call, Expr(:curly, f, typepars...))
-    for n in eachindex(diffs)
-        datatype = diffs[n] ? Expr(:curly, :Node, argtypes[n]) : argtypes[n]
-        push!(ex.args, Expr(:(::), Symbol("x", n), datatype))
-    end
-    return ex
-end
-
+parsearg(arg::Symbol) = (arg, :Any)
+parsearg(arg::Expr) = (arg.args[1], arg.args[2])
 
 """
     branchexpr(f::Symbol, diffs::Vector{Bool})
-Compute Expr which creates a new Branch object whose Function is `f` with
+Compute Expr that creates a new Branch object whose Function is `f` with
 arbitrarily named arguments, the number of which is determined by `diffs`.
 Assumed that at least one element of `diffs` is true.
 """
-function branchexpr(f::Symbol, diffs::Vector{Bool})
-    args = [Symbol("x", n) for n in eachindex(diffs)]
+function branchexpr(f::Symbol, args::Vector, diffs::Vector{Bool})
     return Expr(:call, :Branch, f, Expr(:tuple, args...), gettape(args, diffs))
 end
-
 
 """
     gettape(args::Vector{Symbol}, diffs::Vector{Bool})

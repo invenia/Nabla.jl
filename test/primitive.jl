@@ -1,37 +1,28 @@
 print("primitive.jl... ")
 
-function check_constructboxedfunc()
-    fname, args, box = :(sum{T<:AbstractFloat}), [(:x, :(Vector{T}))], [true]
-    expr_hand = Expr(:(=), :(sum{T<:AbstractFloat}(x::Node{Vector{T}})), :(Branch(sum, (x,))))
-    expr_auto = AutoGrad2.constructboxedfunc(fname, args, box)
-    dump(expr_hand)
-    dump(expr_auto)
-    return isequal(expr_hand, expr_auto)
-end
-# @test check_constructboxedfunc()
+foo(x::Real, y::Float64) = println("Aha!")
+out = sensitivity(
+    :(foo{T<:AbstractFloat}(x::Real, y::T)),
+    Vector{Tuple}([
+        (:x̄, :(x̄ = x), :(x̄ = x)),
+        (:nothing,)]),
+        # (:ȳ, :(ȳ = y), :(ȳ = y))]),
+    :z,
+    :z̄,
+    :(println("Some preprocessing.")))
+eval(out[1])
+eval(out[2])
 
-function check_constructboxedfunc_simple()
-    fname, arg, box = :(sum), [(:x, :Any)], [true]
-    expr_hand = Expr(:(=), :(sum(x::Node{Any})), :(Branch(sum, (x,))))
-    expr_auto = AutoGrad2.constructboxedfunc(fname, arg, box)
-    return isequal(expr_hand, expr_auto)
+function check_sensitivity_func()
+    println()
+    println(out[1])
+    println()
+    println(out[2])
+    println(methods(foo))
+    println(foo(5, 4.0))
+    println(foo(Root(5, Tape()), 4.0))
+    return true
 end
-# @test check_constructboxedfunc_simple()
-
-function check_constructboxedfunc_simplemultipleargs()
-    fname, arg, box = :(sum{T}), [(:x, :Any), (:y, :(Vector{T}))], [true, false]
-    expr_hand = Expr(:(=), :(sum{T}(x::Node{Any}, y::Vector{T})), :(Branch(sum, (x,y))))
-    expr_auto = AutoGrad2.constructboxedfunc(fname, arg, box)
-    return isequal(expr_hand, expr_auto)
-end
-# @test check_constructboxedfunc_simplemultipleargs()
-
-function check_constructboxedfunc_simplemultipleargstrue()
-    fname, arg, box = :(sum{T<:AbstractFloat}), [(:x, :Any), (:y, :(Vector{T}))], [true, true]
-    expr_hand = Expr(:(=), :(sum{T<:AbstractFloat}(x::Node{Any}, y::Node{Vector{T}})), :(Branch(sum, (x,y))))
-    expr_auto = AutoGrad2.constructboxedfunc(fname, arg, box)
-    return isequal(expr_hand, expr_auto)
-end
-# @test check_constructboxedfunc_simplemultipleargstrue()
+@test check_sensitivity_func()
 
 println("passing.")
