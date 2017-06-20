@@ -35,7 +35,7 @@ function show(io::IO, tape::Tape)
         println("Empty tape.")
     else
         for n in eachindex(tape)
-            println(io, isdefined(tape.tape, n) ? tape[n] : "#undef")
+            println(io, isassigned(tape.tape, n) ? tape[n] : "#undef")
         end
     end
 end
@@ -66,9 +66,7 @@ function Root(val, tape::Tape)
     push!(tape, root)
     return root
 end
-function show{T}(io::IO, tape::Root{T})
-    print(io, "Root{$T} $(tape.val)")
-end
+show{T}(io::IO, tape::Root{T}) = print(io, "Root{$T} $(tape.val)")
 
 
 """
@@ -137,7 +135,7 @@ function ∇(node::Node)
     # Iterate backwards through the reverse tape and return the result.
     for n in eachindex(rvs_tape)
         δ = node.pos - n + 1
-        isdefined(rvs_tape.tape, δ) && propagate_sensitivities(fwd_tape[δ], δ, rvs_tape)
+        isassigned(rvs_tape.tape, δ) && propagate_sensitivities(fwd_tape[δ], δ, rvs_tape)
     end
     return rvs_tape
 end

@@ -14,25 +14,25 @@ let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     #     @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
     # end
 
-    # Check sensitivities for elementwise application of functions of two arguments.
-    for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, range_x, range_y) in AutoGrad2.binary_sensitivities_elementwise
-        x = rand(N) * (range_x[2] - range_x[1]) - range_x[1]
-        y = rand(N) * (range_y[2] - range_y[1]) - range_y[1]
+    # # Check sensitivities for elementwise application of functions of two arguments.
+    # for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, range_x, range_y) in AutoGrad2.binary_sensitivities_elementwise
+    #     x = rand(N) * (range_x[2] - range_x[1]) - range_x[1]
+    #     y = rand(N) * (range_y[2] - range_y[1]) - range_y[1]
 
-        δ_abs, δ_rel = discrepancy(eval(f), (x, y), δ, [true, true])
-        @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
+    #     δ_abs, δ_rel = discrepancy(eval(f), (x, y), δ, [true, true])
+    #     @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
 
-        # Testing with previously allocated memory.
-        g = :((x, y)->$f($f($f(x, y), y), x))
-        δ_abs, δ_rel = discrepancy(eval(g), (x, y), δ, [true, true])
-        @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
+    #     # Testing with previously allocated memory.
+    #     g = :((x, y)->$f($f($f(x, y), y), x))
+    #     δ_abs, δ_rel = discrepancy(eval(g), (x, y), δ, [true, true])
+    #     @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
 
-        # Testing with different sized arrays.
-        x = randn(N, 4, 1) * (range_x[2] - range_x[1]) - range_x[1]
-        y = randn(1, 1, 6) * (range_y[2] - range_y[1]) - range_y[1]
-        δ_abs, δ_rel = discrepancy(eval(f), (x, y), δ, [true, true])
-        @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
-    end
+    #     # Testing with different sized arrays.
+    #     x = randn(N, 4, 1) * (range_x[2] - range_x[1]) - range_x[1]
+    #     y = randn(1, 1, 6) * (range_y[2] - range_y[1]) - range_y[1]
+    #     δ_abs, δ_rel = discrepancy(eval(f), (x, y), δ, [true, true])
+    #     @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
+    # end
 
     # Test sensitivities for reduce functions of a single argument.
     M, P = 2, 3

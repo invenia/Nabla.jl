@@ -77,10 +77,10 @@ binary_sensitivities_elementwise = [
         (lb, ub), (lb, ub)),
 ]
 
-for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, xr, yr) in binary_sensitivities_elementwise
-    generate_primitive(f, [:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)], [:x, :y], [:x̄, :ȳ],
-        [:T, :U], [true, true], :z, :z̄, [new_x̄, new_ȳ], [update_x̄, update_ȳ])
-end
+# for (f, new_x̄, new_ȳ, update_x̄, update_ȳ, xr, yr) in binary_sensitivities_elementwise
+#     generate_primitive(f, [:(T <: ArrayOrFloat), :(U <: ArrayOrFloat)], [:x, :y], [:x̄, :ȳ],
+#         [:T, :U], [true, true], :z, :z̄, [new_x̄, new_ȳ], [update_x̄, update_ȳ])
+# end
 
 # Basic reductions of a single argument.
 reduce = [
@@ -111,15 +111,13 @@ reduce = [
 ]
 
 # Each of the reduce operations. Both forms are supported.
-let par_types = [:(T <: Union{AbstractArray, Number})]
-    for (f, new_x̄, update_x̄) in reduce
+for (f, new_x̄, update_x̄) in reduce
 
-        # Define the single argument sensitivity.
-        generate_primitive(f, par_types, [:x], [:x̄], [:T], [true], :y, :ȳ, [new_x̄],
-            [update_x̄])
+    # Define the single argument sensitivity.
+    eval(sensitivity(:($f{T<:Union{AbstractArray, Real}}(x::T)),
+        (:x̄, new_x̄, update_x̄), :y, :ȳ))
 
-        # Define the multiple-argument sensitivity.
-        generate_primitive(f, par_types, [:x, :dims], [:x̄, :nothing], [:T, :Any],
-            [true, false], :y, :ȳ, [new_x̄, :nothing], [update_x̄, :nothing])
-    end
+    # Define the multiple-argument sensitivity.
+    eval(sensitivity(:($f(x::AbstractArray, region)),
+        [(:x̄, new_x̄, update_x̄), (:nothing,)], :y, :ȳ))
 end

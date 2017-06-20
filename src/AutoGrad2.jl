@@ -12,7 +12,7 @@ include("primitive.jl")
 # Reverse-mode sensitivities.
 lb, ub = -5., 5.
 # include("sensitivities/scalar.jl")
-# include("sensitivities/array.jl")
+include("sensitivities/array.jl")
 # include("sensitivities/linalg.jl")
 # include("sensitivities/blas.jl")
 

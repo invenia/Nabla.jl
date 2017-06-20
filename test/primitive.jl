@@ -1,27 +1,19 @@
 print("primitive.jl... ")
 
-foo(x::Real, y::Float64) = println("Aha!")
-out = sensitivity(
-    :(foo{T<:AbstractFloat}(x::Real, y::T)),
-    Vector{Tuple}([
-        (:x̄, :(x̄ = x), :(x̄ = x)),
-        (:nothing,)]),
-        # (:ȳ, :(ȳ = y), :(ȳ = y))]),
-    :z,
-    :z̄,
-    :(println("Some preprocessing.")))
-eval(out[1])
-eval(out[2])
+# import Base.sum
+
+# out = sensitivity(:(sum{T<:Union{AbstractArray, Real}}(x::T)),
+#     (:x̄, :(x̄ = broadcast!(x->x, similar(x), ȳ)), :(broadcast!(+, x̄, x̄, ȳ))), :y, :ȳ)
+# println(out)
+# eval(out)
 
 function check_sensitivity_func()
-    println()
-    println(out[1])
-    println()
-    println(out[2])
-    println(methods(foo))
-    println(foo(5, 4.0))
-    println(foo(Root(5, Tape()), 4.0))
-    return true
+    x_ = randn(5)
+    x = Root(x_, Tape())
+    y = sum(x)
+    println(y)
+    ∇y = ∇(y)
+    return ∇y[x] == ones(x_)
 end
 @test check_sensitivity_func()
 
