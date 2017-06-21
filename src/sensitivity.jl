@@ -14,7 +14,8 @@ macro sensitivity(expr, x̄, y, ȳ, preprocess=:nothing)
     for (j, t) in enumerate(x̄v)
         push!(x̄d, ([s for s in t.args]...))
     end
-    return esc(sensitivity(expr, x̄d, y, ȳ, preprocess))
+    out = sensitivity(expr, x̄d, y, ȳ, preprocess)
+    return esc(out)
 end
 
 """ Deprecated. Will be removed before release. """
@@ -52,16 +53,18 @@ function sensitivity(
     # Construct the body of the generated function.
     arg_syms = [Expr(:quote, arg[1]) for arg in args]
     branchexpr = Expr(:call, :branchexpr, name, :args, :diffs)
-    if _method_exists(foo, args)
+    body = [Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)),
+            Expr(:(=), :args, Expr(:vect, arg_syms...))]
+    try
         sig = parsesig(_which(foo, args).sig)
         defaultexpr = Expr(:call, :invokeexpr, name, sig, :args)
-        body = [Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)),
-                Expr(:(=), :args, Expr(:vect, arg_syms...)),
-                Expr(:if, :(any(diffs)), :(return $branchexpr), :(return $defaultexpr))]
-    else
-        body = [Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)),
-                Expr(:(=), :args, Expr(:vect, arg_syms...)),
-                Expr(:return, branchexpr)]
+        body = vcat(body, :(return any(diffs) ? $branchexpr : $defaultexpr))
+    catch err
+        if isa(err, ErrorException)
+            body = vcat(body, :(return $branchexpr))
+        else
+            throw(err)
+        end
     end
 
     # Construct generated function definition.
@@ -161,39 +164,17 @@ avoiding extending Base.which.
 _which(f::Symbol, args::Vector) = which(eval(f), Tuple{[eval(arg[2]) for arg in args]...})
 
 """
-    _method_exists(f::Expr, args::Vector)
-Parse parametric type info to ensure dispatch is performed correctly. Specifically avoiding
-extending Base.method_exists.
-"""
-function _method_exists(f::Expr, args::Vector)
-    new_args = []
-    tpar_dict = Dict([parsearg(tpar) for tpar in f.args[2:end]])
-    for (j, arg) in enumerate(args)
-        haskey(tpar_dict, arg[2]) ?
-            push!(new_args, (arg[1], tpar_dict[arg[2]])) :
-            push!(new_args, arg)
-    end
-    return _method_exists(f.args[1], new_args)
-end
-
-"""
-    _method_exists(f::Symbol, args::Vector)
-Determine whether a method exists that can handle the function specified by `f` with
-arguments of the types specified in args. Specifically avoiding extending Base.method_exists
-"""
-_method_exists(f::Symbol, args::Vector) =
-    method_exists(eval(f), Tuple{[eval(arg[2]) for arg in args]...})
-
-"""
     parsesig(sig::DataType)
 Parse the Tuple-based method signature to obtain a Tuple containing just the
 types of the arguments.
 """
-parsesig(sig::DataType) = Tuple{sig.types[2:end]...}
+parsesig(sig::DataType) = Tuple{[_parsetype(tp) for tp in sig.types[2:end]]...}
+_parsetype(tp) = tp
+_parsetype(tp::TypeVar) = tp.ub
 
 """
     parsesig(sig::UnionAll)
 Parse the UnionAll-based method signature to obtain a Tuple containing just the
 types of the arguments. This approach can handle parametric types.
 """
-parsesig(sig::UnionAll) = error("Not implemented UnionAll-based signature extraction.")
+parsesig(sig::UnionAll) = parsesig(sig.body)

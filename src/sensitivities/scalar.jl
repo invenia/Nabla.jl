@@ -9,12 +9,13 @@ import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
     asinh, acosh, atanh,
     log, log2, log10, log1p,
     exp, exp2, exp10, expm1,
-    deg2rad, rad2deg, significand
+    deg2rad, rad2deg, significand,
+    abs2
 
 # atan2, asind, acosd, atand, asec, acsc,
 # acot, asecd, acscd, acotd, sech, csch, coth, asech, acsch, acoth,
 # sinc, cosc, hypot,
-# min, max, minmax, clamp, abs, abs2, copysign, sign, flipsign, erf, erfc, erfx
+# min, max, minmax, clamp, abs, copysign, sign, flipsign, erf, erfc, erfx
 # erfinv, erfcinv, real, imag, reim, conj, angle, cis, gamma, lgamma, lfact, digamma, invdigamma,
 # trigamma, polygamma, airy, airyprime, airyaiprime, airybi, airybiprime, airyx, + all of the other special functions.
 
@@ -22,11 +23,9 @@ import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
 
 # Hand code identity to prevent things from screwing up. This may become uneccessary in a
 # future iteration of the code generating code.
-@noinline identity(x::Node) = Branch(identity, (x,), x.tape)
-function ∇(::typeof(identity), tape::Tape, y, ȳ, x::Real, xid::Int)
+identity(x::Node) = Branch(identity, (x,), x.tape)
+∇(::typeof(identity), tape::Tape, y, ȳ, x::Real, xid::Int) =
     (xid > 0 && !isassigned(tape.tape, xid)) && (tape.tape[xid] = ȳ)
-    return nothing
-end
 
 # Definitions for functions of a single argument written as y = f(x).
 unary_sensitivities = [
@@ -70,6 +69,7 @@ unary_sensitivities = [
     (deg2rad, :(ȳ .* π180),         (lb, ub)),
     (rad2deg, :(ȳ ./ π180),        (lb, ub)),
     (significand, :(ȳ .* 0.5.^exponent(x)), (lb, ub)),
+    (abs2, :(2x), (lb, ub)),
 ]
 for (f, x̄, _) in unary_sensitivities
     new_x̄, update_x̄ = :(x̄ = $x̄), :(x̄ += $x̄)
@@ -83,7 +83,7 @@ binary_sensitivities = [
     (*, :(z̄ * y),               :(z̄ * x),            (lb, ub), (lb, ub)),
     (/, :(z̄ / y),               :(-z̄ * x / y^2),     (lb, ub), (lb, ub)),
     (\, :(-z̄ * y / x^2),        :(z̄ / x),            (lb, ub), (lb, ub)),
-    # (^, :(z̄ * (y - 1) * z / x), :(z̄ * z * log(x)),   (0., ub), (lb, ub)),
+    (^, :(z̄ * y * z / x), :(z̄ * z * log(x)),   (1e-6, ub), (lb, ub)),
 ]
 
 for (f, x̄, ȳ, range) in binary_sensitivities

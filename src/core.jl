@@ -31,7 +31,7 @@ immutable Tape
 end
 function show(io::IO, tape::Tape)
     if length(tape) == 0
-        println("Empty tape.")
+        println(io, "Empty tape.")
     else
         for n in eachindex(tape)
             println(io, isassigned(tape.tape, n) ? tape[n] : "#undef")
@@ -103,9 +103,9 @@ unbox(x) = x
 # Roots do nothing, Branches compute their own sensitivities and update others.
 @inline propagate_sensitivities(y::Root, δ::Int, rvs_tape::Tape) = nothing
 function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
-    y, ȳ = y.val, rvs_tape.tape[y.pos]::T
+    ȳ = rvs_tape.tape[y.pos]::T
     x, xid = map(unbox, y.args), map(pos, y.args)
-    ∇(y.f, rvs_tape, y, ȳ, x..., xid...)::Void
+    ∇(y.f, rvs_tape, y.val, ȳ, x..., xid...)::Void
     return nothing
 end
 

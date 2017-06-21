@@ -2,7 +2,7 @@ module AutoGrad2
 
 # Some aliases used repeatedly throughout the package.
 const SymOrExpr = Union{Symbol, Expr}
-const ArrayOrFloat = Union{AbstractArray, Number}
+const ArrayOrReal = Union{AbstractArray, Real}
 
 # Core functionality.
 include("core.jl")
