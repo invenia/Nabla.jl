@@ -6,12 +6,12 @@ const ArrayOrFloat = Union{AbstractArray, Number}
 
 # Core functionality.
 include("core.jl")
-include("primitive.jl")
+include("sensitivity.jl")
 # include("util.jl")
 
 # Reverse-mode sensitivities.
 lb, ub = -5., 5.
-# include("sensitivities/scalar.jl")
+include("sensitivities/scalar.jl")
 include("sensitivities/array.jl")
 # include("sensitivities/linalg.jl")
 # include("sensitivities/blas.jl")

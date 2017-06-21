@@ -84,40 +84,39 @@ binary_sensitivities_elementwise = [
 
 # Basic reductions of a single argument.
 reduce = [
-    (:sum,
+    (sum,
         :(x̄ = broadcast!(x->x, similar(x), ȳ)),
         :(broadcast!(+, x̄, x̄, ȳ))),
-    (:sumabs,
-        :(x̄ = broadcast!((x, ȳ)->sign(x) * ȳ, similar(x), x, ȳ)),
-        :(broadcast!((x̄, x, ȳ)->x̄ + sign(x) * ȳ, x̄, x̄, x, ȳ))),
-    (:sumabs2,
-        :(x̄ = broadcast!((x, ȳ)->2 * x * ȳ, similar(x), x, ȳ)),
-        :(broadcast!((x̄, x, y)->x̄ + 2 * x * ȳ, x̄, x̄, x, y))),
-    (:prod,
-        :(x̄ = broadcast!((x, y, ȳ)->ȳ * y / x, similar(x), x, y, ȳ)),
-        :(broadcast!((x̄, x, y, ȳ)-> x̄ + ȳ * y / x, x̄, x̄, x, y, ȳ))),
-    (:maximum,
-        :(x̄ = broadcast!((x, y, ȳ)->ȳ * (y == x), similar(x), x, y, ȳ)),
-        :(broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * (y == x), x̄, x̄, x, y, ȳ))),
-    (:minimum,
-        :(x̄ = broadcast!((x, y, ȳ)->ȳ * (y == x), similar(x), x, y, ȳ)),
-        :(broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * (y == x), x̄, x̄, x, y, ȳ))),
-    (:maxabs,
-        :(x̄ = broadcast!((x, y)->sign(x) * (y == abs(x)), similar(x), x, y)),
-        :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
-    (:minabs,
-        :(x̄ = broadcast!((x, y)->sign(x) * (y == abs(x)), similar(x), x, y)),
-        :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
+    # (sumabs,
+    #     :(x̄ = broadcast!((x, ȳ)->sign(x) * ȳ, similar(x), x, ȳ)),
+    #     :(broadcast!((x̄, x, ȳ)->x̄ + sign(x) * ȳ, x̄, x̄, x, ȳ))),
+    # (sumabs2,
+    #     :(x̄ = broadcast!((x, ȳ)->2 * x * ȳ, similar(x), x, ȳ)),
+    #     :(broadcast!((x̄, x, y)->x̄ + 2 * x * ȳ, x̄, x̄, x, y))),
+    # (prod,
+    #     :(x̄ = broadcast!((x, y, ȳ)->ȳ * y / x, similar(x), x, y, ȳ)),
+    #     :(broadcast!((x̄, x, y, ȳ)-> x̄ + ȳ * y / x, x̄, x̄, x, y, ȳ))),
+    # (maximum,
+    #     :(x̄ = broadcast!((x, y, ȳ)->ȳ * (y == x), similar(x), x, y, ȳ)),
+    #     :(broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * (y == x), x̄, x̄, x, y, ȳ))),
+    # (minimum,
+    #     :(x̄ = broadcast!((x, y, ȳ)->ȳ * (y == x), similar(x), x, y, ȳ)),
+    #     :(broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * (y == x), x̄, x̄, x, y, ȳ))),
+    # (maxabs,
+    #     :(x̄ = broadcast!((x, y)->sign(x) * (y == abs(x)), similar(x), x, y)),
+    #     :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
+    # (minabs,
+    #     :(x̄ = broadcast!((x, y)->sign(x) * (y == abs(x)), similar(x), x, y)),
+    #     :(broadcast!((x̄, x, y)->x̄ + sign(x) * (y == abs(x)), x̄, x̄, x, y))),
 ]
 
 # Each of the reduce operations. Both forms are supported.
 for (f, new_x̄, update_x̄) in reduce
+    fs = Symbol(f)
 
     # Define the single argument sensitivity.
-    eval(sensitivity(:($f{T<:Union{AbstractArray, Real}}(x::T)),
-        (:x̄, new_x̄, update_x̄), :y, :ȳ))
+    @eval @sensitivity $fs{T<:Union{AbstractArray, Real}}(x::T) (x̄, $new_x̄, $update_x̄) y ȳ
 
     # Define the multiple-argument sensitivity.
-    eval(sensitivity(:($f(x::AbstractArray, region)),
-        [(:x̄, new_x̄, update_x̄), (:nothing,)], :y, :ȳ))
+    @eval @sensitivity $fs(x::AbstractArray, region) [(x̄, $new_x̄, $update_x̄), ()] y ȳ
 end

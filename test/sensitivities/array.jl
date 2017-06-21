@@ -37,19 +37,20 @@ let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # Test sensitivities for reduce functions of a single argument.
     M, P = 2, 3
     for (f, x̄) in AutoGrad2.reduce
+
         # Generate some random dense arrays.
         x1, x2, x3 = randn(N), randn(N, M), randn(N, M, P)
         x1[1], x2[1], x3[1] = x1[1] + 100.0, x2[1] + 100.0, x3[1] + 100.0
         x1[end], x2[end], x3[end] = x1[end] - 100.0, x2[end] - 100.0, x3[end] - 100.0
 
         # Compute discrepancies for each array.
-        δ_abs_1, δ_rel_1 = @eval discrepancy($f, ($x1,), $δ)
-        δ_abs_2, δ_rel_2 = @eval discrepancy($f, ($x2,), $δ)
-        δ_abs_3, δ_rel_3 = @eval discrepancy($f, ($x3,), $δ)
-        δ_abs_4, δ_rel_4 = @eval discrepancy($f, ($x1, 1), $δ, [true, false])
-        δ_abs_5, δ_rel_5 = @eval discrepancy($f, ($x2, 1), $δ, [true, false])
-        δ_abs_6, δ_rel_6 = @eval discrepancy($f, ($x2, 1), $δ, [true, false])
-        δ_abs_7, δ_rel_7 = @eval discrepancy($f, ($x3, [1, 3]), $δ, [true, false])
+        δ_abs_1, δ_rel_1 = discrepancy(f, (x1,), δ)
+        δ_abs_2, δ_rel_2 = discrepancy(f, (x2,), δ)
+        δ_abs_3, δ_rel_3 = discrepancy(f, (x3,), δ)
+        δ_abs_4, δ_rel_4 = discrepancy(f, (x1, 1), δ, [true, false])
+        δ_abs_5, δ_rel_5 = discrepancy(f, (x2, 1), δ, [true, false])
+        δ_abs_6, δ_rel_6 = discrepancy(f, (x2, 1), δ, [true, false])
+        δ_abs_7, δ_rel_7 = discrepancy(f, (x3, [1, 3]), δ, [true, false])
 
         # Check that we are within tolerance for everything.
         @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1)) &&

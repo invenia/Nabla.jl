@@ -18,7 +18,6 @@ for (dtype, zeroexpr, oneexpr, randexpr) in returns_basic
     @eval @inline getrand(val::$dtype) = $randexpr
 end
 
-
 abstract type Node{T} end
 
 immutable Tape
@@ -47,7 +46,6 @@ end
 @inline length(tape::Tape) = length(tape.tape)
 @inline push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
 
-
 """
 An element at the 'bottom' of the computational graph.
 
@@ -67,7 +65,6 @@ function Root(val, tape::Tape)
     return root
 end
 show{T}(io::IO, tape::Root{T}) = print(io, "Root{$T} $(tape.val)")
-
 
 """
 A Branch is a Node with parents (args).
@@ -95,7 +92,6 @@ function show{T, V}(io::IO, branch::Branch{T, V})
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 end
 
-
 # Location of Node on tape. -1 if not a Node object.
 pos(x::Node) = x.pos
 pos(x) = -1
@@ -107,15 +103,11 @@ unbox(x) = x
 # Roots do nothing, Branches compute their own sensitivities and update others.
 @inline propagate_sensitivities(y::Root, δ::Int, rvs_tape::Tape) = nothing
 function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
-    a = map(unbox, y.args)
-    b = map(pos, y.args)
-    c = y.val
-    d = rvs_tape.tape[y.pos]::T
-    f = y.f
-    f(rvs_tape, c, d, a..., b...)::Void
+    y, ȳ = y.val, rvs_tape.tape[y.pos]::T
+    x, xid = map(unbox, y.args), map(pos, y.args)
+    ∇(y.f, rvs_tape, y, ȳ, x..., xid...)::Void
     return nothing
 end
-
 
 """
 Perform the reverse pass.
