@@ -1,5 +1,7 @@
 # AutoGrad2
 
+This name will definitely change before release.
+
 [![Build Status](https://travis-ci.org/willtebbutt/AutoGrad2.jl.svg?branch=master)](https://travis-ci.org/willtebbutt/AutoGrad2.jl)
 
 [![Coverage Status](https://coveralls.io/repos/willtebbutt/AutoGrad2.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/willtebbutt/AutoGrad2.jl?branch=master)
