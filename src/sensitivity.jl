@@ -1,4 +1,4 @@
-export sensitivity, @sensitivity
+export sensitivity, @sensitivity, branchexpr, invokeexpr, preprocess
 
 """
     @sensitivity expr x̄ y ȳ preprocess=:nothing
@@ -15,10 +15,11 @@ macro sensitivity(expr, x̄, y, ȳ, preprocess=:nothing)
         push!(x̄d, ([s for s in t.args]...))
     end
     out = sensitivity(expr, x̄d, y, ȳ, preprocess)
+    println(out)
     return esc(out)
 end
 
-""" Deprecated. Will be removed before release. """
+""" Possibly remove before open sourcing. """
 sensitivity(
     expr::Expr,
     x̄::Tuple,
@@ -75,7 +76,6 @@ function sensitivity(
     tape, x̄id = gensym(), [gensym() for _ in eachindex(x̄)]
 
     # Construct signature for the reverse-mode sensitivity computations method.
-    typedname = Expr(:curly, name, tpars...)
     typedname = Expr(:curly, name)
     tape_arg = Expr(:(::), tape, :Tape)
     x̄id_typed = [Expr(:(::), a, Int) for a in x̄id]
@@ -178,3 +178,143 @@ Parse the UnionAll-based method signature to obtain a Tuple containing just the
 types of the arguments. This approach can handle parametric types.
 """
 parsesig(sig::UnionAll) = parsesig(sig.body)
+
+"""
+    getfuncsymbol(n::Int)
+Get the Symbol corresponding to the name of the function which computes the reverse-mode
+sensitivity of the n^{th} argument of a function. If it's not present, generate one.
+"""
+function getfuncsymbol(n::Int)
+    haskey(_sens_dict, n) || setindex!(_sens_dict, gensym(), n)
+    return _sens_dict[n]
+end
+
+# """
+#     preprocess(::Function, Tuple, Any, Any) = ()
+# Default implementation for preproessing. If there is some preprocessing is required for the
+# sensitivities of a particular function then additional methods should be added.
+# """
+# preprocess(::Function, ::Tuple, ::Any, ::Any) = ()
+
+# """
+#     x̄(::Type{Arg{N}}, ::Function, x::Tuple, y::Any, ȳ::Any, p::Any) = 0.0
+# Default implementation for a sensitivity throws an error, indicating that a sensitivity for
+# a particular argument was requested but unavailable. Methods should be added to this
+# function to implement sensitivities for particular methods. For example
+
+#     x̄(Arg{1}, *, x::Tuple{T, V}, ::Any, ȳ::Any, ::Any) = x[2] * ȳ
+#     x̄(Arg{2}, *, x::Typle{T, V}, ::Any, ȳ::Any, ::Any) = x[1] * ȳ
+
+
+# """
+
+# """ Used to flag which argument is being specified in x̄. """
+# struct Arg{N} end
+# struct Update end
+# struct New end
+
+# requires_y(::Function, ::Type) = true
+
+# function add_intercepts(f::Function, types::Type)
+#     println("Now spit out an @generated function!")
+# end
+
+# function add_sensitivity(call::Expr, arg::Int, expr::Expr)
+
+#     eval(:(x̄(::Type{Arg{$arg}}, ::typeof($f), x::$types, y::Any, ȳ::Any) = $expr))
+# end
+
+
+
+# # Mock up implementation for *.
+# add_intercepts(*, Tuple{T, V} where {T<:Real, V<:Real})
+# requires_y{T<:Real, V<:Real}(::typeof(*), ::Type{Tuple{T, V}}) = false
+
+# # From the reverse-pass, I can splat stuff in here and it will just work.
+# ∇(::Type{Arg{1}}, ::typeof(*), p, x::Real, y::Real, z̄::Real) = y * z̄
+# ∇(::Type{Arg{2}}, ::typeof(*), p, x::Real, y::Real, z̄::Real) = x * z̄
+
+# function add_intercepts(expr::Expr)
+
+#     args = getargs(expr)
+#     syms = [gensym() for arg in args]
+
+
+
+# end
+
+
+
+# # Construct the signature for the generated function.
+# syms = [gensym() for arg in args]
+# tpars = vcat(tpars, [Expr(:(<:), [syms[j], arg[2]]...) for (j, arg) in enumerate(args)])
+# node_params = [Expr(:(::), arg[1], Expr(:curly, :Union, syms[j], :(Node{$(syms[j])})))
+#                for (j, arg) in enumerate(args)]
+# call = Expr(:call, Expr(:curly, name, tpars...), node_params...)
+
+# # Construct the body of the generated function.
+# arg_syms = [Expr(:quote, arg[1]) for arg in args]
+# branchexpr = Expr(:call, :branchexpr, name, :args, :diffs)
+# body = [Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)),
+#         Expr(:(=), :args, Expr(:vect, arg_syms...))]
+# try
+#     sig = parsesig(_which(foo, args).sig)
+#     defaultexpr = Expr(:call, :invokeexpr, name, sig, :args)
+#     body = vcat(body, :(return any(diffs) ? $branchexpr : $defaultexpr))
+# catch err
+#     if isa(err, ErrorException)
+#         body = vcat(body, :(return $branchexpr))
+#     else
+#         throw(err)
+#     end
+# end
+
+# # Construct generated function definition.
+# intercept =  Expr(:macrocall, Symbol(:@generated),
+#     Expr(:function, call, Expr(:block, body...)))
+
+
+
+
+# x̄, ȳ = :((x̄, z̄ * y, z̄ * y)), :((ȳ, z̄ * x, z̄ * x))
+# @eval @sensitivity *(x::T, y::V) where {T<:Real, V<:Real} z z̄ [$x̄, $ȳ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# """
+# Parse a :call expression, returning the function being called, any parametric types and the
+# typed arguments (if they have types).
+# """
+# function parsecall(call::Expr)
+#     call.head == :call || error("Expected a :call or :where expression, got $(call.head).")
+#     args1 = call.args[1]
+#     f = isa(args1, Symbol) ? args1 : args1.args[1]
+#     typevars = isa(args1, Symbol) ? :nothing : args1.args[2:end]
+#     return (f, typevars, call.args[2:end])
+# end
+
+# """
+# Parse a where Expression
+# """
+# function parsewhere(where::Expr)
+
+# end

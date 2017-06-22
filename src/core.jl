@@ -108,6 +108,19 @@ function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
     ∇(y.f, rvs_tape, y.val, ȳ, x..., xid...)::Void
     return nothing
 end
+# function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
+#     tape = rvs_tape.tape
+#     ȳ, f = tape[y.pos]::T, y.f
+#     xs, xids = map(unbox, y.args), map(pos, y.args)
+#     p = preprocess(f, xs..., y.val, ȳ)
+#     for j in eachindex(xs)
+#         x, xid = xs[j], xid[j]
+#         tape[xid] = isassigned(tape, xid) ?
+#             ∇(tape[xid], f, Arg{j}, p, xs..., y, ȳ) :
+#             ∇(f, Arg{j}, p, xs..., y, ȳ)
+#     end
+#     return nothing
+# end
 
 """
 Perform the reverse pass.
