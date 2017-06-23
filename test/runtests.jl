@@ -5,8 +5,16 @@ srand(123456789)
 
 import Base.sum, AutoGrad2.∇
 
-@sensitivity(sum{T<:Union{AbstractArray, Real}}(x::T),
-    [(x̄, x̄ = broadcast!(x->x, similar(x), ȳ), broadcast!(+, x̄, x̄, ȳ))], y, ȳ)
+@getgenintercept
+
+eval(genintercept(:(sum(x::Union{AbstractArray, Real}))))
+∇(::typeof(sum), ::Type{Arg{1}}, p, x::ArrayOrReal, y, ȳ) = broadcast!(x->x, similar(x), ȳ)
+∇(x̄, ::typeof(sum), ::Type{Arg{1}}, p, x::ArrayOrReal, y, ȳ) = broadcast!(+, x̄, x̄, ȳ)
+
+foo(x::Real) = 5x
+
+println(genintercept(:(foo(x::Real))))
+
 
 # Code for checking sensitivities.
 include("finite_differencing.jl")
@@ -18,7 +26,7 @@ include("core.jl")
 
 # Sensitivities for individual functions.
 include("sensitivities/scalar.jl")
-include("sensitivities/functional.jl")
+# include("sensitivities/functional.jl")
 # include("sensitivities/array.jl")
 # include("sensitivities/linalg.jl")
 # include("sensitivities/blas.jl")

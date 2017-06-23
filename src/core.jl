@@ -103,33 +103,27 @@ unbox(x) = x
 # Roots do nothing, Branches compute their own sensitivities and update others.
 @inline propagate_sensitivities(y::Root, δ::Int, rvs_tape::Tape) = nothing
 function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
-    ȳ = rvs_tape.tape[y.pos]::T
-    x, xid = map(unbox, y.args), map(pos, y.args)
-    ∇(y.f, rvs_tape, y.val, ȳ, x..., xid...)::Void
+    tape = rvs_tape.tape
+    ȳ, f = tape[y.pos]::T, y.f
+    xs, xids = map(unbox, y.args), map(pos, y.args)
+    p = preprocess(f, xs..., y.val, ȳ)
+    for j in eachindex(xs)
+        x, xid = xs[j], xids[j]
+        if xid > 0
+            tape[xid] = isassigned(tape, xid) ?
+                ∇(tape[xid], f, Arg{j}, p, xs..., y.val, ȳ) :
+                ∇(f, Arg{j}, p, xs..., y.val, ȳ)
+        end
+    end
     return nothing
 end
-# function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
-#     tape = rvs_tape.tape
-#     ȳ, f = tape[y.pos]::T, y.f
-#     xs, xids = map(unbox, y.args), map(pos, y.args)
-#     p = preprocess(f, xs..., y.val, ȳ)
-#     for j in eachindex(xs)
-#         x, xid = xs[j], xid[j]
-#         tape[xid] = isassigned(tape, xid) ?
-#             ∇(tape[xid], f, Arg{j}, p, xs..., y, ȳ) :
-#             ∇(f, Arg{j}, p, xs..., y, ȳ)
-#     end
-#     return nothing
-# end
 
 """
-Perform the reverse pass.
+    ∇(node::Node)
 
-Inputs:
-node - The Node w.r.t. which we will computed gradients.
-
-Outputs:
-a Tape containing the reverse-mode sensitivities w.r.t. node of every node in node.tape.
+Perform the reverse pass using the output of a forward pass. Outputs the reverse-tape, which
+can be queried to find the derivative of any quantity in the computational graph w.r.t. the
+final output.
 """
 function ∇(node::Node)
 

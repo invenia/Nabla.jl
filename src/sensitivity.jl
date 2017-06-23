@@ -1,117 +1,97 @@
-export sensitivity, @sensitivity, branchexpr, invokeexpr, preprocess
+export @getgenintercept, branchexpr, invokeexpr, preprocess, ∇, Arg, parseexpr, parsesig, _genintercept
 
-"""
-    @sensitivity expr x̄ y ȳ preprocess=:nothing
-Construct a generated method for the function specified in `expr` which intercepts calls
-containing `Node` objects, and performs the bookkeeping necessary to perform RMAD.
-Also add a method to `∇` which can compute the reverse-mode sensitivities specified in x̄.
-
-`Add example usage here. (It's comparatively simple to use).`
-"""
-macro sensitivity(expr, x̄, y, ȳ, preprocess=:nothing)
-    x̄v = x̄.head == :vect ? [t for t in x̄.args] : [x̄]
-    x̄d = []
-    for (j, t) in enumerate(x̄v)
-        push!(x̄d, ([s for s in t.args]...))
+macro getgenintercept()
+    out = quote
+        function _which(f::Expr, args::Vector)
+            new_args = []
+            tpar_dict = Dict([parsearg(tpar) for tpar in f.args[2:end]])
+            for (j, arg) in enumerate(args)
+                haskey(tpar_dict, arg[2]) ?
+                    push!(new_args, (arg[1], tpar_dict[arg[2]])) :
+                    push!(new_args, arg)
+            end
+            return _which(f.args[1], new_args)
+        end
+        _which(f::Symbol, args::Vector) =
+            which(eval(f), Tuple{[eval(arg[2]) for arg in args]...})
+        function genintercept(expr::Expr)
+            try
+                (expr, call, name, args) = parseexpr(expr)
+                return AutoGrad2._genintercept(expr, parsesig(_which(name, args).sig))
+            catch err
+                if isa(err, ErrorException)
+                    return AutoGrad2._genintercept(expr, :nothing)
+                else
+                    throw(err)
+                end
+            end
+        end
     end
-    out = sensitivity(expr, x̄d, y, ȳ, preprocess)
-    println(out)
     return esc(out)
 end
+@getgenintercept
 
-""" Possibly remove before open sourcing. """
-sensitivity(
-    expr::Expr,
-    x̄::Tuple,
-    y::Symbol,
-    ȳ::Symbol,
-    preprocess::SymOrExpr=:nothing) =
-    sensitivity(expr, Vector{Tuple}([x̄]), y, ȳ, preprocess)
+"""
+    _genintercept(expr::Expr)
 
-""" Constructs the functions specified by @sensitivity. See @sensitivity for details. """
-function sensitivity(
-    expr::Expr,
-    x̄::Vector,
-    y::Symbol,
-    ȳ::Symbol,
-    preprocess::SymOrExpr=:nothing)
+Generates the code for a method which is designed to intercept the usual control flow of a\\
+program when Node objects are encountered where differentiable arguments may occur. `expr`\\
+specifies the signature of the method to be generated and should be a `:call` or `:where`\\
+expression and correspond to a valid method signature. e.g.\\
+    foo(x::Real, y::Real)\\
+or\\
+    foo{T<:Real}(x::T, y::T)\\
+or\\
+    foo(x::T, y::T) where T<:Real\\
+Any argument of `foo` which is to be differentiable (i.e. could be boxed in a Node object)\\
+must have a which is not `Any`. For example\\
+    foo(x::Real, y)\\
+would produce unreliable behaviour if it happens to be the case that y<:Node. Conversely,\\
+if an argument is not meant to be differentiable, then it is fine to leave it untyped if\\
+desired.\\
+"""
+function _genintercept(expr::Expr, sig)
 
-    # Format inputs and check that they aren't `Any`.
-    expr.head == :call || error("expr is not a function call")
-    args_typed = expr.args[2:end]
-    foo, args = expr.args[1], [parsearg(arg) for arg in args_typed]
-    (name, tpars) = isa(foo, Expr) ? (foo.args[1], foo.args[2:end]) : (foo, [])
-    any([arg[2] == :Any && length(x̄[j]) > 0 for (j, arg) in enumerate(args)]) &&
-        error("Types of args must not be Any.")
+    (expr, call, name, args) = parseexpr(expr)
 
-    # Construct the signature for the generated function.
+    # Construct signature for generated function.
     syms = [gensym() for arg in args]
-    tpars = vcat(tpars, [Expr(:(<:), [syms[j], arg[2]]...) for (j, arg) in enumerate(args)])
-    node_params = [Expr(:(::), arg[1], Expr(:curly, :Union, syms[j], :(Node{$(syms[j])})))
-                   for (j, arg) in enumerate(args)]
-    call = Expr(:call, Expr(:curly, name, tpars...), node_params...)
+    new_typed_args = [:($(args[j][1])::Union{$(syms[j]), Node{$(syms[j])}}) for j in eachindex(args)]
+    new_call = Expr(:call, name, new_typed_args...)
+    new_typevars = [:($(syms[j])<:$(args[j][2])) for j in eachindex(args)]
+    new_expr = expr.head == :where ?
+        changewherecall(Expr(:where, new_call, new_typevars...), expr) :
+        Expr(:where, new_call, new_typevars...)
 
     # Construct the body of the generated function.
     arg_syms = [Expr(:quote, arg[1]) for arg in args]
     branchexpr = Expr(:call, :branchexpr, name, :args, :diffs)
     body = [Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)),
             Expr(:(=), :args, Expr(:vect, arg_syms...))]
-    try
-        sig = parsesig(_which(foo, args).sig)
-        defaultexpr = Expr(:call, :invokeexpr, name, sig, :args)
-        body = vcat(body, :(return any(diffs) ? $branchexpr : $defaultexpr))
-    catch err
-        if isa(err, ErrorException)
-            body = vcat(body, :(return $branchexpr))
-        else
-            throw(err)
-        end
-    end
+    defaultexpr = Expr(:call, :invokeexpr, name, sig, :args)
+    body = sig == :nothing ?
+        vcat(body, :(return $branchexpr)) :
+        vcat(body, :(return any(diffs) ? $branchexpr : $defaultexpr))
 
     # Construct generated function definition.
-    intercept =  Expr(:macrocall, Symbol(:@generated),
-        Expr(:function, call, Expr(:block, body...)))
-
-    # Symbols for the tape and indices into `tape` to get `x̄`.
-    tape, x̄id = gensym(), [gensym() for _ in eachindex(x̄)]
-
-    # Construct signature for the reverse-mode sensitivity computations method.
-    typedname = Expr(:curly, name)
-    tape_arg = Expr(:(::), tape, :Tape)
-    x̄id_typed = [Expr(:(::), a, Int) for a in x̄id]
-    ∇call_name = isa(foo, Symbol) ? :∇ : Expr(:curly, :∇, foo.args[2:end]...)
-    ∇call = Expr(:call, ∇call_name, :(::typeof($name)), tape_arg, y, ȳ, args_typed..., x̄id_typed...)
-
-    # Construct body for the reverse-mode sensitivity computations method.
-    ∇body = Vector{SymOrExpr}()
-    preprocess != :nothing && push!(∇body, preprocess)
-
-    # For each argument in `x`, add code to compute the reverse-mode sensitivity, updating
-    # the existing value if present, otherwise creating a new value.
-    for n in eachindex(args)
-        if length(x̄[n]) > 0
-            tape_index = :($tape.tape[$(x̄id[n])])
-            update_x̄ = Expr(:block, Expr(:(=), x̄[n][1], tape_index), x̄[n][3])
-            push!(∇body,
-                Expr(:if, :($(x̄id[n]) > 0), Expr(:block,
-                    Expr(:if, :(isassigned($tape.tape, $(x̄id[n]))), update_x̄, x̄[n][2]),
-                    Expr(:(=), tape_index, x̄[n][1]))))
-        end
-    end
-    push!(∇body, Expr(:return, :nothing))
-
-    # Construct expression to compute rvs mode sensitivities.
-    sensitivity = Expr(:macrocall, Symbol(:@inline),
-        Expr(:function, ∇call, Expr(:block, ∇body...)))
-
-    return Expr(:block, intercept, sensitivity)
+    return Expr(:macrocall, Symbol(:@generated),
+        Expr(:function, new_expr, Expr(:block, body...)))
 end
 
 parsearg(arg::Symbol) = (arg, :Any)
 parsearg(arg::Expr) = (arg.args[1], arg.args[2])
 
+function parseexpr(expr::Expr)
+    # If the old `curly` format is used then convert to the new `where` format.
+    (isa(expr.args[1], Expr) && expr.args[1].head == :curly) && (expr = curlytowhere(expr))
+    call = callfromwhere(expr)
+    name, args = call.args[1], [parsearg(arg) for arg in call.args[2:end]]
+    return (expr, call, name, args)
+end
+
 """
     branchexpr(f, args::Vector, diffs::Vector{Bool})
+
 Compute Expr that creates a new Branch object whose Function is `f` with
 arbitrarily named arguments, the number of which is determined by `diffs`.
 Assumed that at least one element of `diffs` is true.
@@ -121,6 +101,7 @@ branchexpr(f, args::Vector, diffs::Vector{Bool}) =
 
 """
     invokeexpr(f, types, args::Vector{Symbol})
+
 Generate an expression which invokes a particular method of the function f. The arguments
 should be expressions for the arguments, not the arguments themselves.
 """
@@ -128,6 +109,7 @@ invokeexpr(f, types, args::Vector{Symbol}) = Expr(:call, :invoke, :($f), :($type
 
 """
     gettape(args::Vector{Symbol}, diffs::Vector{Bool})
+
 Determines the first argument of `args` which is a `Node` via `diffs`, and returns an `Expr`
 which returns its tape at run time. If none of the arguments are Nodes, then an error is
 thrown. Error also thrown if `args` and `diffs` are not the same length.
@@ -141,30 +123,8 @@ function gettape(args::Vector{Symbol}, diffs::Vector{Bool})
 end
 
 """
-    _which(f::Expr, args::Vector)
-Parse parametric type info to ensure dispatch is performed correctly. Specifically avoiding
-extending Base.which.
-"""
-function _which(f::Expr, args::Vector)
-    new_args = []
-    tpar_dict = Dict([parsearg(tpar) for tpar in f.args[2:end]])
-    for (j, arg) in enumerate(args)
-        haskey(tpar_dict, arg[2]) ?
-            push!(new_args, (arg[1], tpar_dict[arg[2]])) :
-            push!(new_args, arg)
-    end
-    return _which(f.args[1], new_args)
-end
-
-"""
-    _which(f::Symbol, args::Vector)
-Determine which method of `f` will be called given the types of `args`. Specifically
-avoiding extending Base.which.
-"""
-_which(f::Symbol, args::Vector) = which(eval(f), Tuple{[eval(arg[2]) for arg in args]...})
-
-"""
     parsesig(sig::DataType)
+
 Parse the Tuple-based method signature to obtain a Tuple containing just the
 types of the arguments.
 """
@@ -174,147 +134,78 @@ _parsetype(tp::TypeVar) = tp.ub
 
 """
     parsesig(sig::UnionAll)
+
 Parse the UnionAll-based method signature to obtain a Tuple containing just the
 types of the arguments. This approach can handle parametric types.
 """
 parsesig(sig::UnionAll) = parsesig(sig.body)
 
 """
-    getfuncsymbol(n::Int)
-Get the Symbol corresponding to the name of the function which computes the reverse-mode
-sensitivity of the n^{th} argument of a function. If it's not present, generate one.
+    curlytowhere(expr::Expr)
+
+Convert a`:curly` expression to a `:where` expression.
 """
-function getfuncsymbol(n::Int)
-    haskey(_sens_dict, n) || setindex!(_sens_dict, gensym(), n)
-    return _sens_dict[n]
+function curlytowhere(expr::Expr)
+    curly = expr.args[1]
+    return Expr(:where,
+        Expr(:call, curly.args[1], expr.args[2:end]...),
+        curly.args[2:end]...)
 end
 
-# """
-#     preprocess(::Function, Tuple, Any, Any) = ()
-# Default implementation for preproessing. If there is some preprocessing is required for the
-# sensitivities of a particular function then additional methods should be added.
-# """
-# preprocess(::Function, ::Tuple, ::Any, ::Any) = ()
+"""
+    callfromwhere(expr::Expr)
 
-# """
-#     x̄(::Type{Arg{N}}, ::Function, x::Tuple, y::Any, ȳ::Any, p::Any) = 0.0
-# Default implementation for a sensitivity throws an error, indicating that a sensitivity for
-# a particular argument was requested but unavailable. Methods should be added to this
-# function to implement sensitivities for particular methods. For example
+Get the `:call` component of a `where` expression (it is assumed that this particular where)
+expression has a `:call` component at the bottom of the recursion).
+"""
+callfromwhere(expr::Expr) = expr.head == :call ? expr : callfromwhere(expr.args[1])
 
-#     x̄(Arg{1}, *, x::Tuple{T, V}, ::Any, ȳ::Any, ::Any) = x[2] * ȳ
-#     x̄(Arg{2}, *, x::Typle{T, V}, ::Any, ȳ::Any, ::Any) = x[1] * ȳ
+"""
+    changewherecall(where::Expr, new_call::Expr)
 
+Place a new `:call` expression `new_call` into the `where` expression. It is assumed that
+this `where` expression already contains a `:call` expression.
+"""
+changewherecall(where::Expr, new_call::Expr) =
+    where.args[1].head == :call ?
+        Expr(:where, new_call, where.args[2:end]...) :
+        Expr(:where, changewherecall(where.args[1], new_call), where.args[2:end]...)
 
-# """
+""" Used to flag which argument is being specified in x̄. """
+struct Arg{N} end
 
-# """ Used to flag which argument is being specified in x̄. """
-# struct Arg{N} end
-# struct Update end
-# struct New end
+"""
+    ∇(::Type{Arg{N}}, f::Function, p, x1, x2, ..., y, ȳ)
 
-# requires_y(::Function, ::Type) = true
+To implement a new reverse-mode sensitivity for the `N^{th}` argument of function `f`. p\\
+is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its\\
+output and `ȳ` the reverse-mode sensitivity of `y`.
+"""
+function ∇ end
 
-# function add_intercepts(f::Function, types::Type)
-#     println("Now spit out an @generated function!")
-# end
+"""
+    ∇(::Type{Arg{N}}, f::Function, args...)
 
-# function add_sensitivity(call::Expr, arg::Int, expr::Expr)
+Fallback implementation: throws an error if invoked to indicate that an implementation for\\
+a particular sensitivity is not available.
+"""
+∇(::Type{Arg{N}}, f::Function, args...) where N =
+    error("No sensitivity implemented for argument $N of function $f.")
 
-#     eval(:(x̄(::Type{Arg{$arg}}, ::typeof($f), x::$types, y::Any, ȳ::Any) = $expr))
-# end
+"""
+    ∇(x̄, ::Tuple{Arg{N}}, f::Function, args...)
 
+Default implementation for in-place update to sensitivity w.r.t. `N^{th}` argument of\\
+function `f`. Calls the allocating version of the routine, creating unecessary\\
+temporaries, but providing valid behaviour.
+"""
+∇(x̄, ::Type{Arg{N}}, f::Function, args...) where N = x̄ + ∇(Arg{N}, f, args...)
 
+"""
+    preprocess(::Function, args...)
 
-# # Mock up implementation for *.
-# add_intercepts(*, Tuple{T, V} where {T<:Real, V<:Real})
-# requires_y{T<:Real, V<:Real}(::typeof(*), ::Type{Tuple{T, V}}) = false
-
-# # From the reverse-pass, I can splat stuff in here and it will just work.
-# ∇(::Type{Arg{1}}, ::typeof(*), p, x::Real, y::Real, z̄::Real) = y * z̄
-# ∇(::Type{Arg{2}}, ::typeof(*), p, x::Real, y::Real, z̄::Real) = x * z̄
-
-# function add_intercepts(expr::Expr)
-
-#     args = getargs(expr)
-#     syms = [gensym() for arg in args]
-
-
-
-# end
-
-
-
-# # Construct the signature for the generated function.
-# syms = [gensym() for arg in args]
-# tpars = vcat(tpars, [Expr(:(<:), [syms[j], arg[2]]...) for (j, arg) in enumerate(args)])
-# node_params = [Expr(:(::), arg[1], Expr(:curly, :Union, syms[j], :(Node{$(syms[j])})))
-#                for (j, arg) in enumerate(args)]
-# call = Expr(:call, Expr(:curly, name, tpars...), node_params...)
-
-# # Construct the body of the generated function.
-# arg_syms = [Expr(:quote, arg[1]) for arg in args]
-# branchexpr = Expr(:call, :branchexpr, name, :args, :diffs)
-# body = [Expr(:(=), :diffs, Expr(:vect, [:($(arg[1]) <: Node) for arg in args]...)),
-#         Expr(:(=), :args, Expr(:vect, arg_syms...))]
-# try
-#     sig = parsesig(_which(foo, args).sig)
-#     defaultexpr = Expr(:call, :invokeexpr, name, sig, :args)
-#     body = vcat(body, :(return any(diffs) ? $branchexpr : $defaultexpr))
-# catch err
-#     if isa(err, ErrorException)
-#         body = vcat(body, :(return $branchexpr))
-#     else
-#         throw(err)
-#     end
-# end
-
-# # Construct generated function definition.
-# intercept =  Expr(:macrocall, Symbol(:@generated),
-#     Expr(:function, call, Expr(:block, body...)))
-
-
-
-
-# x̄, ȳ = :((x̄, z̄ * y, z̄ * y)), :((ȳ, z̄ * x, z̄ * x))
-# @eval @sensitivity *(x::T, y::V) where {T<:Real, V<:Real} z z̄ [$x̄, $ȳ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# """
-# Parse a :call expression, returning the function being called, any parametric types and the
-# typed arguments (if they have types).
-# """
-# function parsecall(call::Expr)
-#     call.head == :call || error("Expected a :call or :where expression, got $(call.head).")
-#     args1 = call.args[1]
-#     f = isa(args1, Symbol) ? args1 : args1.args[1]
-#     typevars = isa(args1, Symbol) ? :nothing : args1.args[2:end]
-#     return (f, typevars, call.args[2:end])
-# end
-
-# """
-# Parse a where Expression
-# """
-# function parsewhere(where::Expr)
-
-# end
+Default implementation of preprocess returns an empty Tuple. Individual sensitivity\\
+implementations should add methods specific to their use case. The output is passed\\
+in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
+"""
+preprocess(::Function, args...) = ()

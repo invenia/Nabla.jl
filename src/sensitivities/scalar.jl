@@ -21,11 +21,11 @@ import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
 
 π180 = π / 180
 
-# Hand code identity to prevent things from screwing up. This may become uneccessary in a
-# future iteration of the code generating code.
-identity(x::Node) = Branch(identity, (x,), x.tape)
-∇(::typeof(identity), tape::Tape, y, ȳ, x::Real, xid::Int) =
-    (xid > 0 && !isassigned(tape.tape, xid)) && (tape.tape[xid] = ȳ)
+# # Hand code identity to prevent things from screwing up. This may become uneccessary in a
+# # future iteration of the code generating code.
+# identity(x::Node) = Branch(identity, (x,), x.tape)
+# ∇(::typeof(identity), tape::Tape, y, ȳ, x::Real, xid::Int) =
+#     (xid > 0 && !isassigned(tape.tape, xid)) && (tape.tape[xid] = ȳ)
 
 # Definitions for functions of a single argument written as y = f(x).
 unary_sensitivities = [
@@ -72,8 +72,8 @@ unary_sensitivities = [
     (abs2, :(2x), (lb, ub)),
 ]
 for (f, x̄, _) in unary_sensitivities
-    new_x̄, update_x̄ = :(x̄ = $x̄), :(x̄ += $x̄)
-    @eval @sensitivity $(Symbol(f))(x::Real) (x̄, $new_x̄, $update_x̄) y ȳ
+    eval(genintercept(:($(Symbol(f))(x::Real))))
+    eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y, ȳ) = $x̄))
 end
 
 # Definitions for functions of two arguments written as z = f(x, y).
@@ -87,10 +87,9 @@ binary_sensitivities = [
 ]
 
 for (f, x̄, ȳ, range) in binary_sensitivities
-    new_x̄, update_x̄ = :(x̄ = $x̄), :(x̄ += $x̄)
-    new_ȳ, update_ȳ = :(ȳ = $ȳ), :(ȳ += $ȳ)
-    @eval @sensitivity($(Symbol(f))(x::Real, y::Real),
-        [(x̄, $new_x̄, $update_x̄), (ȳ, $new_ȳ, $update_ȳ)], z, z̄)
+    eval(genintercept(:($(Symbol(f))(x::Real, y::Real))))
+    eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y::Real, z, z̄) = $x̄))
+    eval(:(∇(::typeof($f), ::Type{Arg{2}}, p, x::Real, y::Real, z, z̄) = $ȳ))
 end
 
 # (The rest of the list of functions mentioned in AutoGrad.jl)
