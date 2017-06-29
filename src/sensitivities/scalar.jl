@@ -28,7 +28,7 @@ import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
 #     (xid > 0 && !isassigned(tape.tape, xid)) && (tape.tape[xid] = ȳ)
 
 # Definitions for functions of a single argument written as y = f(x).
-unary_sensitivities = [
+unary_sensitivities = (
     (-,     :(-ȳ),                       (lb, ub)),
     (sin,   :(ȳ .* cos(x)),               (lb, ub)),
     (cos,   :(-ȳ .* sin(x)),              (lb, ub)),
@@ -38,12 +38,12 @@ unary_sensitivities = [
     (tand,  :(ȳ .* π180 .* (1 .+ y.^2)), (lb, ub)),
     (sinpi, :(ȳ .* π .* cospi(x)),         (lb, ub)),
     (cospi, :(-ȳ .* π .* sinpi(x)),        (lb, ub)),
-    (cot,   :(-ȳ .* csc(x).^2),            (lb, ub)),
-    (sec,   :(ȳ .* y .* tan(x)),           (lb, ub)),
-    (csc,   :(-ȳ .* y .* cot(x)),          (lb, ub)),
-    (cotd,  :(-ȳ .* π180 .* cscd(x).^2), (lb, ub)),
-    (secd,  :(ȳ .* y .* π180 .* tand(x)), (lb, ub)),
-    (cscd,  :(-ȳ .* y .* π180 .* cotd(x)),(lb, ub)),
+    # (cot,   :(-ȳ .* csc(x).^2),            (lb, ub)),
+    # (sec,   :(ȳ .* y .* tan(x)),           (lb, ub)),
+    # (csc,   :(-ȳ .* y .* cot(x)),          (lb, ub)),
+    # (cotd,  :(-ȳ .* π180 .* cscd(x).^2), (lb, ub)),
+    # (secd,  :(ȳ .* y .* π180 .* tand(x)), (lb, ub)),
+    # (cscd,  :(-ȳ .* y .* π180 .* cotd(x)),(lb, ub)),
     (acos,  :(-ȳ ./ sqrt(1 .- abs2(x))),  (-1., 1.)),
     (asin,  :(ȳ ./ sqrt(1 .- abs2(x))),    (-1., 1.)),
     (atan,  :(ȳ ./ (1 .+ abs2(x))),        (lb, ub)),
@@ -70,24 +70,29 @@ unary_sensitivities = [
     (rad2deg, :(ȳ ./ π180),        (lb, ub)),
     (significand, :(ȳ .* 0.5.^exponent(x)), (lb, ub)),
     (abs2, :(2x), (lb, ub)),
-]
+)
 for (f, x̄, _) in unary_sensitivities
-    eval(genintercept(:($(Symbol(f))(x::Real))))
+    eval(genintercepts(:($(Symbol(f))(x::Real))))
     eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y, ȳ) = $x̄))
 end
 
 # Definitions for functions of two arguments written as z = f(x, y).
-binary_sensitivities = [
-    (+, :(z̄),                   :(z̄),                (lb, ub), (lb, ub)),
-    (-, :(z̄),                   :(-z̄),               (lb, ub), (lb, ub)),
-    (*, :(z̄ * y),               :(z̄ * x),            (lb, ub), (lb, ub)),
-    (/, :(z̄ / y),               :(-z̄ * x / y^2),     (lb, ub), (lb, ub)),
-    (\, :(-z̄ * y / x^2),        :(z̄ / x),            (lb, ub), (lb, ub)),
-    (^, :(z̄ * y * z / x), :(z̄ * z * log(x)),   (1e-6, ub), (lb, ub)),
-]
+binary_sensitivities = (
+    # (+, :(z̄),                   :(z̄),                (lb, ub), (lb, ub)),
+    # (-, :(z̄),                   :(-z̄),               (lb, ub), (lb, ub)),
+    # (*, :(z̄ * y),               :(z̄ * x),            (lb, ub), (lb, ub)),
+    # (/, :(z̄ / y),               :(-z̄ * x / y^2),     (lb, ub), (lb, ub)),
+    # (\, :(-z̄ * y / x^2),        :(z̄ / x),            (lb, ub), (lb, ub)),
+    # (^, :(z̄ * y * z / x), :(z̄ * z * log(x)),         (1e-6, ub), (lb, ub)),
+)
 
 for (f, x̄, ȳ, range) in binary_sensitivities
-    eval(genintercept(:($(Symbol(f))(x::Real, y::Real))))
+    println("f is $f")
+    out = genintercepts(:($(Symbol(f))(x::Real, y::Real)))
+    println("Made it out.")
+    println(out)
+    # eval(out)
+    println("Managed to eval.")
     eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y::Real, z, z̄) = $x̄))
     eval(:(∇(::typeof($f), ::Type{Arg{2}}, p, x::Real, y::Real, z, z̄) = $ȳ))
 end

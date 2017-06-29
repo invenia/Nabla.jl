@@ -83,7 +83,7 @@ immutable Branch{T, V <: Tuple} <: Node{T}
     tape::Tape
     pos::Int
 end
-@inline function Branch(f::Function, args::Tuple, tape::Tape)
+@noinline function Branch(f::Function, args::Tuple, tape::Tape)
     branch = Branch(f(map(unbox, args)...), f, args, tape, length(tape) + 1)
     push!(tape, branch)
     return branch

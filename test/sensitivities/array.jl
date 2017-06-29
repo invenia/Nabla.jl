@@ -1,4 +1,4 @@
-print("sensitivities/array.jl... ")
+@testset "sensitivites/array" begin
 
 let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
@@ -68,4 +68,4 @@ let N = 4, ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     end
 end
 
-println("passing.")
+end

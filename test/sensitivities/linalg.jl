@@ -1,4 +1,4 @@
-print("sensitivities/linalg.jl... ")
+@testset "sensitivities/linalg" begin
 
 let ϵ_abs = 1e-3, ϵ_rel = 1e-2, δ = 1e-6, N = 5
 
@@ -61,4 +61,4 @@ let ϵ_abs = 1e-3, ϵ_rel = 1e-2, δ = 1e-6, N = 5
     end
 end
 
-println("passing.")
+end

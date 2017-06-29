@@ -1,4 +1,4 @@
-print("sensitivities/blas.jl... ")
+@testset "sensitivities/blas" begin
 
 let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
@@ -142,4 +142,4 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
 end
 
-println("passing.")
+end
