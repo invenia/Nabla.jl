@@ -8,13 +8,11 @@ then this is used, otherwise sensitivities are automatically generated using the
 ForwardDiff.jl package (this may change in the future when a statically-compiled RMAD
 package becomes viable to compile these expressions down efficiently).
 """
-function mapreduce{T<:AbstractArray}(f, ::typeof(+), A::Node{T})
-    if method_exists(∇, (typeof(f), Tape, Any, Any, Real, Int))
+function mapreduce(f, ::typeof(+), A::Node{T}) where T<:AbstractArray
+    if method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Any, Real, Any, Any})
         println("Aha, method exists!")
-        # @eval @sensitivity(mapreduce($f, ::typeof(+), A::AbstractArray),
-        #     [(), (), (Ā, Ā = ȳ .* ∇)]
     else
-        println("booooooo, no such method exists!")
+        println("boooo, no such method exists!")
     end
 end
 
@@ -54,6 +52,14 @@ mapreduce{T<:Number}(f, op, a::Node{T}) = f(a)
 # eval(sensitivity(:(map(f, A::Union{AbstractArray, AbstractSet, Associative})), ))
 # eval(sensitivity(:(map(f, A)), ))
 # eval(sensitivity(:(map(f, iters...)), ))
+
+# function map(f, A::Node{V}, B::Vararg{Node{T}} where V<:AbstractArray)
+#     if method_exists(f, Tuple{eltype(A.val), map(x->eltype(x.val), B...)})
+#         println("method exists!")
+#     else
+#         println("No such method exists... boooooo!")
+#     end
+# end
 
 # # NOTE: FOR MAPPING OPERATIONS INVOLVING NON-ARRAY OBJECTS, NEED TO THINK ABOUT HOW THE
 # # IMPLEMENTATION SHOULD WORK. THE OPTIMISATIONS WILL ONLY REDUCE MEMORY OVERHEAD SLIGHTLY IN

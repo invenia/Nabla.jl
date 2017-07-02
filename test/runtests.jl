@@ -5,15 +5,11 @@ srand(123456789)
 
 import Base.sum, AutoGrad2.∇
 
-@getgenintercepts
+@get_gen_intercepts
 
-eval(genintercepts(:(sum(x::Union{AbstractArray, Real}))))
+eval(gen_intercepts(:explicit, :(sum(x::Union{AbstractArray, Real}))))
 ∇(::typeof(sum), ::Type{Arg{1}}, p, x::ArrayOrReal, y, ȳ) = broadcast!(x->x, similar(x), ȳ)
 ∇(x̄, ::typeof(sum), ::Type{Arg{1}}, p, x::ArrayOrReal, y, ȳ) = broadcast!(+, x̄, x̄, ȳ)
-
-# foo(x::Number) = 5x
-
-# println(genintercepts(:(foo(x::Real))))
 
 # @testset "AutoGrad2 tests" begin
 begin
@@ -25,11 +21,10 @@ begin
     # # The components of the package.
     include("core.jl")
     include("sensitivity.jl")
-    # include("sensitivity_sig.jl")
 
     # # Sensitivities for individual functions.
     include("sensitivities/scalar.jl")
-    # include("sensitivities/functional.jl")
+    include("sensitivities/functional.jl")
     # include("sensitivities/array.jl")
     # include("sensitivities/linalg.jl")
     # include("sensitivities/blas.jl")

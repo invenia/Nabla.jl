@@ -21,78 +21,66 @@ import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
 
 π180 = π / 180
 
-# # Hand code identity to prevent things from screwing up. This may become uneccessary in a
-# # future iteration of the code generating code.
-# identity(x::Node) = Branch(identity, (x,), x.tape)
-# ∇(::typeof(identity), tape::Tape, y, ȳ, x::Real, xid::Int) =
-#     (xid > 0 && !isassigned(tape.tape, xid)) && (tape.tape[xid] = ȳ)
-
 # Definitions for functions of a single argument written as y = f(x).
+_ϵ = 3e-2
 unary_sensitivities = (
     (-,     :(-ȳ),                       (lb, ub)),
-    (sin,   :(ȳ .* cos(x)),               (lb, ub)),
-    (cos,   :(-ȳ .* sin(x)),              (lb, ub)),
-    (tan,   :(ȳ .* (1 .+ abs2(y))),        (lb, ub)),
-    (sind,  :(ȳ .* π180 .* cosd(x)),   (lb, ub)),
-    (cosd,  :(-ȳ .* π180 .* sind(x)),  (lb, ub)),
-    (tand,  :(ȳ .* π180 .* (1 .+ y.^2)), (lb, ub)),
-    (sinpi, :(ȳ .* π .* cospi(x)),         (lb, ub)),
-    (cospi, :(-ȳ .* π .* sinpi(x)),        (lb, ub)),
-    # (cot,   :(-ȳ .* csc(x).^2),            (lb, ub)),
-    # (sec,   :(ȳ .* y .* tan(x)),           (lb, ub)),
-    # (csc,   :(-ȳ .* y .* cot(x)),          (lb, ub)),
-    # (cotd,  :(-ȳ .* π180 .* cscd(x).^2), (lb, ub)),
-    # (secd,  :(ȳ .* y .* π180 .* tand(x)), (lb, ub)),
-    # (cscd,  :(-ȳ .* y .* π180 .* cotd(x)),(lb, ub)),
-    (acos,  :(-ȳ ./ sqrt(1 .- abs2(x))),  (-1., 1.)),
-    (asin,  :(ȳ ./ sqrt(1 .- abs2(x))),    (-1., 1.)),
-    (atan,  :(ȳ ./ (1 .+ abs2(x))),        (lb, ub)),
+    (sin,   :(ȳ * cos(x)),               (lb, ub)),
+    (cos,   :(-ȳ * sin(x)),              (lb, ub)),
+    (tan,   :(ȳ * (1 + abs2(y))),        (lb, ub)),
+    (sind,  :(ȳ * π180 * cosd(x)),   (lb, ub)),
+    (cosd,  :(-ȳ * π180 * sind(x)),  (lb, ub)),
+    (tand,  :(ȳ * π180 * (1 + y^2)), (lb, ub)),
+    (sinpi, :(ȳ * π * cospi(x)),         (lb, ub)),
+    (cospi, :(-ȳ * π * sinpi(x)),        (lb, ub)),
+    (cot,   :(-ȳ * csc(x)^2),            (lb, ub)),
+    (sec,   :(ȳ * y * tan(x)),           (lb, ub)),
+    (csc,   :(-ȳ * y * cot(x)),          (lb, ub)),
+    (cotd,  :(-ȳ * π180 * cscd(x)^2), (lb, ub)),
+    (secd,  :(ȳ * y * π180 * tand(x)), (lb, ub)),
+    (cscd,  :(-ȳ * y * π180 * cotd(x)),(lb, ub)),
+    (acos,  :(-ȳ / sqrt(1 - abs2(x))),  (-1 + _ϵ, 1 - _ϵ)),
+    (asin,  :(ȳ / sqrt(1 - abs2(x))),    (-1 + _ϵ, 1 - _ϵ)),
+    (atan,  :(ȳ / (1 + abs2(x))),        (lb, ub)),
     # (acosd, :(-ȳ * π / (180 * sqrt(1. - abs2(deg2rad(x))))),  (-rad2deg(1.), rad2deg(1.))),
-    # (asin,  :(ȳ / sqrt(1 - abs2(x))),    (-1., 1.)),
-    # (atan,  :(ȳ / (1 + abs2(x))),        (lb, ub)),
-    (sinh,  :(ȳ .* cosh(x)),              (lb, ub)),
-    (cosh,  :(ȳ .* sinh(x)),              (lb, ub)),
-    (tanh,  :(ȳ ./ cosh(x).^2),            (lb, ub)),
-    (acosh, :(ȳ ./ sqrt(abs2(x) .- 1.)),   (1., ub)),
-    (asinh, :(ȳ ./ sqrt(1. .+ abs2(x))),   (lb, ub)),
-    (atanh, :(ȳ ./ (1. .- abs2(x))),       (-1. ,1.)),
-    (log,   :(ȳ ./ x),                    (0., ub)),
-    (log2,  :(ȳ ./ (x .* log(2))),         (0., ub)),
-    (log10, :(ȳ ./ (x .* log(10))),        (0., ub)),
-    (log1p, :(ȳ ./ (1. .+ x)),             (0., ub)),
-    (exp,   :(ȳ .* y),                    (lb, ub)),
-    (exp2,  :(ȳ .* y .* log(2)),           (lb, ub)),
-    (exp10, :(ȳ .* y .* log(10)),          (lb, ub)),
-    (expm1, :(ȳ .* (y .+ 1.)),             (lb, ub)),
-    (sqrt,  :(ȳ ./ (2 .* y)),              (0., ub)),
-    (cbrt,  :(ȳ ./ (3. .* abs2(y))),      (lb, ub)),
-    (deg2rad, :(ȳ .* π180),         (lb, ub)),
-    (rad2deg, :(ȳ ./ π180),        (lb, ub)),
-    (significand, :(ȳ .* 0.5.^exponent(x)), (lb, ub)),
+    (sinh,  :(ȳ * cosh(x)),              (lb, ub)),
+    (cosh,  :(ȳ * sinh(x)),              (lb, ub)),
+    (tanh,  :(ȳ / cosh(x)^2),            (lb, ub)),
+    (acosh, :(ȳ / sqrt(abs2(x) - 1)),   (1 + _ϵ, ub)),
+    (asinh, :(ȳ / sqrt(1 + abs2(x))),   (lb, ub)),
+    (atanh, :(ȳ / (1 - abs2(x))),       (-1 + _ϵ, 1 - _ϵ)),
+    (log,   :(ȳ / x),                    (_ϵ, ub)),
+    (log2,  :(ȳ / (x * log(2))),         (_ϵ, ub)),
+    (log10, :(ȳ / (x * log(10))),        (_ϵ, ub)),
+    (log1p, :(ȳ / (1 + x)),             (_ϵ, ub)),
+    (exp,   :(ȳ * y),                    (lb, ub)),
+    (exp2,  :(ȳ * y * log(2)),           (lb, ub)),
+    (exp10, :(ȳ * y * log(10)),          (-3.0, 3.0)),
+    (expm1, :(ȳ * (y + 1)),             (lb, ub)),
+    (sqrt,  :(ȳ / (2 * y)),              (_ϵ, ub)),
+    (cbrt,  :(ȳ / (3 * abs2(y))),      (lb, ub)),
+    (deg2rad, :(ȳ * π180),         (lb, ub)),
+    (rad2deg, :(ȳ / π180),        (lb, ub)),
+    (significand, :(ȳ * 0.5^exponent(x)), (lb, ub)),
     (abs2, :(2x), (lb, ub)),
 )
 for (f, x̄, _) in unary_sensitivities
-    eval(genintercepts(:($(Symbol(f))(x::Real))))
+    eval(gen_intercepts(:explicit, :($(Symbol(f))(x::Real))))
     eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y, ȳ) = $x̄))
 end
 
 # Definitions for functions of two arguments written as z = f(x, y).
 binary_sensitivities = (
-    # (+, :(z̄),                   :(z̄),                (lb, ub), (lb, ub)),
-    # (-, :(z̄),                   :(-z̄),               (lb, ub), (lb, ub)),
-    # (*, :(z̄ * y),               :(z̄ * x),            (lb, ub), (lb, ub)),
-    # (/, :(z̄ / y),               :(-z̄ * x / y^2),     (lb, ub), (lb, ub)),
-    # (\, :(-z̄ * y / x^2),        :(z̄ / x),            (lb, ub), (lb, ub)),
-    # (^, :(z̄ * y * z / x), :(z̄ * z * log(x)),         (1e-6, ub), (lb, ub)),
+    (+, :(z̄),                   :(z̄),                (lb, ub), (lb, ub)),
+    (-, :(z̄),                   :(-z̄),               (lb, ub), (lb, ub)),
+    (*, :(z̄ * y),               :(z̄ * x),            (lb, ub), (lb, ub)),
+    (/, :(z̄ / y),               :(-z̄ * x / y^2),     (lb, ub), (lb, ub)),
+    (\, :(-z̄ * y / x^2),        :(z̄ / x),            (lb, ub), (lb, ub)),
+    (^, :(z̄ * y * z / x), :(z̄ * z * log(x)),         (_ϵ, ub), (_ϵ, ub)),
 )
 
 for (f, x̄, ȳ, range) in binary_sensitivities
-    println("f is $f")
-    out = genintercepts(:($(Symbol(f))(x::Real, y::Real)))
-    println("Made it out.")
-    println(out)
-    # eval(out)
-    println("Managed to eval.")
+    eval(gen_intercepts(:explicit, :($(Symbol(f))(x::Real, y::Real))))
     eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y::Real, z, z̄) = $x̄))
     eval(:(∇(::typeof($f), ::Type{Arg{2}}, p, x::Real, y::Real, z, z̄) = $ȳ))
 end
