@@ -1,16 +1,16 @@
-import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
-    sin, cos, tan,
-    sind, cosd, tand, sinpi, cospi,
-    sec, csc, cot,
-    secd, cscd, cotd,
-    asin, acos, atan,
-    asind, acosd, atand,
-    sinh, cosh, tanh,
-    asinh, acosh, atanh,
-    log, log2, log10, log1p,
-    exp, exp2, exp10, expm1,
-    deg2rad, rad2deg, significand,
-    abs2
+# import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
+#     sin, cos, tan,
+#     sind, cosd, tand, sinpi, cospi,
+#     sec, csc, cot,
+#     secd, cscd, cotd,
+#     asin, acos, atan,
+#     asind, acosd, atand,
+#     sinh, cosh, tanh,
+#     asinh, acosh, atanh,
+#     log, log2, log10, log1p,
+#     exp, exp2, exp10, expm1,
+#     deg2rad, rad2deg, significand,
+#     abs2
 
 # atan2, asind, acosd, atand, asec, acsc,
 # acot, asecd, acscd, acotd, sech, csch, coth, asech, acsch, acoth,
@@ -19,8 +19,6 @@ import Base: identity, +, -, *, /, \, ^, sqrt, cbrt,
 # erfinv, erfcinv, real, imag, reim, conj, angle, cis, gamma, lgamma, lfact, digamma, invdigamma,
 # trigamma, polygamma, airy, airyprime, airyaiprime, airybi, airybiprime, airyx, + all of the other special functions.
 
-π180 = π / 180
-
 # Definitions for functions of a single argument written as y = f(x).
 _ϵ = 3e-2
 unary_sensitivities = (
@@ -28,17 +26,17 @@ unary_sensitivities = (
     (sin,   :(ȳ * cos(x)),               (lb, ub)),
     (cos,   :(-ȳ * sin(x)),              (lb, ub)),
     (tan,   :(ȳ * (1 + abs2(y))),        (lb, ub)),
-    (sind,  :(ȳ * π180 * cosd(x)),   (lb, ub)),
-    (cosd,  :(-ȳ * π180 * sind(x)),  (lb, ub)),
-    (tand,  :(ȳ * π180 * (1 + y^2)), (lb, ub)),
+    (sind,  :(ȳ * (π / 180) * cosd(x)),   (lb, ub)),
+    (cosd,  :(-ȳ * (π / 180) * sind(x)),  (lb, ub)),
+    (tand,  :(ȳ * (π / 180) * (1 + y^2)), (lb, ub)),
     (sinpi, :(ȳ * π * cospi(x)),         (lb, ub)),
     (cospi, :(-ȳ * π * sinpi(x)),        (lb, ub)),
     (cot,   :(-ȳ * csc(x)^2),            (lb, ub)),
     (sec,   :(ȳ * y * tan(x)),           (lb, ub)),
     (csc,   :(-ȳ * y * cot(x)),          (lb, ub)),
-    (cotd,  :(-ȳ * π180 * cscd(x)^2), (lb, ub)),
-    (secd,  :(ȳ * y * π180 * tand(x)), (lb, ub)),
-    (cscd,  :(-ȳ * y * π180 * cotd(x)),(lb, ub)),
+    (cotd,  :(-ȳ * (π / 180) * cscd(x)^2), (lb, ub)),
+    (secd,  :(ȳ * y * (π / 180) * tand(x)), (lb, ub)),
+    (cscd,  :(-ȳ * y * (π / 180) * cotd(x)),(lb, ub)),
     (acos,  :(-ȳ / sqrt(1 - abs2(x))),  (-1 + _ϵ, 1 - _ϵ)),
     (asin,  :(ȳ / sqrt(1 - abs2(x))),    (-1 + _ϵ, 1 - _ϵ)),
     (atan,  :(ȳ / (1 + abs2(x))),        (lb, ub)),
@@ -59,30 +57,29 @@ unary_sensitivities = (
     (expm1, :(ȳ * (y + 1)),             (lb, ub)),
     (sqrt,  :(ȳ / (2 * y)),              (_ϵ, ub)),
     (cbrt,  :(ȳ / (3 * abs2(y))),      (lb, ub)),
-    (deg2rad, :(ȳ * π180),         (lb, ub)),
-    (rad2deg, :(ȳ / π180),        (lb, ub)),
+    (deg2rad, :(ȳ * (π / 180)),         (lb, ub)),
+    (rad2deg, :(ȳ / (π / 180)),        (lb, ub)),
     (significand, :(ȳ * 0.5^exponent(x)), (lb, ub)),
     (abs2, :(2x), (lb, ub)),
 )
 for (f, x̄, _) in unary_sensitivities
-    eval(gen_intercepts(:explicit, :($(Symbol(f))(x::Real))))
-    eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y, ȳ) = $x̄))
+    eval(AutoGrad2, :(add_intercept($f, :Base)))
+    eval(AutoGrad2, :(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y, ȳ) = $x̄))
 end
 
-# Definitions for functions of two arguments written as z = f(x, y).
 binary_sensitivities = (
-    (+, :(z̄),                   :(z̄),                (lb, ub), (lb, ub)),
-    (-, :(z̄),                   :(-z̄),               (lb, ub), (lb, ub)),
-    (*, :(z̄ * y),               :(z̄ * x),            (lb, ub), (lb, ub)),
-    (/, :(z̄ / y),               :(-z̄ * x / y^2),     (lb, ub), (lb, ub)),
-    (\, :(-z̄ * y / x^2),        :(z̄ / x),            (lb, ub), (lb, ub)),
-    (^, :(z̄ * y * z / x), :(z̄ * z * log(x)),         (_ϵ, ub), (_ϵ, ub)),
+    (+, :(z̄),             :(z̄),              (lb, ub), (lb, ub)),
+    (-, :(z̄),             :(-z̄),             (lb, ub), (lb, ub)),
+    (*, :(z̄ * y),         :(z̄ * x),          (lb, ub), (lb, ub)),
+    (/, :(z̄ / y),         :(-z̄ * x / y^2),   (lb, ub), (lb, ub)),
+    (\, :(-z̄ * y / x^2),  :(z̄ / x),          (lb, ub), (lb, ub)),
+    (^, :(z̄ * y * z / x), :(z̄ * z * log(x)), (_ϵ, ub), (_ϵ, ub)),
 )
 
-for (f, x̄, ȳ, range) in binary_sensitivities
-    eval(gen_intercepts(:explicit, :($(Symbol(f))(x::Real, y::Real))))
-    eval(:(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y::Real, z, z̄) = $x̄))
-    eval(:(∇(::typeof($f), ::Type{Arg{2}}, p, x::Real, y::Real, z, z̄) = $ȳ))
+for (f, x̄, ȳ, r1, r2) in binary_sensitivities
+    eval(AutoGrad2, :(add_intercept($f, :Base)))
+    eval(AutoGrad2, :(∇(::typeof($f), ::Type{Arg{1}}, p, x::Real, y::Real, z, z̄) = $x̄))
+    eval(AutoGrad2, :(∇(::typeof($f), ::Type{Arg{2}}, p, x::Real, y::Real, z, z̄) = $ȳ))
 end
 
 # (The rest of the list of functions mentioned in AutoGrad.jl)

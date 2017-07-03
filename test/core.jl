@@ -17,7 +17,6 @@
     end
     @test check_tuple()
 
-
     # Test the core functionality of the package manually.
     function check_basics_sum()
 
