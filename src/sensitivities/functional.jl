@@ -1,27 +1,60 @@
-import Base: mapreduce, mapreducedim, map, broadcast, Any16, +, *
+# Implementation of functionals (i.e. higher-order functions).
 
-"""
-    mapreduce{T<:AbstractArray}(f, op, A::Node{T})
-Produce optimised implementations of sensitivities for mapreduce for a variety of `op`
-parameters. If an implementation of the reverse-mode sensitivities of `f` already exists
-then this is used, otherwise sensitivities are automatically generated using the
-ForwardDiff.jl package (this may change in the future when a statically-compiled RMAD
-package becomes viable to compile these expressions down efficiently).
-"""
-function mapreduce(f, ::typeof(+), A::Node{T}) where T<:AbstractArray
-    if method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Any, Real, Any, Any})
-        println("Aha, method exists!")
-    else
-        println("boooo, no such method exists!")
+# Intercepts for mapreduce.
+add_intercept(:mapreduce, :Base)
+∇_functionals[:mapreduce] = quote
+    function AutoGrad2.∇(
+        ::typeof(mapreduce),
+        ::Type{Arg{3}},
+        p, y, ȳ, f,
+        ::typeof($(esc(:+))),
+        A::AbstractArray{T} where T<:Real,
+    )
+        println(f)
+        if needs_output(f) && method_exists(∇, Tuple{typeof(f), Arg{1}, Real, Any})
+            return map(a->ȳ * ∇(f, Arg{1}, a, y), A)
+        elseif !needs_output(f) && method_exists(∇, Tuple{typeof(f)}, Arg{1}, Real)
+            return map(a->ȳ * ∇(f, Arg{1}, a), A)
+        else
+            throw(error("Not implemented mapreduce sensitivities for general f."))
+        end
     end
 end
 
-# eval(sensitivity(
-#     :(mapreduce(identity, ::typeof(+), A::AbstractArray)),
-#     [(), (), (:Ā, :(ones(A) .* Ȳ), :(Ā .= Ā .+ Ȳ))],
-#     :Y, :Ȳ))
+# function ∇(::typeof(mapreduce), ::Type{Arg{3}}, p, y, ȳ, f, ::typeof(*), A::Real)
 
-mapreduce{T<:Number}(f, op, a::Node{T}) = f(a)
+# end
+
+# intercepts[mapreduce] = quote
+
+# @generated function mapreduce(f, ::typeof(+), A::Node{T}) where T<:AbstractArray
+#     if method_exists(∇, Tuple{f, Type{Arg{1}}, Any, Real, Any, Any})
+#         if needs_output(f)
+#             return quote
+#                 map(f, )
+#             end
+#         else
+
+#         end
+#     else
+#         throw(error("Not implemented automatic creation of sensitivities for +."))
+#     end
+# end
+
+
+
+# function mapreduce(f, ::typeof(*), A::Node{T} where T<:AbstractArray)
+#     if method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Any, Real, Any, Any})
+#         println("Aha, method exists!")
+#     else
+#         println("boooo, no such method exists!")
+#     end
+# end
+
+# end
+
+
+
 
 # It is assumed that the cardinality of itr is relatively small in the methods below and]
 # that there is therefore no need to optimise them.

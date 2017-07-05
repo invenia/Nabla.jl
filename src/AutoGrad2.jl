@@ -16,11 +16,12 @@ include("sensitivity.jl")
 # node on the computational graph since it does nothing, but it is useful to have it's
 # gradient implemented for use in higher-order functions.
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, p, x, y, ȳ) = ȳ
+@inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = 1
 
 # General reverse-mode sensitivities.
 lb, ub = -5., 5.
 include("sensitivities/scalar.jl")
-# include("sensitivities/functional.jl")
+include("sensitivities/functional.jl")
 # include("sensitivities/array.jl")
 # include("sensitivities/linalg.jl")
 # include("sensitivities/blas.jl")

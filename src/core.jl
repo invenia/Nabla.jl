@@ -1,22 +1,23 @@
 using BenchmarkTools
 
 import Base: push!, length, show, getindex, setindex!, endof, eachindex
-export Tape, Node, Branch, Root, ∇, getzero, getone
+export Tape, Node, Branch, Root, ∇
+# export Tape, Node, Branch, Root, ∇, getzero, getone
 
 
-# Define functionality to return a type-appropriate zero / one / random element.
-@inline dictit(val::Dict, f::Function) = Dict(n => f(val[n]) for n in eachindex(val))
-returns_basic = [
-    (:AbstractFloat, :(0.0), :(1.0), :(rand() * (ub - lb) + lb)),
-    (:AbstractArray, :(zeros(val)), :(ones(val)), :(rand(size(val)) * (ub - lb) + lb)),
-    (:(Union{Set, Tuple}), :(map(getzero, val)), :(map(getone, val)), :(map(getrand, val))),
-    (:Dict, :(dictit(val, getzero)), :(dictit(val, getone)), :(dictit(val, getrand))),
-]
-for (dtype, zeroexpr, oneexpr, randexpr) in returns_basic
-    @eval @inline getzero(val::$dtype) = $zeroexpr
-    @eval @inline getone(val::$dtype) = $oneexpr
-    @eval @inline getrand(val::$dtype) = $randexpr
-end
+# # Define functionality to return a type-appropriate zero / one / random element.
+# @inline dictit(val::Dict, f::Function) = Dict(n => f(val[n]) for n in eachindex(val))
+# returns_basic = [
+#     (:Real, :(0.0), :(1.0), :(rand() * (ub - lb) + lb)),
+#     (:AbstractArray, :(zeros(val)), :(ones(val)), :(rand(size(val)) * (ub - lb) + lb)),
+#     (:(Union{Set, Tuple}), :(map(getzero, val)), :(map(getone, val)), :(map(getrand, val))),
+#     (:Dict, :(dictit(val, getzero)), :(dictit(val, getone)), :(dictit(val, getrand))),
+# ]
+# for (dtype, zeroexpr, oneexpr, randexpr) in returns_basic
+#     @eval @inline getzero(val::$dtype) = $zeroexpr
+#     @eval @inline getone(val::$dtype) = $oneexpr
+#     @eval @inline getrand(val::$dtype) = $randexpr
+# end
 
 abstract type Node{T} end
 
@@ -106,13 +107,13 @@ function propagate_sensitivities{T}(y::Branch{T}, δ::Int, rvs_tape::Tape)
     tape = rvs_tape.tape
     ȳ, f = tape[y.pos]::T, y.f
     xs, xids = map(unbox, y.args), map(pos, y.args)
-    p = preprocess(f, xs..., y.val, ȳ)
+    p = preprocess(f, y.val, ȳ, xs...)
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
         if xid > 0
             tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, xs..., y.val, ȳ) :
-                ∇(f, Arg{j}, p, xs..., y.val, ȳ)
+                ∇(tape[xid], f, Arg{j}, p, y.val, ȳ, xs...) :
+                ∇(f, Arg{j}, p, y.val, ȳ, xs...)
         end
     end
     return nothing
@@ -129,7 +130,7 @@ function ∇(node::Node)
 
     # Construct reverse tape and initialise the last element.
     fwd_tape, rvs_tape = node.tape, Tape(node.pos)
-    rvs_tape[end] = getone(node.val)
+    rvs_tape[end] = one(node.val)
 
     # Iterate backwards through the reverse tape and return the result.
     for n in eachindex(rvs_tape)
