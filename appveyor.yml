@@ -28,7 +28,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia -e "versioninfo();
-      Pkg.clone(pwd(), \"AutoGrad2\"); Pkg.build(\"AutoGrad2\")"
+      Pkg.clone(pwd(), \"Nabla\"); Pkg.build(\"Nabla\")"
 
 test_script:
-  - C:\projects\julia\bin\julia -e "Pkg.test(\"AutoGrad2\")"
+  - C:\projects\julia\bin\julia -e "Pkg.test(\"Nabla\")"

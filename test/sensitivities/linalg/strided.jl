@@ -22,7 +22,7 @@
         end
 
         # # Test matrix-vector multiplication sensitivities.
-        # for (f, tdA, CA, dA, tCb) in AutoGrad2.strided_matvecmul
+        # for (f, tdA, CA, dA, tCb) in Nabla.strided_matvecmul
 
         #     # Test allocating sensitivities.
         #     A, b = randn(N, N), randn(N)
@@ -38,7 +38,7 @@
         # end
 
         # # Test solving sensitivities.
-        # for (f, C, tA, tB, arg1, arg2) in AutoGrad2.strided_ldiv
+        # for (f, C, tA, tB, arg1, arg2) in Nabla.strided_ldiv
 
         #     # Test allocating sensitivities.
         #     A, B = randn(5, 5), randn(5, 5)

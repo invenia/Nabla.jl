@@ -24,7 +24,7 @@
     # end
 
     # Test `DiffCore.branch_expr`.
-    import AutoGrad2.DiffCore.branch_expr
+    import Nabla.DiffCore.branch_expr
     let
         from_func = branch_expr(:bar, [true], (Int,), (:x,), :((x,)))
         tape = Expr(:call, :getfield, :x, quot(:tape))
@@ -78,7 +78,7 @@
 # end
 
     # Test `DiffCore.get_union_call`.
-    import AutoGrad2.DiffCore.get_union_call
+    import Nabla.DiffCore.get_union_call
     let
         from_func = get_union_call(:goo, :(Tuple{Real}), [:T])[1]
         expected = :(goo(x1::Union{Real, Node{T} where T<:Real}))

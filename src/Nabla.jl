@@ -1,4 +1,4 @@
-module AutoGrad2
+module Nabla
 
     module DiffCore
 
@@ -56,4 +56,4 @@ module AutoGrad2
 # include("examples/mlp.jl")
 # include("examples/vae.jl")
 
-end # module AutoGrad2
+end # module Nabla

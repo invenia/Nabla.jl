@@ -1,5 +1,5 @@
-using Base.Test, AutoGrad2.DiffCore
-import AutoGrad2.DiffCore.Leaf
+using Base.Test, Nabla.DiffCore
+import Nabla.DiffCore.Leaf
 
 @testset "DiffCore" begin
     include("core.jl")
