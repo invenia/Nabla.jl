@@ -1,4 +1,4 @@
-export discrepancy
+export discrepancy, compute_errs
 
 """
 Compare numerical estimate of projection of gradient with the actual projection of the
@@ -20,6 +20,9 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
     # If diff doesn't contain anything, then differentiate all arguments.
     diff = diff == [] ? [true for j in x0] : diff
 
+    # Unbox everything.
+    x0 = map(unbox, x0)
+
     δ_abs, δ_rel = [], []
     for n in eachindex(x0)
 
@@ -29,7 +32,7 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
 
             # Compute x̄ using AutoDiff.
             x = collect(Any, x0)
-            x[n] = Root(x0[n], Tape())
+            x[n] = Leaf(x0[n], Tape())
             df = ∇(f(x...))
 
             # Estimate x̄ using finite differencing.
@@ -37,7 +40,7 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
 
             # Compute absolute and relative errors for this argument.
             push!(δ_abs, abs.(x̄ .- df[x[n]]))
-            push!(δ_rel, δ_abs[n] ./ abs.(x̄ .+ 1e-3))
+            push!(δ_rel, δ_abs[n] ./ (abs.(x̄) .+ 1e-3))
         else
             push!(δ_abs, 0.0)
             push!(δ_rel, 0.0)
@@ -61,3 +64,5 @@ function estimate_x̄(f::Function, x0::Tuple, δ::Float64, x0n::AbstractArray, n
     end
     return x̄
 end
+
+compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x)))

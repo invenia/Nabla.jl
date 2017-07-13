@@ -1,50 +1,59 @@
 module AutoGrad2
 
-# Some aliases used repeatedly throughout the package.
-const SymOrExpr = Union{Symbol, Expr}
-const ArrayOrReal = Union{AbstractArray, Real}
+    module DiffCore
 
-export SymOrExpr, ArrayOrReal
+        # Some aliases used repeatedly throughout the package.
+        export SymOrExpr, ArrayOrReal
+        const SymOrExpr = Union{Symbol, Expr}
+        const ArrayOrReal = Union{AbstractArray{T} where T<:Real, Real}
 
-# const pkg_name = current_module()
+        # Functionality for constructing computational graphs.
+        include("core.jl")
 
-# Core functionality.
-include("core.jl")
-include("sensitivity.jl")
+        # Functionality for defining new sensitivities.
+        include("sensitivity.jl")
 
-# Hand code identity because it's really fundamental. It doesn't need to generate a new
-# node on the computational graph since it does nothing, but it is useful to have it's
-# gradient implemented for use in higher-order functions.
-@inline ∇(::typeof(identity), ::Type{Arg{1}}, p, x, y, ȳ) = ȳ
-@inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = 1
+        # Functionality to create a baremodule which 
+        include("differentiable.jl")
 
-# General reverse-mode sensitivities.
-lb, ub = -5., 5.
-include("sensitivities/scalar.jl")
-include("sensitivities/functional.jl")
-# include("sensitivities/array.jl")
-# include("sensitivities/linalg.jl")
-# include("sensitivities/blas.jl")
+        # Finite differencing functionality for defining tests.
+        include("finite_differencing.jl")
+
+    end # module Core
+
+    baremodule DiffBase
+
+        using ..DiffCore
+        import ..DiffCore: ∇, get_original
+
+        import Base
+        import Base: include, @inline, @noinline, push!, any, zeros, π, !, method_exists,
+            error, eltype, zip, similar, size, !=, one, zero, StridedArray, StridedMatrix,
+            @eval, AbstractMatrix, >, <, ones
+        import Base.Meta.quot
+
+        const RealArray = AbstractArray{T} where T<:Real
+        const RS = StridedMatrix{T} where T<:Real
+
+        # Sensitivites for the basics.
+        include("sensitivities/indexing.jl")
+        include("sensitivities/scalar.jl")
+        include("sensitivities/functional.jl")
+
+        # Linear algebra optimisations.
+        include("sensitivities/linalg/generic.jl")
+        # include("sensitivities/linalg/uniformscaling.jl")
+        # include("sensitivities/linalg/diagonal.jl")
+        # include("sensitivities/linalg/triangular.jl")
+        include("sensitivities/linalg/strided.jl")
+
+        # BLAS sensitivities.
+        # include("sensitivities/blas.jl")
+
+    end # module DiffCore
 
 # Demos and examples.
 # include("examples/mlp.jl")
 # include("examples/vae.jl")
 
-# # Wrap everything from Base which we have not yet created out own versions of in a function
-# # whose implementation can be redefined later on, and export it.
-# import Base
-# base_names = names(Base)
-# for name in base_names
-#     try
-#         if !isdefined(name) && isa(eval(Base, name), Function)
-#             @eval AutoGrad2 @noinline ($name)(x...) = Base.$name(x...)
-#         else
-#             @eval AutoGrad2 import Base.($name)
-#         end
-#         @eval AutoGrad2 export $name
-#     catch
-#         push!(base_names, name)
-#     end
-# end
-
-end # module
+end # module AutoGrad2

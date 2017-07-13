@@ -9,7 +9,7 @@
             @test all(δ_abs .< ϵ_abs) && all(δ_rel .< ϵ_rel)
         end
 
-        for (f, x̄, range) in AutoGrad2.unary_sensitivities
+        for (f, x̄, range) in DiffBase.unary_sensitivities
             for _ in 1:10
                 unary_test(f, rand() * (range[2] - range[1]) + range[1])
             end
@@ -24,7 +24,7 @@
             @test all(δ_abs .< ϵ_abs) && all(δ_rel .< ϵ_rel)
         end
 
-        for (f, x̄, ȳ, range_x, range_y) in AutoGrad2.binary_sensitivities
+        for (f, x̄, ȳ, range_x, range_y) in DiffBase.binary_sensitivities
             for _ in 1:10
                 x = rand() * (range_x[2] - range_x[1]) + range_x[1]
                 y = rand() * (range_y[2] - range_y[1]) + range_y[1]

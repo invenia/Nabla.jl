@@ -1,40 +1,36 @@
-using AutoGrad2
+using Base.Test, AutoGrad2.DiffCore
+import AutoGrad2.DiffCore.Leaf
 
-import AutoGrad2.∇
-
-add_intercept(:sum, :Base)
-add_∇(AutoGrad2.sum, Arg{1}, (p, y, ȳ, x::ArrayOrReal)->broadcast!(x->x, similar(x), ȳ))
-add_∇!(AutoGrad2.sum, Arg{1}, (x̄, p, y, ȳ, x::ArrayOrReal)->broadcast!(+, x̄, x̄, ȳ))
-
-@differentiable Tests begin
-
-println(methods(∇))
-
-using Base.Test
-
-srand(123456789)
-
-# @testset "AutoGrad2 tests" begin
-begin
-
-    # Code for checking sensitivities.
-    include("finite_differencing.jl")
-    include("finite_differencing_test.jl")
-
-    # # The components of the package.
+@testset "DiffCore" begin
     include("core.jl")
     include("sensitivity.jl")
-
-    # # Sensitivities for individual functions.
-    include("sensitivities/scalar.jl")
-    include("sensitivities/functional.jl")
-    # include("sensitivities/array.jl")
-    # include("sensitivities/linalg.jl")
-    # include("sensitivities/blas.jl")
-
-    # Some compositional functions for integration testing.
-    # include("composite/simple.jl")
-
 end
 
+@differentiable DiffBaseTests begin
+
+    using Base.Test, Distributions
+    srand(1234567)
+
+    @testset "DiffBase" begin
+
+        # Check that our finite differencing works well. This should be moved to a separate
+        # package at some point. Could there make a concerted effort to have high-quality
+        # probabilistic finite differencing.
+        include("finite_differencing_test.jl")
+
+        # Test sensitivities for the basics.
+        include("sensitivities/indexing.jl")
+        include("sensitivities/scalar.jl")
+        include("sensitivities/functional.jl")
+
+        # Test sensitivities for linear algebra optimisations.
+        include("sensitivities/linalg/generic.jl")
+        # include("sensitivities/linalg/uniformscaling.jl")
+        # include("sensitivities/linalg/diagonal.jl")
+        # include("sensitivities/linalg/triangular.jl")
+        include("sensitivities/linalg/strided.jl")
+
+        # Test BLAS sensitivities.
+        # include("sensitivities/blas.jl")
+    end
 end

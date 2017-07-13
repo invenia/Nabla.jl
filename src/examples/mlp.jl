@@ -54,8 +54,8 @@ function demo_mlp(itrs::Int, sz::Int, η::Float64)
 
         # Initialise computational graph.
         tape = Tape()
-        W1r, W2r, W3r = Root(W1, tape), Root(W2, tape), Root(W3, tape)
-        b1r, b2r, b3r = Root(b1, tape), Root(b2, tape), Root(b3, tape)
+        W1r, W2r, W3r = Leaf(W1, tape), Leaf(W2, tape), Leaf(W3, tape)
+        b1r, b2r, b3r = Leaf(b1, tape), Leaf(b2, tape), Leaf(b3, tape)
 
         # Compute log prior of paramter values. Note that we don't want gradients w.r.t. λ,
         # the prior precision, so we don't bother to make it a Node.

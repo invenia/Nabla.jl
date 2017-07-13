@@ -40,7 +40,7 @@ function demo_vae(itrs::Int, sz::Int, L::Int)
 
         # Initialise computational graph.
         tape = Tape()
-        Whr, Wμr, Wσr, Vhr, Vfr = map(x->Root(x, tape), (Wh, Wμ, Wσ, Vh, Vf))
+        Whr, Wμr, Wσr, Vhr, Vfr = map(x->Leaf(x, tape), (Wh, Wμ, Wσ, Vh, Vf))
 
         # Compute log prior of paramter values.
         logprior = -0.5 .* λ .* (sumabs2(Whr) + sumabs2(Wμr) + sumabs(Wσr) +
