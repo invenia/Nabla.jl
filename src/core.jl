@@ -160,7 +160,7 @@ function ∇(f::Function, get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
-        ∇f = ∇()
+        ∇f = ∇(y)
         ∇args = ([∇f[arg_] for arg_ in args_]...)
         return get_output ? (y, ∇args) : ∇args
     end
