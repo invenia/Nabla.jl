@@ -7,7 +7,7 @@
 
             # Test allocating sensitivities.
             A, B, tape = randn(N, N), randn(N, N), Tape()
-            A_, B_ = Leaf(A, tape), Leaf(B, tape)
+            A_, B_ = Leaf(tape, A), Leaf(tape, B)
             δ_abs, δ_rel = @eval discrepancy($f, ($A, $B), $δ)
             @test eval(DiffBase, f)(A, B) == eval(DiffBase, f)(A_, B_).val
             @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)

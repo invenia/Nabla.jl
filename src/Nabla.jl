@@ -29,7 +29,7 @@ module Nabla
         import Base
         import Base: include, @inline, @noinline, push!, any, zeros, π, !, method_exists,
             error, eltype, zip, similar, size, !=, one, zero, StridedArray, StridedMatrix,
-            @eval, AbstractMatrix, >, <, ones
+            @eval, AbstractMatrix, >, <, ones, eachindex
         import Base.Meta.quot
 
         const RealArray = AbstractArray{T} where T<:Real

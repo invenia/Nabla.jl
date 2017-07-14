@@ -1,12 +1,12 @@
 @testset "sensitivities/functional" begin
 
     # Simple test with known gradient results.
-    x = Leaf([1, 2, 3, 4, 5], Tape())
+    x = Leaf(Tape(), [1, 2, 3, 4, 5])
     s = 5 * mapreduce(abs2, +, x)
     @test ∇(s)[x] == 5 * [2, 4, 6, 8, 10]
 
     function check_unary_sum(f, x)
-        x_ = Leaf(x, Tape())
+        x_ = Leaf(Tape(), x)
         s = mapreduce(f, +, x_)
         return DiffBase.needs_output(f) ?
             ∇(s)[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
@@ -20,26 +20,26 @@
     end
 
     # mapreducedim on a single-dimensional array should be consistent with mapreduce.
-    x = Leaf([1, 2, 3, 4, 5], Tape())
+    x = Leaf(Tape(), [1, 2, 3, 4, 5])
     s = 5 * mapreducedim(abs2, +, x, 1)[1]
     @test ∇(s)[x] == 5 * [2, 4, 6, 8, 10]
 
     # mapreducedim on a two-dimensional array when reduced over a single dimension should
     # give different results to mapreduce over the same array.
     x2_ = reshape([1, 2, 3, 4,], (2, 2))
-    x2 = Leaf(x2_, Tape())
+    x2 = Leaf(Tape(), x2_)
     s = mapreducedim(abs2, +, x2, 1)
     @test ∇(s)[x] == 2 * x2_
 
     # Simple test for mapping under the identity.
-    x = Leaf([1, 2, 3, 4, 5], Tape())
+    x = Leaf(Tape(), [1, 2, 3, 4, 5])
     s = map(identity, x)
     @test s.val == [1, 2, 3, 4, 5]
     @test ∇(s)[x] == [1, 1, 1, 1, 1]
 
     # Check that `map` returns the correct gradient under a unary function f.
     function check_unary_map(f, x)
-        x_ = Leaf(x, Tape())
+        x_ = Leaf(Tape(), x)
         s = map(f, x_)
         return DiffBase.needs_output(f) ?
             ∇(s)[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
@@ -53,7 +53,7 @@
     # Check that `map` returns the correct gradient under each implemented binary function.
     function check_binary_map(f, x, y)
         tape = Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = map(f, x_, y_)
         ∇s = ∇(s)
         ∇x = map((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
@@ -68,7 +68,7 @@
 
     # Check that `broadcast` returns the correct gradient under the defined unary functions.
     function check_unary_broadcast(f, x)
-        x_ = Leaf(x, Tape())
+        x_ = Leaf(Tape(), x)
         s = broadcast(f, x_)
         return DiffBase.needs_output(f) ?
             ∇(s)[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
@@ -82,7 +82,7 @@
     # Check that `map` returns the correct gradient under each implemented binary function.
     function check_binary_broadcast(f, x, y)
         tape = Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = broadcast(f, x_, y_)
         ∇s = ∇(s)
         ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
@@ -93,7 +93,7 @@
     end
     function check_binary_broadcast(f, x::Real, y)
         tape = Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = broadcast(f, x_, y_)
         ∇s = ∇(s)
         ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y))
@@ -104,7 +104,7 @@
     end
     function check_binary_broadcast(f, x, y::Real)
         tape = Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = broadcast(f, x_, y_)
         ∇s = ∇(s)
         ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
@@ -125,7 +125,7 @@
 
     let
         x, y, tape = 5.0, randn(5), Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         z_ = x_ + y_
         @test z_.val == x + y
         @test ∇(z_)[x_] == ∇(broadcast(+, x_, y_))[x_]
@@ -133,7 +133,7 @@
     end
     let
         x, y, tape = randn(5), 5.0, Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         z_ = x_ * y_
         @test z_.val == x * y
         @test ∇(z_)[x_] == ∇(broadcast(*, x_, y_))[x_]
@@ -141,7 +141,7 @@
     end
     let
         x, y, tape = randn(5), 5.0, Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         z_ = x_ - y_
         @test z_.val == x - y
         @test ∇(z_)[x_] == ∇(broadcast(-, x_, y_))[x_]
@@ -149,7 +149,7 @@
     end
     let
         x, y, tape = randn(5), 5.0, Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         z_ = x_ / y_
         @test z_.val == x / y
         @test ∇(z_)[x_] == ∇(broadcast(/, x_, y_))[x_]
@@ -157,7 +157,7 @@
     end
     let
         x, y, tape = 5.0, randn(5), Tape()
-        x_, y_ = Leaf(x, tape), Leaf(y, tape)
+        x_, y_ = Leaf(tape, x), Leaf(tape, y)
         z_ = x_ \ y_
         @test z_.val == x \ y
         @test ∇(z_)[x_] == ∇(broadcast(\, x_, y_))[x_]

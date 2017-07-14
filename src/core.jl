@@ -1,7 +1,7 @@
 using BenchmarkTools
 
 import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned
-export Leaf, Tape, Node, Branch, ∇
+export Leaf, Tape, Node, Branch, ∇, leaves
 
 @inline get_ones(x::Real) = one(x)
 @inline get_ones(x::AbstractArray) = ones(x)
@@ -47,7 +47,7 @@ struct Leaf{T} <: Node{T}
     tape::Tape
     pos::Int
 end
-function Leaf(val, tape::Tape)
+function Leaf(tape::Tape, val)
     leaf = Leaf(val, tape, length(tape) + 1)
     push!(tape, leaf)
     return leaf
@@ -149,3 +149,19 @@ function ∇(node::Node)
     return rvs_tape
 end
 @inline ∇(x̄, f::Function, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
+
+"""
+    ∇(f::Function)
+
+Returns a function which, when evaluated with arguments that are accepted by `f`, will
+return the gradient w.r.t. each of the arguments.
+"""
+function ∇(f::Function, get_output::Bool=false)
+    return function(args...)
+        args_ = Leaf.(Tape(), args)
+        y = f(args_...)
+        ∇f = ∇()
+        ∇args = ([∇f[arg_] for arg_ in args_]...)
+        return get_output ? (y, ∇args) : ∇args
+    end
+end

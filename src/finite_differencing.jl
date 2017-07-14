@@ -32,7 +32,7 @@ function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans
 
             # Compute x̄ using AutoDiff.
             x = collect(Any, x0)
-            x[n] = Leaf(x0[n], Tape())
+            x[n] = Leaf(Tape(), x0[n])
             df = ∇(f(x...))
 
             # Estimate x̄ using finite differencing.

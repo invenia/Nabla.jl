@@ -193,6 +193,12 @@ eval(DiffBase, add_intercept(Symbol("\\"), :(getfield(Base, Symbol("\\"))), acce
 @inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::ArrayOrReal, y::ArrayOrReal) =
     ∇(broadcast, Arg{3}, p, z, z̄, \, x, y)
 
+
+# We have to add some methods to Base to ensure that dispatch happens correctly when using
+# the dot notation.
+
+
+
 # It is assumed that the cardinality of itr is relatively small in the methods below and]
 # that there is therefore no need to optimise them.
 # mapreduce(f, op, itr), mapreduce(f, op, v0, itr)

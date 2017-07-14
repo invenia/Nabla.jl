@@ -8,7 +8,7 @@
             # Test allocating sensitivities.
             Z = rand(Uniform(bounds[1], bounds[2]), N, N)
             X = Z'Z + UniformScaling(1e-3)
-            X_ = Leaf(X, Tape())
+            X_ = Leaf(Tape(), X)
             δ_abs, δ_rel = @eval discrepancy($f, ($X,), $δ)
 
             # Check that the correct output is computed.
@@ -29,7 +29,7 @@
             # Z1, Z2 = rand(Uniform(1.0, 1.5), N, N), rand(Uniform(1.0, 1.5), N, N)
             A, B, tape = Z1'Z1 + UniformScaling(1.0), Z2'Z2 + UniformScaling(1.0), Tape()
             A, B, tape = Z1, Z2, Tape()
-            A_, B_ = Leaf(A, tape), Leaf(B, tape)
+            A_, B_ = Leaf(tape, A), Leaf(tape, B)
             ∇f = ∇(eval(DiffBase, f)(A_, B_))
 
             δ_abs, δ_rel = errs(eval(DiffBase, f), A_, B_, ∇f[A_], ∇f[B_])

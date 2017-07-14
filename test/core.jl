@@ -11,17 +11,17 @@ let
     @test !isassigned(Tape(26), 26)
 
     # Check isassigned consistency.
-    leaf = Leaf(5, Tape())
+    leaf = Leaf(Tape(), 5)
     @test isassigned(leaf.tape.tape, leaf.pos) == isassigned(leaf.tape, leaf)
 
     # Simple tests for `Leaf`.
     tp1, tp2 = Tape(), Tape(50)
-    @test Leaf(5.0, tp1).tape == tp1
-    @test Leaf(5.0, tp1).val == 5.0
-    @test Leaf(5.0, tp1).pos == 3
-    @test Leaf(5, tp2).pos == 51
-    @test Leaf(5, tp2).val == 5
-    @test Leaf(5, tp2).tape == tp2
+    @test Leaf(tp1, 5.0).tape == tp1
+    @test Leaf(tp1, 5.0).val == 5.0
+    @test Leaf(tp1, 5.0).pos == 3
+    @test Leaf(tp2, 5).pos == 51
+    @test Leaf(tp2, 5).val == 5
+    @test Leaf(tp2, 5).tape == tp2
 
     # Simple tests for `Branch`.
     foo_coeff = 10
@@ -29,7 +29,7 @@ let
     foo(x::Node{T} where T<:Real) = Branch(foo, (x,), x.tape)
     DiffCore.∇(::typeof(foo), ::Type{Arg{1}}, p, y, ȳ, x) = foo_coeff
     function get_new_branch()
-        leaf = Leaf(5, Tape())
+        leaf = Leaf(Tape(), 5)
         return foo(leaf)
     end
     @test isa(get_new_branch(), Branch)
@@ -47,25 +47,25 @@ let
     # Simple test for `pos`.
     @test DiffCore.pos(1) == -1
     @test DiffCore.pos("hi") == -1
-    @test DiffCore.pos(Leaf(5, Tape())) == 1
-    @test DiffCore.pos(Leaf(5.0, Tape(50))) == 51
+    @test DiffCore.pos(Leaf(Tape(), 5)) == 1
+    @test DiffCore.pos(Leaf(Tape(50), 5.0)) == 51
 
     # Simple tests for `unbox`.
     @test DiffCore.unbox(1) == 1
     @test DiffCore.unbox("hi") == "hi"
-    @test DiffCore.unbox(Leaf(5, Tape())) == 5
-    @test DiffCore.unbox(Leaf(5.0, Tape())) == 5.0
+    @test DiffCore.unbox(Leaf(Tape(), 5)) == 5
+    @test DiffCore.unbox(Leaf(Tape(), 5.0)) == 5.0
 
     # Simple tests for reverse_tape.
-    @test isa(DiffCore.reverse_tape(Leaf(5, Tape())), Tape)
-    @test length(DiffCore.reverse_tape(Leaf(5, Tape()))) == 1
-    @test DiffCore.reverse_tape(Leaf(5, Tape()))[end] == 1
-    @test isassigned(DiffCore.reverse_tape(Leaf(5, Tape())), 1)
+    @test isa(DiffCore.reverse_tape(Leaf(Tape(), 5)), Tape)
+    @test length(DiffCore.reverse_tape(Leaf(Tape(), 5))) == 1
+    @test DiffCore.reverse_tape(Leaf(Tape(), 5))[end] == 1
+    @test isassigned(DiffCore.reverse_tape(Leaf(Tape(), 5)), 1)
     @test isassigned(DiffCore.reverse_tape(get_new_branch()), 2)
     @test !isassigned(DiffCore.reverse_tape(get_new_branch()), 1)
 
     # Simple tests for `propagate`.
-    @test DiffCore.propagate(Leaf(5, Tape()), Tape()) == nothing
+    @test DiffCore.propagate(Leaf(Tape(), 5), Tape()) == nothing
     br = get_new_branch()
     rvs_tape = DiffCore.reverse_tape(br)
     @test DiffCore.propagate(br, rvs_tape) == nothing
