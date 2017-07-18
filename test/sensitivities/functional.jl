@@ -1,5 +1,7 @@
 @testset "sensitivities/functional" begin
 
+    import Nabla.DiffBase.fmad
+
     # Simple test with known gradient results.
     x = Leaf(Tape(), [1, 2, 3, 4, 5])
     s = 5 * mapreduce(abs2, +, x)
@@ -17,6 +19,19 @@
     for (f, _, bounds, _) in DiffBase.unary_sensitivities
         x = rand(Uniform(bounds[1], bounds[2]), 100)
         @test check_unary_sum(eval(current_module(), f), x)
+    end
+
+    # Check that the FMAD implementation is doing it's job on functions for which we do not
+    # have gradient implementations.
+    let # Unary functions.
+        fs = (x->5x, x->1 / (1 + x), x->10+x)
+        for f in fs
+            x = randn(5)
+            x_ = Leaf(Tape(), x)
+            s_ = mapreduce(f, +, x_)
+            @test s_.val == mapreduce(f, +, x)
+            @test ∇(s_)[x_] == map(x->DiffBase.fmad(f, (x,), Val{1}), x)
+        end
     end
 
     # mapreducedim on a single-dimensional array should be consistent with mapreduce.
@@ -66,6 +81,40 @@
         @test check_binary_map(eval(current_module(), f), x, y)
     end
 
+    # Check that map returns the correct gradients for unary, binary and tenary functions
+    # that do not have explicit implementations.
+    let # Unary functions.
+        fs = (x->5x, x->1 / (1 + x), x->10+x)
+        for f in fs
+            x = randn(5)
+            x_ = Leaf(Tape(), x)
+            s_ = map(f, x_)
+            @test s_.val == map(f, x)
+            @test ∇(s_)[x_] == getindex.(map((x)->fmad(f, (x,)), x), 1)
+        end
+    end
+    let # Binary functions.
+        fs = ((x, y)->x + y, (x, y)->x + x * y, (x, y)->tanh(x) * sin(y))
+        for f in fs
+            x, y = randn(5), randn(5)
+            x_, y_ = Leaf.(Tape(), (x, y))
+            s_ = map(f, x_, y_)
+            @test s_.val == map(f, x, y)
+            @test ∇(s_)[x_] == getindex.(map((x, y)->fmad(f, (x, y)), x, y), 1)
+            @test ∇(s_)[y_] == getindex.(map((x, y)->fmad(f, (x, y)), x, y), 2)
+        end
+    end
+    let # Ternary functions (because it's useful to check I guess.)
+        f = (x, y, z)->x * y + y * z + x * z
+        x, y, z = randn(5), randn(5), randn(5)
+        x_, y_, z_ = Leaf.(Tape(), (x, y, z))
+        s_ = map(f, x_, y_, z_)
+        @test s_.val == map(f, x, y, z)
+        @test ∇(s_)[x_] == getindex.(map((x, y, z)->fmad(f, (x, y, z)), x, y, z), 1)
+        @test ∇(s_)[y_] == getindex.(map((x, y, z)->fmad(f, (x, y, z)), x, y, z), 2)
+        @test ∇(s_)[z_] == getindex.(map((x, y, z)->fmad(f, (x, y, z)), x, y, z), 3)
+    end
+
     # Check that `broadcast` returns the correct gradient under the defined unary functions.
     function check_unary_broadcast(f, x)
         x_ = Leaf(Tape(), x)
@@ -79,7 +128,7 @@
         @test check_unary_broadcast(eval(current_module(), f), x)
     end
 
-    # Check that `map` returns the correct gradient under each implemented binary function.
+    # Check that `broadcast` returns the correct gradient under each implemented binary function.
     function check_binary_broadcast(f, x, y)
         tape = Tape()
         x_, y_ = Leaf(tape, x), Leaf(tape, y)
@@ -121,6 +170,17 @@
         check_binary_broadcast(eval(current_module(), f), x, y)
         check_binary_broadcast(eval(current_module(), f), rand(x_distr), y)
         check_binary_broadcast(eval(current_module(), f), x, rand(y_distr))
+    end
+
+    let # Ternary functions (because it's useful to check I guess.)
+        f = (x, y, z)->x * y + y * z + x * z
+        x, y, z = randn(5), randn(5), randn(5)
+        x_, y_, z_ = Leaf.(Tape(), (x, y, z))
+        s_ = broadcast(f, x_, y_, z_)
+        @test s_.val == broadcast(f, x, y, z)
+        @test ∇(s_)[x_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 1)
+        @test ∇(s_)[y_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 2)
+        @test ∇(s_)[z_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 3)
     end
 
     let

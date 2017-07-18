@@ -23,13 +23,13 @@ module Nabla
 
     baremodule DiffBase
 
-        using ..DiffCore
-        import ..DiffCore: ∇, get_original
+        using ..DiffCore, DualNumbers
+        import ..DiffCore: ∇, get_original, needs_output
 
         import Base
         import Base: include, @inline, @noinline, push!, any, zeros, π, !, method_exists,
             error, eltype, zip, similar, size, !=, one, zero, StridedArray, StridedMatrix,
-            @eval, AbstractMatrix, >, <, ones, eachindex
+            @eval, AbstractMatrix, >, <, ones, eachindex, colon, Val
         import Base.Meta.quot
 
         const RealArray = AbstractArray{T} where T<:Real
