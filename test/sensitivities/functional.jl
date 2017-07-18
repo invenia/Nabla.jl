@@ -163,4 +163,38 @@
         @test ∇(z_)[x_] == ∇(broadcast(\, x_, y_))[x_]
         @test ∇(z_)[y_] == ∇(broadcast(\, x_, y_))[y_]
     end
+
+    # Check that dot notation works as expected for all unary function in DiffBase for both
+    # scalars and arrays.
+    function check_unary_dot(f, x)
+        x_ = Leaf(Tape(), x)
+        z_ = f.(x_)
+        @test z_.val == f.(x)
+        @test ∇(z_)[x_] == ∇(broadcast(f, x_))[x_]
+    end
+    for (f, _, bounds, _) in DiffBase.unary_sensitivities
+        distr = Uniform(bounds[1], bounds[2])
+        check_unary_dot(eval(current_module(), f), rand(distr))
+        check_unary_dot(eval(current_module(), f), rand(distr, 100))
+    end
+
+    # Check that the dot notation works as expected for all of the binary functions in
+    # DiffBase for each permutation of scalar / array input.
+    function check_binary_dot(f, x, y)
+        x_, y_ = Leaf.(Tape(), (x, y))
+        z_ = f.(x_, y_)
+        @test z_.val == f.(x, y)
+        @test ∇(z_)[x_] == ∇(broadcast(f, x_, y_))[x_]
+        @test ∇(z_)[y_] == ∇(broadcast(f, x_, y_))[y_]
+    end
+    for (f, _, _, x_bounds, y_bounds) in DiffBase.binary_sensitivities
+        x_distr = Uniform(x_bounds[1], x_bounds[2])
+        y_distr = Uniform(y_bounds[1], y_bounds[2])
+        x = rand(x_distr, 100)
+        y = rand(y_distr, 100)
+        check_binary_dot(eval(current_module(), f), x, y)
+        check_binary_dot(eval(current_module(), f), rand(x_distr), y)
+        check_binary_dot(eval(current_module(), f), x, rand(y_distr))
+        check_binary_dot(eval(current_module(), f), rand(x_distr), rand(y_distr))
+    end
 end

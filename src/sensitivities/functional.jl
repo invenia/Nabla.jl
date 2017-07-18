@@ -196,8 +196,12 @@ eval(DiffBase, add_intercept(Symbol("\\"), :(getfield(Base, Symbol("\\"))), acce
 
 # We have to add some methods to Base to ensure that dispatch happens correctly when using
 # the dot notation.
-
-
+const tp = Union{Real, RealArray, Node{T} where T<:Union{Real, RealArray}}
+@generated Base.broadcast(f, A::Vararg{tp, N}) where N =
+    any([issubtype(a, Node) for a in A]) ?
+        :(DiffBase.broadcast(f, A...)) :
+        :(invoke(Base.broadcast, Tuple{Any, Vararg{Any, N}}, f, A...))
+@inline Base.broadcast(f, x::Union{Real, Node{T} where T<:Real}...) = f(x...)
 
 # It is assumed that the cardinality of itr is relatively small in the methods below and]
 # that there is therefore no need to optimise them.
