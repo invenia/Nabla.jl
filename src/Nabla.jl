@@ -42,6 +42,7 @@ module Nabla
         # Sensitivities for functionals.
         include("sensitivities/functional/functional.jl")
         include("sensitivities/functional/reduce.jl")
+        include("sensitivities/functional/reducedim.jl")
 
         # Linear algebra optimisations.
         include("sensitivities/linalg/generic.jl")

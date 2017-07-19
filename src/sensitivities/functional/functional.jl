@@ -36,7 +36,7 @@ the current value of z, otherwise it is overwritten.
 function broadcastsum!(f::Function, add::Bool, z, As...)
     tmp_shape = broadcast_shape(map(size, As)...)
     if size(z) != tmp_shape
-        tmp = Array(eltype(z), tmp_shape)
+        tmp = Array{eltype(z)}(tmp_shape)
         return Base.sum!(z, Base.broadcast!((x...)->f(x...), tmp, As...), init=!add)
     else
         return add ?

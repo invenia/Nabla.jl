@@ -40,7 +40,7 @@ function mlp_log_joint(X, Y, W, b, λ)
 
     # Compute the output of the MLP.
     f = logistic.(apply_transforms(X, W, b, tanh))
-    f = f ./ mapreducedim(identity, +, f, 1)
+    f = f ./ sum(f, 1)
 
     # Compute the log likelihood of the observations given the outputs of the MLP. We assume
     ϵ = 1e-15
