@@ -1,7 +1,7 @@
 import Nabla.DiffCore.@differentiable
 @differentiable MLP begin
 
-using MNIST, MyOptimisers, BenchmarkTools
+using MNIST, BenchmarkTools
 
 function to1hot(y_::Vector)
     y = Matrix{Int}(10, length(y_))
@@ -73,7 +73,7 @@ function demo_mlp(itrs::Int, sz::Int)
     W_ = (0.1 * randn(d1, d0), 0.1 * randn(d2, d1), 0.1 * randn(d3, d2))
     b_ = (0.1 * randn(d1), 0.1 * randn(d2), 0.1 * randn(d3))
 
-    # Initialise the AdaGrad optimiser.
+    # Initialise the Adam optimiser.
     α, β1, β2, ϵ = 1e-3, 0.9, 0.999, 1e-8
     optW, optb = Adam.(W_, α, β1, β2, ϵ), Adam.(b_, α, β1, β2, ϵ)
  

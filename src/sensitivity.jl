@@ -110,7 +110,7 @@ catch_all_expr(foo::Symbol, base_foo::Expr) = :($foo(x...) = $base_foo(x...))
 original_expr(foo::Symbol, base_foo::Expr) = :(get_original(x::typeof($foo)) = $base_foo)
 @inline call_with_originals(f::Function, args...) = f(Base.map(get_original, args)...)
 
-function get_union_call(foo::Symbol, type_tuple::Expr, arg_types::Vector{Symbol})
+function get_union_call(foo::Symbol, type_tuple::Expr)
 
     # Get type info from tuple and declare a collection of symbols for use in the call.
     types = get_types(get_body(type_tuple))
@@ -119,16 +119,13 @@ function get_union_call(foo::Symbol, type_tuple::Expr, arg_types::Vector{Symbol}
 
     # Remove strip out Vararg stuff, compute unioned types, and re-add Vararg stuff.
     type_info = remove_vararg.(types)
-    unioned_types = [:(Union{$typ, Node{$par} where $par <: $typ})
-        for (typ, par) in zip(getindex.(type_info, 1), arg_types)]
+    unioned_types = [:(Union{$typ, Node{<:$typ}}) for typ in getindex.(type_info, 1)]
     vararged_types = replace_vararg.(unioned_types, type_info)
 
     # Generate the call.
     typed_args = [:($name::$typ) for (name, typ) in zip(arg_names, vararged_types)]
     return replace_body(type_tuple, Expr(:call, foo, typed_args...)), arg_names
 end
-get_union_call(foo::Symbol, type_tuple::Expr) =
-    get_union_call(foo, type_tuple, [gensym() for _ in get_types(get_body(type_tuple))])
 
 replace_body(unionall::Expr, replacement::Union{Symbol, Expr}) =
     unionall.head == :where ?

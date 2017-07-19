@@ -32,8 +32,8 @@ module Nabla
             @eval, AbstractMatrix, >, <, ones, eachindex, colon, Val
         import Base.Meta.quot
 
-        const RealArray = AbstractArray{T} where T<:Real
-        const RS = StridedMatrix{T} where T<:Real
+        const RealArray = AbstractArray{<:Real}
+        const RS = StridedMatrix{<:Real}
 
         # Sensitivites for the basics.
         include("sensitivities/indexing.jl")

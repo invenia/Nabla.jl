@@ -80,59 +80,59 @@
     # Test `DiffCore.get_union_call`.
     import Nabla.DiffCore.get_union_call
     let
-        from_func = get_union_call(:goo, :(Tuple{Real}), [:T])[1]
-        expected = :(goo(x1::Union{Real, Node{T} where T<:Real}))
+        from_func = get_union_call(:goo, :(Tuple{Real}))[1]
+        expected = :(goo(x1::Union{Real, Node{<:Real}}))
         @test from_func == expected
     end
     let
-        from_func = get_union_call(:goo, :(Tuple{Real, Number}), [:T, :T])[1]
+        from_func = get_union_call(:goo, :(Tuple{Real, Number}))[1]
         expected = :(
         goo(
-            x1::Union{Real, Node{T} where T<:Real},
-            x2::Union{Number, Node{T} where T<:Number},
+            x1::Union{Real, Node{<:Real}},
+            x2::Union{Number, Node{<:Number}},
         ))
         @test from_func == expected
     end
     let
         arg = :(AbstractArray{V} where V)
-        from_func = get_union_call(:goo, :(Tuple{$arg}), [:T])[1]
-        expected = :(goo(x1::Union{$arg, Node{T} where T<:($arg)}))
+        from_func = get_union_call(:goo, :(Tuple{$arg}))[1]
+        expected = :(goo(x1::Union{$arg, Node{<:($arg)}}))
         @test from_func == expected
     end
     let 
-        from_func = get_union_call(:goo, :(Tuple{V, V} where V<:Real), [:T, :T])[1]
-        expected = :(goo(x1::Union{V, Node{T} where T<:V}, x2::Union{V, Node{T} where T<:V}) where V<:Real)
+        from_func = get_union_call(:goo, :(Tuple{V, V} where V<:Real))[1]
+        expected = :(goo(x1::Union{V, Node{<:V}}, x2::Union{V, Node{<:V}}) where V<:Real)
         @test from_func == expected
     end
     let
-        from_func = get_union_call(:goo, :(Tuple{Vararg{Real}}), [:T])[1]
-        expected = :(goo(x1::Vararg{Union{Real, Node{T} where T<:Real}}))
+        from_func = get_union_call(:goo, :(Tuple{Vararg{Real}}))[1]
+        expected = :(goo(x1::Vararg{Union{Real, Node{<:Real}}}))
         @test from_func == expected
     end
     let
-        from_func = get_union_call(:goo, :(Tuple{Number, Vararg{Real}}), [:T, :T])[1]
+        from_func = get_union_call(:goo, :(Tuple{Number, Vararg{Real}}))[1]
         expected = :(
         goo(
-            x1::Union{Number, Node{T} where T<:Number},
-            x2::Vararg{Union{Real, Node{T} where T<:Real}},
+            x1::Union{Number, Node{<:Number}},
+            x2::Vararg{Union{Real, Node{<:Real}}},
         ))
         @test from_func == expected
     end
     let
-        from_func = get_union_call(:goo, :(Tuple{Vararg{V} where V<:Real}), [:T])[1]
-        expected = :(goo(x1::Vararg{Union{V where V<:Real, Node{T} where T<:(V where V<:Real)}}))
+        from_func = get_union_call(:goo, :(Tuple{Vararg{V where V<:Real}}))[1]
+        expected = :(goo(x1::Vararg{Union{V where V<:Real, Node{<:(V where V<:Real)}}}))
         @test from_func == expected
     end
     let
         arg_type = :(Union{Real, AbstractArray})
-        from_func = get_union_call(:goo, :(Tuple{Vararg{$arg_type}}), [:T])[1]
-        expected = :(goo(x1::Vararg{Union{$arg_type, Node{T} where T<:$arg_type}}))
+        from_func = get_union_call(:goo, :(Tuple{Vararg{$arg_type}}))[1]
+        expected = :(goo(x1::Vararg{Union{$arg_type, Node{<:$arg_type}}}))
         @test from_func == expected
     end
     let
         arg_type = :(Union{Real, AbstractArray{V} where V<:Real})
-        from_func = get_union_call(:goo, :(Tuple{Vararg{$arg_type}}), [:G])[1]
-        expected = :(goo(x1::Vararg{Union{$arg_type, Node{G} where G<:$arg_type}}))
+        from_func = get_union_call(:goo, :(Tuple{Vararg{$arg_type}}))[1]
+        expected = :(goo(x1::Vararg{Union{$arg_type, Node{<:$arg_type}}}))
         @test from_func == expected
     end
 

@@ -32,3 +32,43 @@ function base_include_str(exclude_names)
     foreach(x->!in(x, exclude_names) && (base_include *= String(x) * ", "), names(Base))
     return base_include[1:end-2]
 end
+
+# """
+#     @accepts_nodes func_def
+
+# Ensures that each argument of the function which will be defined by `func_def` can be
+# wrapped by a `Node`.
+# """
+# macro accepts_nodes(code::Expr)
+#     head, args = code.head, code.args
+#     if head == :function
+#         !isa(args[1].head, Expr) && throw(error("Invalid function definition. ($code)"))
+#         if args[1].head == :call || args[1].head == :where
+            
+#         elseif args[1].head == :tuple
+            
+#         else
+#             throw(error("Unrecognised function definition."))
+#         end
+
+#     elseif head == Symbol("=") && isa(args[1], Expr) && args[1].head == :call
+
+#     elseif 
+# end
+
+# Ways to define a function:
+
+# Not anonymous:
+# function foo(x)
+#     # code
+# end
+# foo(x) = x
+
+# Anonymous.
+# function(x, y)
+#     # code
+# end
+# (x, y)->code
+
+
+
