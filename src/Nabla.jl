@@ -38,7 +38,10 @@ module Nabla
         # Sensitivites for the basics.
         include("sensitivities/indexing.jl")
         include("sensitivities/scalar.jl")
-        include("sensitivities/functional.jl")
+
+        # Sensitivities for functionals.
+        include("sensitivities/functional/functional.jl")
+        include("sensitivities/functional/reduce.jl")
 
         # Linear algebra optimisations.
         include("sensitivities/linalg/generic.jl")

@@ -88,6 +88,14 @@ for (f, x̄, ȳ, r1, r2) in binary_sensitivities
     eval(DiffBase, :(@inline ∇(::typeof($func), ::Type{Arg{2}}, p, z, z̄, x::Real, y::Real) = $ȳ))
 end
 
+# Taken definitions from Base and copied them here to handle inlining of multiple operations.
+# Not currently efficient - this could probably be improved significantly.
+for op in (:+, :*)
+    @eval DiffBase begin
+        ($op)(a, b, c, xs...) = Base.afoldl($op, ($op)(($op)(a,b),c), xs...)
+    end
+end
+
 # A collection of unary sensitivites yet to be implemented.
 
 # atan2, asind, acosd, atand, asec, acsc,

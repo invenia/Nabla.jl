@@ -20,7 +20,7 @@ function show(io::IO, tape::Tape)
         println(io, "Empty tape.")
     else
         for n in eachindex(tape)
-            println(io, isassigned(tape.tape, n) ? tape[n] : "#undef")
+            println(io, n, " ", isassigned(tape.tape, n) ? tape[n] : "#undef")
         end
     end
 end
@@ -52,7 +52,8 @@ function Leaf(tape::Tape, val)
     push!(tape, leaf)
     return leaf
 end
-show{T}(io::IO, tape::Leaf{T}) = print(io, "Leaf{$T} $(tape.val)")
+show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(tape.val)")
+show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(tape.val))")
 
 """
 A Branch is a Node with parents (args).
@@ -77,9 +78,11 @@ end
     push!(tape, branch)
     return branch
 end
-function show{T, V}(io::IO, branch::Branch{T, V})
+show(io::IO, branch::Branch{T, V}) where {T, V} =
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
-end
+show(io::IO, branch::Branch{T}) where T<:AbstractArray =
+    print(io, "Branch{$T} $(size(branch.val)), f=$(branch.f)")
+
 
 """
     pos(x::Node)

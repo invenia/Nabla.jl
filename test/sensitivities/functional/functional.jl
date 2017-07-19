@@ -1,50 +1,6 @@
-@testset "sensitivities/functional" begin
+@testset "sensitivities/functional/functional" begin
 
     import Nabla.DiffBase.fmad
-
-    # Simple test with known gradient results.
-    x = Leaf(Tape(), [1, 2, 3, 4, 5])
-    s = 5 * mapreduce(abs2, +, x)
-    @test ∇(s)[x] == 5 * [2, 4, 6, 8, 10]
-
-    function check_unary_sum(f, x)
-        x_ = Leaf(Tape(), x)
-        s = mapreduce(f, +, x_)
-        return DiffBase.needs_output(f) ?
-            ∇(s)[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
-            ∇(s)[x_] == ∇.(f, Arg{1}, x)
-    end
-
-    # Iterate over all unary functions and check they work correctly with mapreduce.
-    for (f, _, bounds, _) in DiffBase.unary_sensitivities
-        x = rand(Uniform(bounds[1], bounds[2]), 100)
-        @test check_unary_sum(eval(current_module(), f), x)
-    end
-
-    # Check that the FMAD implementation is doing it's job on functions for which we do not
-    # have gradient implementations.
-    let # Unary functions.
-        fs = (x->5x, x->1 / (1 + x), x->10+x)
-        for f in fs
-            x = randn(5)
-            x_ = Leaf(Tape(), x)
-            s_ = mapreduce(f, +, x_)
-            @test s_.val == mapreduce(f, +, x)
-            @test ∇(s_)[x_] == map(x->DiffBase.fmad(f, (x,), Val{1}), x)
-        end
-    end
-
-    # mapreducedim on a single-dimensional array should be consistent with mapreduce.
-    x = Leaf(Tape(), [1, 2, 3, 4, 5])
-    s = 5 * mapreducedim(abs2, +, x, 1)[1]
-    @test ∇(s)[x] == 5 * [2, 4, 6, 8, 10]
-
-    # mapreducedim on a two-dimensional array when reduced over a single dimension should
-    # give different results to mapreduce over the same array.
-    x2_ = reshape([1, 2, 3, 4,], (2, 2))
-    x2 = Leaf(Tape(), x2_)
-    s = mapreducedim(abs2, +, x2, 1)
-    @test ∇(s)[x] == 2 * x2_
 
     # Simple test for mapping under the identity.
     x = Leaf(Tape(), [1, 2, 3, 4, 5])

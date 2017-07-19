@@ -1,89 +1,6 @@
 # Implementation of functionals (i.e. higher-order functions).
-import Base.Broadcast.broadcast_shape
-export mapreduce, mapreducedim, map, broadcast
-
-# Intercepts for mapreduce.
-accepted_add = :(Tuple{Function, typeof(+), AbstractArray{T} where T<:Real})
-eval(DiffBase, add_intercept(:mapreduce, :(Base.mapreduce), accepted_add))
-function ∇(
-    ::typeof(mapreduce),
-    ::Type{Arg{3}},
-    p, y, ȳ, f,
-    ::typeof(+),
-    A::AbstractArray{T} where T<:Real,
-)
-    if needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real, Any})
-        return Base.broadcast(An->ȳ * ∇(f, Arg{1}, An, f(An)), A)
-    elseif !needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real})
-        return Base.broadcast(An->ȳ * ∇(f, Arg{1}, An), A)
-    else
-        return Base.broadcast(An->ȳ * fmad(f, (An,), Val{1}), A)
-        # return Base.broadcast(An->ȳ * fmad(f, (An,))[1], A)
-    end
-end
-
-# # Intercepts for mapreduce under multiplication.
-# accepted_mul = :(Tuple{Function, typeof(*), AbstractArray{T} where T<:Real})
-# eval(DiffBase, add_intercept(:mapreduce, :(Base.mapreduce), accepted_mul))
-# function ∇(
-#     ::typeof(mapreduce),
-#     ::Type{Arg{3}},
-#     p, y, ȳ, f,
-#     ::typeof(*),
-#     A::AbstractArray{T} where T<:Real,
-# )
-#     if needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real, Any})
-#         return Base.broadcast(An->ȳ * ∇(f, Arg{1}, An, f(An)), A)
-#     elseif !needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real})
-#         return Base.broadcast(An->ȳ * ∇(f, Arg{1}, An), A)
-#     else
-#         return Base.broadcast(An->ȳ * )
-#         throw(error("Not implemented mapreduce sensitivities for general f. ($f)"))
-#     end
-# end
-
-# Intercepts and sensitivities for mapreducedim.
-accepted_wo_default = :(Tuple{Function, typeof(+), AbstractArray{T} where T<:Real, Any})
-accepted_w_default = :(Tuple{Function, typeof(+), AbstractArray{T} where T<:Real, Any, Real})
-eval(DiffBase, add_intercept(:mapreducedim, :(Base.mapreducedim), accepted_wo_default))
-eval(DiffBase, add_intercept(:mapreducedim, :(Base.mapreducedim), accepted_w_default))
-
-# Sensitivity w.r.t. mapreducedim.
-function ∇(
-    ::typeof(mapreducedim),
-    ::Type{Arg{3}},
-    p, y, ȳ, f,
-    ::typeof(+),
-    A::AbstractArray{T} where T<:Real,
-    region,
-)
-    if needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real, Any})
-        return Base.broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An, f(An)), A, ȳ)
-    elseif !needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real})
-        return Base.broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An), A, ȳ)
-    else
-        return Base.broadcast(An->ȳ * fmad(f, (An,), Val{1}), A)
-    end
-end
-
-# Sensitivity w.r.t. mapreducedim with default argument.
-function ∇(
-    ::typeof(mapreducedim),
-    ::Type{Arg{3}},
-    p, y, ȳ, f,
-    ::typeof(+),
-    A::AbstractArray{T} where T<:Real,
-    region,
-    v0::Real,
-)
-    if needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real, Any})
-        return Base.broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An, f(An)), A, ȳ)
-    elseif !needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real})
-        return Base.broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An), A, ȳ)
-    else
-        return Base.broadcast(An->ȳ * fmad(f, (An,), Val{1}), A)
-    end
-end
+import Base.Broadcast.broadcast_shape, Nabla.DiffBase.fmad
+export map, broadcast
 
 # Implementation of sensitivities w.r.t. `map`.
 arr_type = AbstractArray{T} where T<:Real
@@ -120,7 +37,7 @@ function broadcastsum!(f::Function, add::Bool, z, As...)
     tmp_shape = broadcast_shape(map(size, As)...)
     if size(z) != tmp_shape
         tmp = Array(eltype(z), tmp_shape)
-        return sum!(z, Base.broadcast!((x...)->f(x...), tmp, As...), init=!add)
+        return Base.sum!(z, Base.broadcast!((x...)->f(x...), tmp, As...), init=!add)
     else
         return add ?
             Base.broadcast!((z, x...)->z + f(x...), z, z, As...) :
@@ -152,8 +69,6 @@ end
     method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...}) ?
         broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N-1}, p, yn, ȳn, xn...), false, A[N-1], y, ȳ, A...) :
         broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N-1}), false, A[N-1], ȳ, A...)
-        # throw(error("Not implemented map sensitivities for general f. ($f)"))
-
 
 # Scalar-array operations without dots. All just implemented in terms of broadcast.
 const ArrayOrReal = Union{Real, AbstractArray{T} where T<:Real}
@@ -210,17 +125,17 @@ const tp = Union{Real, RealArray, Node{T} where T<:Union{Real, RealArray}}
 # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
 # The coefficient of this scaling could be improved by implementing a version of DualNumbers
 # which computes from multiple seeds at the same time.
-function dual_call_expr(f, x::Type{NTuple{N, T}}, ::Type{Type{Val{n}}}) where {N, T, n}
+function dual_call_expr(f, x::Type{T} where T<:Tuple, ::Type{Type{Val{n}}}) where n
     dual_call = Expr(:call, :f)
-    for m in 1:N
+    for m in 1:Base.length(x.parameters)
         push!(dual_call.args, :(Dual(x[$m], $(Base.isequal(n, m) ? 1 : 0))))
     end
     return :(dualpart($dual_call))
 end
 @generated fmad(f, x, n) = dual_call_expr(f, x, n)
-function fmad_expr(f, x::Type{NTuple{N, T}}) where {N, T}
+function fmad_expr(f, x::Type{T} where T<:Tuple)
     body = Expr(:tuple)
-    for n in 1:N
+    for n in 1:Base.length(x.parameters)
         push!(body.args, dual_call_expr(f, x, Type{Val{n}}))
     end
     return body

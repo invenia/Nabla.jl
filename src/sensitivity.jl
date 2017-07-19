@@ -1,8 +1,10 @@
 import Base.Meta.quot
 export @differentiable, add_intercept, Arg, add_∇, add_∇!, ∇, preprocess, intercepts,
-    @generated, keys, values, intercept_names
+    @generated, keys, values, intercept_names, prevent_base_import
 
 const intercept_names = Set()
+
+prevent_base_import(foo::Symbol) = push!(intercept_names, foo)
 
 """
     add_intercept(foo::Symbol, base_foo::Expr)
