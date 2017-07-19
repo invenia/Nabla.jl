@@ -1,7 +1,36 @@
 import Nabla.DiffCore.@differentiable
 @differentiable MLP begin
 
-using MNIST, BenchmarkTools
+using MNIST
+
+""" Implementation of the Adam optimiser. """
+type Adam{T<:AbstractArray}
+    α::Float64
+    β1::Float64
+    β2::Float64
+    m::T
+    v::T
+    β1_acc::Float64
+    β2_acc::Float64
+    ϵ::Float64
+end
+function Adam{T<:AbstractArray}(θ0::T, α::Float64, β1::Float64, β2::Float64, ϵ::Float64)
+    return Adam(α, β1, β2, zeros(θ0), zeros(θ0), β1, β2, ϵ)
+end
+
+function iterate!(θ::AbstractArray{Float64}, ∇θ::AbstractArray{Float64}, opt::Adam)
+    m, v, α, β1, β2, ϵ, β1_acc, β2_acc =
+        opt.m, opt.v, opt.α, opt.β1, opt.β2, opt.ϵ, opt.β1_acc, opt.β2_acc
+    @inbounds for n in eachindex(θ)
+        m[n] = β1 * m[n] + (1.0 - β1) * ∇θ[n]
+        v[n] = β2 * v[n] + (1.0 - β2) * ∇θ[n]^2
+        m̂ = m[n] / (1 - β1_acc)
+        v̂ = v[n] / (1 - β2_acc)
+        θ[n] = θ[n] + α * m̂ / (sqrt(v̂) + ϵ)
+    end
+    opt.β1_acc *= β1
+    opt.β2_acc *= β2
+end
 
 function to1hot(y_::Vector)
     y = Matrix{Int}(10, length(y_))
@@ -13,7 +42,7 @@ function to1hot(y_::Vector)
     return y
 end
 accuracy(Y, Ypr) = mean(all(Y .== Ypr, 1))
-@inline logistic(x) = 1 ./ (1 .+ exp(-x))
+@inline logistic(x) = 1 ./ (1 .+ exp.(-x))
 
 """
     mlp_log_joint(
@@ -34,7 +63,7 @@ function mlp_log_joint(X, Y, W, b, λ)
     # λ (it is fixed) we can neglect the normalising constant Z = 0.5 * log(2πλ).
     log_prior = 0.0
     for n in 1:length(W)
-        log_prior += mapreduce(abs2, +, W[n]) + mapreduce(abs2, +, b[n])
+        log_prior += sum(abs2, W[n]) + sum(abs2, b[n])
     end
     log_prior *= -0.5 * λ
 
