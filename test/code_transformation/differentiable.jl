@@ -22,6 +22,7 @@
     @test unionise_sig(:(foo(x, y))) == :(foo(x, y))
     @test unionise_sig(:((x::T,))) == :(($(unionise_arg(:(x::T))),))
     @test unionise_sig(:(foo(x::T))) == :(foo($(unionise_arg(:(x::T)))))
+    @test unionise_sig(:(foo(x::T) where T)) == :(foo($(unionise_arg(:(x::T)))) where T)
 
     # Test DiffCore.make_accept_nodes. Heavily depends upon DiffCore.unionise_sig, so we
     # express tests in terms of this function.
@@ -47,7 +48,6 @@
         Expr(Symbol("="), unionise_sig(:(foo(x::Real))), :x)
     @test unionise(Expr(Symbol("="), :(foo(x::T, y::T) where T), :x)) ==
         Expr(Symbol("="), unionise_sig(:(foo(x::T, y::T) where T)), :x)
-
 
     # println(make_accept_nodes(quote
 

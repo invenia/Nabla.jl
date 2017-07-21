@@ -55,14 +55,15 @@ unionise_sig(code::Symbol) = code
 function unionise_sig(code::Expr)
     body = get_body(code)
     if body.head == :tuple
-        return Expr(:tuple, unionise_arg.(body.args)...)
+        new_body = Expr(:tuple, unionise_arg.(body.args)...)
     elseif body.head == :call
-        return Expr(:call, body.args[1], unionise_arg.(body.args[2:end])...)
+        new_body = Expr(:call, body.args[1], unionise_arg.(body.args[2:end])...)
     elseif body.head == Symbol("::")
-        return unionise_arg(body)
+        new_body = unionise_arg(body)
     else
         throw(error("Not sure what to do."))
     end
+    return replace_body(code, new_body)
 end
 
 """
