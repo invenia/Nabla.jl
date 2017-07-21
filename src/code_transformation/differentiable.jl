@@ -1,5 +1,5 @@
 import Base.include_string
-export @differentiable
+export @differentiable, @unionise
 
 """
     @differentiable name code
@@ -17,7 +17,7 @@ function differentiable(name, code)
     push!(body.args, :(using Nabla.DiffCore))
     push!(body.args, :(using Nabla.DiffBase))
     push!(body.args, :(include_string(base_include_str(DiffCore.intercept_names))))
-    foreach(arg->push!(body.args, esc(arg)), code.args)
+    foreach(arg->push!(body.args, esc(:(@unionise $arg))), code.args)
     return Expr(:toplevel, Expr(:module, false, name, body))
 end
 
@@ -66,24 +66,34 @@ function unionise_sig(code::Expr)
 end
 
 """
-    make_accept_nodes(code)
+    unionise(code)
 
 Return transformed code in which all function definitions are guaranteed to accept nodes as
 arguments. This should not affect the existing functionality of the code.
 """
-function make_accept_nodes end
+function unionise end
 
 # If we get a symbol then we cannot have found a function definition, so ignore it.
-make_accept_nodes(code) = code
+unionise(code) = code
 
 # Recurse through an expression, bottoming out if we find a function definition.
-function make_accept_nodes(code::Expr)
+function unionise(code::Expr)
     if code.head in (:function, Symbol("->"))
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
     elseif code.head == Symbol("=") &&
         (get_body(code.args[1]).head == :tuple || get_body(code.args[1]).head isa Symbol)
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
     else
-        return Expr(code.head, [make_accept_nodes(arg) for arg in code.args]...)
+        return Expr(code.head, [unionise(arg) for arg in code.args]...)
     end
+end
+
+"""
+    @unionise code
+
+Transform code such that each function definition accepts `Node` objects as arguments,\\
+without effecting dispatch in other ways.
+"""
+macro unionise(code)
+    return esc(unionise(code))
 end

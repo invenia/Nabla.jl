@@ -1,6 +1,6 @@
 @testset "code_transformation/differentiable" begin
 
-    import Nabla.DiffCore: unionise_arg, unionise_type, unionise_sig, make_accept_nodes
+    import Nabla.DiffCore: unionise_type, unionise_arg, unionise_sig, unionise
 
     # Test DiffCore.unionise_arg. This depends upon DiffCore.unionise_type, so we express
     # our tests in terms of this.
@@ -25,27 +25,27 @@
 
     # Test DiffCore.make_accept_nodes. Heavily depends upon DiffCore.unionise_sig, so we
     # express tests in terms of this function.
-    @test make_accept_nodes(:hi) == :hi
-    @test make_accept_nodes(Expr(Symbol("->"), :x, :x)) == Expr(Symbol("->"), :x, :x)
-    @test make_accept_nodes(Expr(Symbol("->"), :(x::Real), :(5x))) ==
+    @test unionise(:hi) == :hi
+    @test unionise(Expr(Symbol("->"), :x, :x)) == Expr(Symbol("->"), :x, :x)
+    @test unionise(Expr(Symbol("->"), :(x::Real), :(5x))) ==
         Expr(Symbol("->"), unionise_sig(:(x::Real)), :(5x))
-    @test make_accept_nodes(Expr(Symbol("->"), :((x::Real,)), :(5x))) ==
+    @test unionise(Expr(Symbol("->"), :((x::Real,)), :(5x))) ==
         Expr(Symbol("->"), unionise_sig(:((x::Real,))), :(5x))
-    @test make_accept_nodes(Expr(Symbol("->"), :((x::Real, y::Real)), :(5x))) ==
+    @test unionise(Expr(Symbol("->"), :((x::Real, y::Real)), :(5x))) ==
         Expr(Symbol("->"), unionise_sig(:((x::Real, y::Real))), :(5x))
-    @test make_accept_nodes(Expr(:function, :((x,)), :(return x))) ==
+    @test unionise(Expr(:function, :((x,)), :(return x))) ==
         Expr(:function, unionise_sig(:((x,))), :(return x))
-    @test make_accept_nodes(Expr(:function, :((x::Real,)), :(return x))) ==
+    @test unionise(Expr(:function, :((x::Real,)), :(return x))) ==
         Expr(:function, unionise_sig(:((x::Real,))), :(return x))
-    @test make_accept_nodes(Expr(:function, :(foo(x)), :(return x))) ==
+    @test unionise(Expr(:function, :(foo(x)), :(return x))) ==
         Expr(:function, unionise_sig(:(foo(x))), :(return x))
-    @test make_accept_nodes(Expr(:function, :(foo(x::Real)), :(return x))) ==
+    @test unionise(Expr(:function, :(foo(x::Real)), :(return x))) ==
         Expr(:function, unionise_sig(:(foo(x::Real))), :(return x))
-    @test make_accept_nodes(Expr(Symbol("="), :(foo(x)), :x)) ==
+    @test unionise(Expr(Symbol("="), :(foo(x)), :x)) ==
         Expr(Symbol("="), unionise_sig(:(foo(x))), :x)
-    @test make_accept_nodes(Expr(Symbol("="), :(foo(x::Real)), :x)) ==
+    @test unionise(Expr(Symbol("="), :(foo(x::Real)), :x)) ==
         Expr(Symbol("="), unionise_sig(:(foo(x::Real))), :x)
-    @test make_accept_nodes(Expr(Symbol("="), :(foo(x::T, y::T) where T), :x)) ==
+    @test unionise(Expr(Symbol("="), :(foo(x::T, y::T) where T), :x)) ==
         Expr(Symbol("="), unionise_sig(:(foo(x::T, y::T) where T)), :x)
 
 
