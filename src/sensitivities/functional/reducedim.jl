@@ -26,7 +26,7 @@ function ∇(
 end
 
 # Implementation of `reducedim`, `sum` and `prod` to avoid going into `Base`.
-# Copied directly from `Base`.
+# Copied directly from `Base`. This is bad and will change.
 const A_type = Union{AbstractArray, Node{<:AbstractArray}}
 reducedim(op, A::A_type, region, v0) = mapreducedim(identity, op, A, region, v0)
 reducedim(op, A::A_type, region) = mapreducedim(identity, op, A, region)

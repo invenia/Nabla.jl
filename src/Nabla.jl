@@ -7,16 +7,16 @@ module Nabla
         const SymOrExpr = Union{Symbol, Expr}
         const ArrayOrReal = Union{AbstractArray{T} where T<:Real, Real}
 
+        include("code_transformation/util.jl")
+        include("code_transformation/differentiable.jl")
+
         # Functionality for constructing computational graphs.
         include("core.jl")
 
         # Functionality for defining new sensitivities.
         include("sensitivity.jl")
 
-        # Functionality to create a baremodule which 
-        include("differentiable.jl")
-
-        # Finite differencing functionality for defining tests.
+        # Finite differencing functionality - only used in tests.
         include("finite_differencing.jl")
 
     end # module Core
