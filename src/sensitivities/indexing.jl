@@ -2,7 +2,7 @@ export getindex
 
 # A collection of methods for initialising containers to zero.
 @noinline zerod_container(x::Number) = zero(x)
-@noinline zerod_container(x::AbstractArray{T} where T<:Real) = zeros(x)
+@noinline zerod_container(x::AbstractArray{<:Real}) = zeros(x)
 @noinline zerod_container(x::Tuple) = ([zerod_container(n) for n in x])
 @noinline function zerod_container(x)
     y = Base.copy(x)

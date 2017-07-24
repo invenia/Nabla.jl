@@ -17,7 +17,8 @@ Returns an expression for the type union of `tp` and `Node{<:tp}`. e.g.\\
 """
 function unionise_type(tp::Union{Symbol, Expr})
     (_tp, _info) = remove_vararg(tp)
-    return replace_vararg(:(Union{$_tp, Node{<:$_tp}}), (_tp, _info))
+    tp_clean = (isa(_tp, Expr) && _tp.head == Symbol("<:")) ? _tp.args[1] : _tp
+    return replace_vararg(:(Union{$_tp, Node{<:$tp_clean}}), (_tp, _info))
 end
 
 """

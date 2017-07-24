@@ -3,7 +3,7 @@ import Base.Broadcast.broadcast_shape, Nabla.DiffBase.fmad
 export map, broadcast
 
 # Implementation of sensitivities w.r.t. `map`.
-arr_type = AbstractArray{T} where T<:Real
+arr_type = AbstractArray{<:Real}
 accepted = :(Tuple{Function, Vararg{$(quot(arr_type))}})
 eval(DiffBase, add_intercept(:map, :(Base.map), accepted))
 
@@ -19,7 +19,7 @@ eval(DiffBase, add_intercept(:map, :(Base.map), accepted))
 
 
 # Implementation of sensitivities w.r.t. `broadcast`.
-arg_type = Union{Real, AbstractArray{T} where T<:Real}
+arg_type = Union{Real, AbstractArray{<:Real}}
 accepted = :(Tuple{Function, Vararg{$(quot(arg_type))}})
 eval(DiffBase, add_intercept(:broadcast, :(Base.broadcast), accepted))
 
@@ -114,18 +114,18 @@ eval(DiffBase, add_intercept(Symbol("\\"), :(getfield(Base, Symbol("\\"))), acce
 
 # We have to add some methods to Base to ensure that dispatch happens correctly when using
 # the dot notation.
-const tp = Union{Real, RealArray, Node{T} where T<:Union{Real, RealArray}}
+const tp = Union{Real, RealArray, Node{<:Union{Real, RealArray}}}
 @generated Base.broadcast(f, A::Vararg{tp, N}) where N =
     any([issubtype(a, Node) for a in A]) ?
         :(DiffBase.broadcast(f, A...)) :
         :(invoke(Base.broadcast, Tuple{Any, Vararg{Any, N}}, f, A...))
-@inline Base.broadcast(f, x::Union{Real, Node{T} where T<:Real}...) = f(x...)
+@inline Base.broadcast(f, x::Union{Real, Node{<:Real}}...) = f(x...)
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
 # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
 # The coefficient of this scaling could be improved by implementing a version of DualNumbers
 # which computes from multiple seeds at the same time.
-function dual_call_expr(f, x::Type{T} where T<:Tuple, ::Type{Type{Val{n}}}) where n
+function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
     dual_call = Expr(:call, :f)
     for m in 1:Base.length(x.parameters)
         push!(dual_call.args, :(Dual(x[$m], $(Base.isequal(n, m) ? 1 : 0))))
@@ -133,7 +133,7 @@ function dual_call_expr(f, x::Type{T} where T<:Tuple, ::Type{Type{Val{n}}}) wher
     return :(dualpart($dual_call))
 end
 @generated fmad(f, x, n) = dual_call_expr(f, x, n)
-function fmad_expr(f, x::Type{T} where T<:Tuple)
+function fmad_expr(f, x::Type{<:Tuple})
     body = Expr(:tuple)
     for n in 1:Base.length(x.parameters)
         push!(body.args, dual_call_expr(f, x, Type{Val{n}}))

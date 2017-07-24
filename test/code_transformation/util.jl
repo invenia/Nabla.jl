@@ -9,6 +9,7 @@
         :(Union{T{V} where V, Node{<:(T{V} where V)}})
     @test DiffCore.unionise_type(:(Vararg{T} where T)) ==
         :(Vararg{Union{T where T, Node{<:(T where T)}}})
+    @test DiffCore.unionise_type(:(Vararg{<:T})) == :(Vararg{Union{<:T, Node{<:T}}})
 
     # Test DiffCore.replace_body.
     @test DiffCore.replace_body(:Real, :Float64) == :Float64

@@ -3,7 +3,7 @@ export mapreduce, mapfoldl, mapfoldr, reduce, foldl, foldr, sum, prod, mapreduce
 import Nabla.DiffBase.fmad
 
 # Intercepts for `mapreduce`, `mapfoldl` and `mapfoldr` under `op` `+`.
-accepted_add = :(Tuple{Any, typeof(+), AbstractArray{T} where T<:Real})
+accepted_add = :(Tuple{Any, typeof(+), AbstractArray{<:Real}})
 for (f_name, base_f_name) in ((:mapreduce, :(Base.mapreduce)),
                               (:mapfoldl, :(Base.mapfoldl)),
                               (:mapfoldr, :(Base.mapfoldr)))
@@ -14,7 +14,7 @@ for (f_name, base_f_name) in ((:mapreduce, :(Base.mapreduce)),
         ::Type{Arg{3}},
         p, y, ȳ, f,
         ::typeof(+),
-        A::AbstractArray{T} where T<:Real,
+        A::AbstractArray{<:Real},
     )
         if needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, Real, Any})
             return Base.broadcast(An->ȳ * ∇(f, Arg{1}, An, f(An)), A)
