@@ -2,6 +2,8 @@ module Nabla
 
     module DiffCore
 
+        import Base.Meta.quot
+
         # Some aliases used repeatedly throughout the package.
         export SymOrExpr, ArrayOrReal
         const SymOrExpr = Union{Symbol, Expr}

@@ -46,6 +46,42 @@ function unionise_arg(arg::Expr)
 end
 
 """
+    get_quote_body(code)
+
+Return the body of a quoted expression or symbol. There is slightly different behaviour\\
+depending upon whether a symbol or expression is quoted and how exactly it is quoted,\\
+thus we dispatch on whether code is a `:quote` expression or a `QuoteNode` object.
+"""
+get_quote_body(code::Expr) = code.args[1]
+get_quote_body(code::QuoteNode) = code.value
+
+"""
+    unionise_eval(code::Expr)
+
+Unionise the code inside a call to `eval`, such that when the `eval` call actually occurs\\
+the code inside will be unionised.
+"""
+function unionise_eval(code::Expr)
+    body = Expr(:macrocall, Symbol("@unionise"), deepcopy(get_quote_body(code.args[end])))
+    return length(code.args) == 3 ?
+        Expr(:call, :eval, deepcopy(code.args[2]), quot(body)) :
+        Expr(:call, :eval, quot(body))
+end
+
+"""
+    unionise_macro_eval(code::Expr)
+
+Unionise the code in a call to @eval, such that when the `eval` call actually occurs, the\\
+code inside will be unionised.
+"""
+function unionise_macro_eval(code::Expr)
+    body = Expr(:macrocall, Symbol("@unionise"), deepcopy(code.args[end]))
+    return length(code.args) == 3 ?
+        Expr(:macrocall, Symbol("@eval"), deepcopy(code.args[2]), body) :
+        Expr(:macrocall, Symbol("@eval"), body)
+end
+
+"""
     unionise_sig(code)
 
 `code` should be a `tuple`, `call` or `where` expression (containing a `tuple` or `call`).\\
@@ -77,13 +113,18 @@ function unionise end
 # If we get a symbol then we cannot have found a function definition, so ignore it.
 unionise(code) = code
 
-# Recurse through an expression, bottoming out if we find a function definition.
+# Recurse through an expression, bottoming out if we find a function definition or a
+# quoted expression to be `eval`-ed.
 function unionise(code::Expr)
     if code.head in (:function, Symbol("->"))
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
     elseif code.head == Symbol("=") &&
         (get_body(code.args[1]).head == :tuple || get_body(code.args[1]).head isa Symbol)
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
+    elseif code.head == :call && code.args[1] == :eval
+        return unionise_eval(code)
+    elseif code.head == :macrocall && code.args[1] == Symbol("@eval")
+        return unionise_macro_eval(code)
     else
         return Expr(code.head, [unionise(arg) for arg in code.args]...)
     end

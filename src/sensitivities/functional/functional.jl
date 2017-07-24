@@ -17,7 +17,6 @@ eval(DiffBase, add_intercept(:map, :(Base.map), accepted))
         Base.map((yn, ȳn, An...)->∇(f, Arg{N-1}, p, yn, ȳn, An...), y, ȳ, A...) :
         Base.map((ȳn, An...)->ȳn * fmad(f, An, Val{N-1}), ȳ, A...)
 
-
 # Implementation of sensitivities w.r.t. `broadcast`.
 arg_type = Union{Real, AbstractArray{<:Real}}
 accepted = :(Tuple{Function, Vararg{$(quot(arg_type))}})
@@ -110,7 +109,6 @@ eval(DiffBase, add_intercept(Symbol("\\"), :(getfield(Base, Symbol("\\"))), acce
     ∇(broadcast, Arg{2}, p, z, z̄, \, x, y)
 @inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::ArrayOrReal, y::ArrayOrReal) =
     ∇(broadcast, Arg{3}, p, z, z̄, \, x, y)
-
 
 # We have to add some methods to Base to ensure that dispatch happens correctly when using
 # the dot notation.

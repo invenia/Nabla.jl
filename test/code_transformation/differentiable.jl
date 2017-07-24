@@ -1,6 +1,7 @@
 @testset "code_transformation/differentiable" begin
 
-    import Nabla.DiffCore: unionise_type, unionise_arg, unionise_sig, unionise
+    import Nabla.DiffCore: unionise_type, unionise_arg, unionise_eval, unionise_macro_eval,
+        unionise_sig, unionise
 
     # Test DiffCore.unionise_arg. This depends upon DiffCore.unionise_type, so we express
     # our tests in terms of this.
@@ -13,6 +14,20 @@
     @test unionise_arg(:(::T{V} where V)) == :(::$(unionise_type(:(T{V} where V))))
     @test unionise_arg(:(::T{V} where V<:Q)) == :(::$(unionise_type(:(T{V} where V<:Q))))
     @test unionise_arg(:(x::T{V} where V<:Q)) == :(x::$(unionise_type(:(T{V} where V<:Q))))
+
+    # Test DiffCore.unionise_eval.
+    @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
+    @test unionise_eval(:(eval(DiffBase, :foo))) == :(eval(DiffBase, :(@unionise foo)))
+    @test unionise_eval(:(eval(:(println("foo"))))) == :(eval(:(@unionise println("foo"))))
+    @test unionise_eval(:(eval(DiffBase, :(println("foo"))))) ==
+        :(eval(DiffBase, :(@unionise println("foo"))))
+
+    # Test DiffCore.unionise_macro_eval.
+    @test unionise_macro_eval(:(@eval foo)) == :(@eval @unionise foo)
+    @test unionise_macro_eval(:(@eval DiffBase foo)) == :(@eval DiffBase @unionise foo)
+    @test unionise_macro_eval(:(@eval println("foo"))) == :(@eval @unionise println("foo"))
+    @test unionise_macro_eval(:(@eval DiffBase println("foo"))) ==
+        :(@eval DiffBase @unionise println("foo"))
 
     # Test DiffCore.unionise. This depends upon DiffCore.unionise_arg, so we express
     # our tests in terms of this function.
@@ -48,6 +63,10 @@
         Expr(Symbol("="), unionise_sig(:(foo(x::Real))), :x)
     @test unionise(Expr(Symbol("="), :(foo(x::T, y::T) where T), :x)) ==
         Expr(Symbol("="), unionise_sig(:(foo(x::T, y::T) where T)), :x)
+    @test unionise(:(eval(:foo))) == unionise_eval(:(eval(:foo)))
+    @test unionise(:(eval(DiffBase, :foo))) == unionise_eval(:(eval(DiffBase, :foo)))
+    @test unionise(:(@eval foo)) == unionise_macro_eval(:(@eval foo))
+    @test unionise(:(@eval DiffBase foo)) == unionise_macro_eval(:(@eval DiffBase foo))
 
     # println(make_accept_nodes(quote
 
