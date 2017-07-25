@@ -42,6 +42,11 @@
     # Test DiffCore.make_accept_nodes. Heavily depends upon DiffCore.unionise_sig, so we
     # express tests in terms of this function.
     @test unionise(:hi) == :hi
+    @test unionise(:(N = 5)) == :(N = 5)
+    @test unionise(:(N, M = 5, 4)) == :(N, M = 5, 4)
+    @test unionise(:((N, M) = (5, 4))) == :((N, M) = (5, 4))
+    @test unionise(:((N, M) = 5, 4)) == :((N, M) = 5, 4)
+    @test unionise(:(N, M = (5, 4))) == :(N, M = (5, 4))
     @test unionise(Expr(Symbol("->"), :x, :x)) == Expr(Symbol("->"), :x, :x)
     @test unionise(Expr(Symbol("->"), :(x::Real), :(5x))) ==
         Expr(Symbol("->"), unionise_sig(:(x::Real)), :(5x))

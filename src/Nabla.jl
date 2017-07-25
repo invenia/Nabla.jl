@@ -7,7 +7,7 @@ module Nabla
         # Some aliases used repeatedly throughout the package.
         export SymOrExpr, ArrayOrReal
         const SymOrExpr = Union{Symbol, Expr}
-        const ArrayOrReal = Union{AbstractArray{T} where T<:Real, Real}
+        const ArrayOrReal = Union{AbstractArray{<:Real}, Real}
 
         include("code_transformation/util.jl")
         include("code_transformation/differentiable.jl")

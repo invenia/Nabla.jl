@@ -118,13 +118,13 @@ unionise(code) = code
 function unionise(code::Expr)
     if code.head in (:function, Symbol("->"))
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
-    elseif code.head == Symbol("=") &&
+    elseif code.head == Symbol("=") && !isa(code.args[1], Symbol) &&
         (get_body(code.args[1]).head == :tuple || get_body(code.args[1]).head isa Symbol)
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
     elseif code.head == :call && code.args[1] == :eval
         return unionise_eval(code)
     elseif code.head == :macrocall && code.args[1] == Symbol("@eval")
-        return unionise_macro_eval(code)
+        return unionise_macro_eval(code) 
     else
         return Expr(code.head, [unionise(arg) for arg in code.args]...)
     end
@@ -139,3 +139,18 @@ without effecting dispatch in other ways.
 macro unionise(code)
     return esc(unionise(code))
 end
+
+"""
+    unionised_include(path::AbstractString)
+
+Apply the @unionise macro to all of the code loaded in an `include` call.
+"""
+unionised_include(path::AbstractString) =
+    include_string("@unionise begin " * readstring(open(path)) * " end")
+
+"""
+    unionise_include(code::Expr)
+
+Return an expression which calls `unionised_include` instead of simply `include`.
+"""
+unionise_include(code::Expr) = Expr(:call, :unionised_include, code.args[2])
