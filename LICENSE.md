@@ -1,6 +1,6 @@
 The Nabla.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) 2017: [A[A[A[B[B[Bwilltebbutt.
+> Copyright (c) 2017: Invenia Labs Ltd.
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
