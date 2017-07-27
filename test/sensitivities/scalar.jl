@@ -1,15 +1,15 @@
 @testset "sensitivities/scalar" begin
 
-    let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
+    let ϵ_abs = 1e-5, ϵ_rel = 1e-4, v = 1e-6, ȳ = 5.0, z̄ = 4.0
 
         function unary_test(f, x)
-            f = eval(current_module(), Symbol(f)) # Hack to get around scope issues.
-            δ_abs, δ_rel = discrepancy(f, (x,), δ)
-            (any(δ_abs .> ϵ_abs) || any(δ_rel .> ϵ_rel)) && println((f, δ_abs, δ_rel, x))
-            @test all(δ_abs .< ϵ_abs) && all(δ_rel .< ϵ_rel)
+            δ_abs, δ_rel = check_Dv(eval(f), ȳ, x, v)
+            (δ_abs > ϵ_abs || δ_rel > ϵ_rel || isnan(δ_abs) || isnan(δ_rel)) &&
+                Nabla.print_tol_err(eval(f), ȳ, x, v, δ_abs, δ_rel)
+            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
         end
 
-        for (f, x̄, range) in DiffBase.unary_sensitivities
+        for (f, x̄, range) in Nabla.unary_sensitivities
             for _ in 1:10
                 unary_test(f, rand() * (range[2] - range[1]) + range[1])
             end
@@ -18,13 +18,25 @@
         end
 
         function binary_test(f, x, y)
-            f = eval(current_module(), Symbol(f)) # Hack to get around scope problems.
-            δ_abs, δ_rel = discrepancy(f, (x, y), δ)
-            (any(δ_abs .> ϵ_abs) || any(δ_rel .> ϵ_rel)) && println((f, δ_abs, δ_rel, x, y))
-            @test all(δ_abs .< ϵ_abs) && all(δ_rel .< ϵ_rel)
+
+            # Construct two lambdas, one for each argument.
+            f = eval(f)
+            λx, λy = (x)->f(x, y), (y)->f(x, y)
+
+            # Compute error w.r.t. first argument and check results.
+            δ_abs_x, δ_rel_x = check_Dv(λx, z̄, x, v)
+            (δ_abs_x > ϵ_abs || δ_rel_x > ϵ_rel || isnan(δ_abs_x) || isnan(δ_rel_x)) &&
+                Nabla.print_tol_err(f, z̄, x, v, δ_abs_x, δ_rel_x)
+            @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
+
+            # Compute error w.r.t. second argument and check results.
+            δ_abs_y, δ_rel_y = check_Dv(λy, z̄, y, v)
+            (δ_abs_y > ϵ_abs || δ_rel_y > ϵ_rel || isnan(δ_abs_y) || isnan(δ_rel_y)) &&
+                Nabla.print_tol_err(f, z̄, y, v, δ_abs_y, δ_rel_y)
+            @test δ_abs_y < ϵ_abs && δ_rel_y < ϵ_rel
         end
 
-        for (f, x̄, ȳ, range_x, range_y) in DiffBase.binary_sensitivities
+        for (f, x̄, ȳ, range_x, range_y) in Nabla.binary_sensitivities
             for _ in 1:10
                 x = rand() * (range_x[2] - range_x[1]) + range_x[1]
                 y = rand() * (range_y[2] - range_y[1]) + range_y[1]

@@ -1,22 +1,14 @@
-export getindex
-
-# A collection of methods for initialising containers to zero.
-@noinline zerod_container(x::Number) = zero(x)
-@noinline zerod_container(x::AbstractArray{<:Real}) = zeros(x)
-@noinline zerod_container(x::Tuple) = ([zerod_container(n) for n in x])
-@noinline function zerod_container(x)
-    y = Base.copy(x)
-    [Base.setindex!(y, zerod_container(y[n]), n) for n in eachindex(y)]
-    return y
-end
-
 # Implementation of reverse-mode sensitivities for `getindex`.
-eval(DiffBase, add_intercept(:getindex, :(Base.getindex), :(Tuple{Any, Vararg})))
-@inline getindex(tape::Tape, node::Node) = Base.getindex(tape, node)
-@inline function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
-    return Base.setindex!(Ā, ȳ, inds...)
-end
-@inline function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
+import Base.getindex
+@explicit_intercepts getindex Tuple{Any, Any} [true, false]
+@explicit_intercepts getindex Tuple{Any, Any, Any} [true, false, false]
+@explicit_intercepts getindex Tuple{Any, Any, Any, Any} [true, false, false, false]
+@explicit_intercepts getindex Tuple{Any, Any, Any, Any, Any} [true, false, false, false, false]
+@explicit_intercepts getindex Tuple{Any, Any, Any, Any, Any, Any} [true, false, false, false, false, false]
+@explicit_intercepts getindex Tuple{Any, Any, Any, Any, Any, Any, Any} [true, false, false, false, false, false, false]
+
+∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...) = setindex!(Ā, ȳ, inds...)
+function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
     return ∇(zerod_container(A), getindex, Arg{1}, p, y, ȳ, A, inds...)
 end
 

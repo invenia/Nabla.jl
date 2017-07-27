@@ -1,7 +1,4 @@
-import Nabla.DiffCore.@differentiable
-@differentiable MLP begin
-
-using MNIST
+using MNIST, Nabla
 
 """ Implementation of the Adam optimiser. """
 type Adam{T<:AbstractArray}
@@ -139,4 +136,3 @@ function demo_mlp(itrs::Int, sz::Int)
     end
 end
 
-end

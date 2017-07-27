@@ -27,7 +27,7 @@ let
     foo_coeff = 10
     foo(x::Real) = foo_coeff * x
     foo(x::Node{T} where T<:Real) = Branch(foo, (x,), x.tape)
-    DiffCore.∇(::typeof(foo), ::Type{Arg{1}}, p, y, ȳ, x) = foo_coeff
+    Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ * foo_coeff
     function get_new_branch()
         leaf = Leaf(Tape(), 5)
         return foo(leaf)
@@ -45,37 +45,37 @@ let
     @test branch.tape == branch.args[1].tape
 
     # Simple test for `pos`.
-    @test DiffCore.pos(1) == -1
-    @test DiffCore.pos("hi") == -1
-    @test DiffCore.pos(Leaf(Tape(), 5)) == 1
-    @test DiffCore.pos(Leaf(Tape(50), 5.0)) == 51
+    @test Nabla.pos(1) == -1
+    @test Nabla.pos("hi") == -1
+    @test Nabla.pos(Leaf(Tape(), 5)) == 1
+    @test Nabla.pos(Leaf(Tape(50), 5.0)) == 51
 
     # Simple tests for `unbox`.
-    @test DiffCore.unbox(1) == 1
-    @test DiffCore.unbox("hi") == "hi"
-    @test DiffCore.unbox(Leaf(Tape(), 5)) == 5
-    @test DiffCore.unbox(Leaf(Tape(), 5.0)) == 5.0
+    @test Nabla.unbox(1) == 1
+    @test Nabla.unbox("hi") == "hi"
+    @test Nabla.unbox(Leaf(Tape(), 5)) == 5
+    @test Nabla.unbox(Leaf(Tape(), 5.0)) == 5.0
 
     # Simple tests for reverse_tape.
-    @test isa(DiffCore.reverse_tape(Leaf(Tape(), 5)), Tape)
-    @test length(DiffCore.reverse_tape(Leaf(Tape(), 5))) == 1
-    @test DiffCore.reverse_tape(Leaf(Tape(), 5))[end] == 1
-    @test isassigned(DiffCore.reverse_tape(Leaf(Tape(), 5)), 1)
-    @test isassigned(DiffCore.reverse_tape(get_new_branch()), 2)
-    @test !isassigned(DiffCore.reverse_tape(get_new_branch()), 1)
+    @test isa(Nabla.reverse_tape(Leaf(Tape(), 5), 5), Tape)
+    @test length(Nabla.reverse_tape(Leaf(Tape(), 5), 5)) == 1
+    @test Nabla.reverse_tape(Leaf(Tape(), 5), 4)[end] == 4
+    @test isassigned(Nabla.reverse_tape(Leaf(Tape(), 5), 5), 1)
+    @test isassigned(Nabla.reverse_tape(get_new_branch(), 5), 2)
+    @test !isassigned(Nabla.reverse_tape(get_new_branch(), 5), 1)
 
     # Simple tests for `propagate`.
-    @test DiffCore.propagate(Leaf(Tape(), 5), Tape()) == nothing
+    @test Nabla.propagate(Leaf(Tape(), 5), Tape()) == nothing
     br = get_new_branch()
-    rvs_tape = DiffCore.reverse_tape(br)
-    @test DiffCore.propagate(br, rvs_tape) == nothing
-    @test rvs_tape[br] == 1
-    @test rvs_tape[br.args[1]] == foo_coeff
+    rvs_tape = Nabla.reverse_tape(br, 5)
+    @test Nabla.propagate(br, rvs_tape) == nothing
+    @test rvs_tape[br] == 5
+    @test rvs_tape[br.args[1]] == foo_coeff * 5
 
     # Simple integration tests for ∇.
     br = get_new_branch()
-    @test ∇(br)[br] == 1
-    @test ∇(br)[br.args[1]] == foo_coeff
+    @test ∇(br, 3)[br] == 3
+    @test ∇(br, 2)[br.args[1]] == 2 * foo_coeff
 
 end # let
 end # testset "core"

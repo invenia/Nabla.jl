@@ -1,7 +1,7 @@
 # Use BLAS.gemm for strided matrix-matrix multiplication sensitivites. Don't bother with
 # BLAS for matrix-vector stuff yet. Definitely an optimisation that we might want to
 # consider at some point in the future though.
-accepted = :(Tuple{RS, RS})
+const RS = StridedMatrix{<:∇Real}
 strided_matmul = [
     (:*,         'N', 'C', :Ȳ, :B, 'C', 'N', :A, :Ȳ),
     (:At_mul_B,  'N', 'T', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
@@ -11,11 +11,11 @@ strided_matmul = [
     (:A_mul_Bc,  'N', 'N', :Ȳ, :B, 'C', 'N', :Ȳ, :A),
     (:Ac_mul_Bc, 'C', 'C', :B, :Ȳ, 'C', 'C', :Ȳ, :A),
 ]
-for (f_sym, tCA, tDA, CA, DA, tCB, tDB, CB, DB) in strided_matmul
+for (f, tCA, tDA, CA, DA, tCB, tDB, CB, DB) in strided_matmul
 
     # Add intercepts and export names.
-    eval(DiffBase, add_intercept(f_sym, :(Base.$f_sym), accepted))
-    eval(DiffBase, :(export $f_sym))
+    @eval import Base.$f
+    @eval @explicit_intercepts $f Tuple{RS, RS}
 
     # Define allocating and non-allocating sensitivities for each output.
     alloc_Ā = :(Base.BLAS.gemm($tCA, $tDA, $CA, $DA))
@@ -24,11 +24,10 @@ for (f_sym, tCA, tDA, CA, DA, tCB, tDB, CB, DB) in strided_matmul
     no_alloc_B̄ = :(Base.BLAS.gemm!($tCB, $tDB, 1., $CB, $DB, 1., B̄))
 
     # Add sensitivity definitions.
-    f_typ = :(::typeof($(eval(DiffBase, f_sym))))
-    eval(DiffBase, :(∇($f_typ, ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $alloc_Ā))
-    eval(DiffBase, :(∇($f_typ, ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $alloc_B̄))
-    eval(DiffBase, :(∇(Ā, $f_typ, ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $no_alloc_Ā))
-    eval(DiffBase, :(∇(B̄, $f_typ, ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $no_alloc_B̄))
+    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $alloc_Ā
+    @eval ∇(::typeof($f), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $alloc_B̄
+    @eval ∇(Ā, ::typeof($f), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $no_alloc_Ā
+    @eval ∇(B̄, ::typeof($f), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $no_alloc_B̄
 end
 
 # # Not every permutation of transpositions makes sense for matrix-vector multiplication. This

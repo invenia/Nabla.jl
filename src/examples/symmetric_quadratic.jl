@@ -1,5 +1,4 @@
-import Nabla.DiffBase.@differentiable
-@differentiable Quadratic begin
+using Nabla
 
 # Generate the values required to compute a matrix quadratic form.
 N = 5
@@ -13,6 +12,7 @@ x_ = randn(N)
 x = Leaf(Tape(), x_)
 
 # Compute the forward pass.
+# y = sum((A * x) .* x)
 y = x.'A * x
 println("Output of the forward pass is:")
 println(y)
@@ -31,7 +31,6 @@ x̄ = ȳ[x]
 println("Gradient of y w.r.t. x at $(x.val) is $x̄.")
 println()
 
-
 # (Current) High-Level API computation of derivatives. I will probably maintain this
 # interface and extend is significantly as it is currently rather limited. It just returns
 # a function which returns the gradient, which isn't really what you want.
@@ -49,5 +48,3 @@ f(x) = x.'A * x
 x̄ = ∇f(x_)
 
 @assert x̄[1] == ȳ[x]
-
-end

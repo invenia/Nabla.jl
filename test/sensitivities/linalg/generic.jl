@@ -1,51 +1,41 @@
 @testset "sensitivities/linalg/generic" begin
 
-    let ϵ_abs = 1e-3, ϵ_rel = 1e-2, δ = 1e-5, N = 2
+    let ϵ_abs = 1e-18, ϵ_rel = 1e-18, N = 25
 
         # Test unary linalg sensitivities.
-        for (f, T_In, T_Out, X̄, bounds) in DiffBase.unary_linalg_optimisations
+        for (f, T_In, T_Out, X̄, bounds) in Nabla.unary_linalg_optimisations
 
             # Test allocating sensitivities.
             Z = rand(Uniform(bounds[1], bounds[2]), N, N)
             X = Z'Z + UniformScaling(1e-3)
-            X_ = Leaf(Tape(), X)
-            δ_abs, δ_rel = @eval discrepancy($f, ($X,), $δ)
-
-            # Check that the correct output is computed.
-            @test eval(DiffBase, f)(X) == eval(DiffBase, f)(X_).val
+            Ȳ, V_ = eval(f)(X), 1e-3 * randn(size(X))
+            δ_abs, δ_rel = check_Dv(eval(f), Ȳ, X, V_.'V_)
 
             # Check that sensitivities w.r.t. the input are correct.
-            (any(δ_abs[1] .> ϵ_abs) || any(δ_rel[1] .> ϵ_rel)) &&
-                println((f, δ_abs[1], δ_rel[1], X))
-            @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)
+            (δ_abs > ϵ_abs || δ_rel > ϵ_rel || isnan(δ_abs) || isnan(δ_rel)) &&
+                Nabla.print_tol_err(eval(f), Ȳ, X, V, δ_abs, δ_rel)
+            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
         end
 
         # Test binary linalg optimisations.
-        for (f, T_A, T_B, T_Y, Ā, B̄, errs) in DiffBase.binary_linalg_optimisations
+        for (f, T_A, T_B, T_Y, Ā, B̄, errs) in Nabla.binary_linalg_optimisations
 
-            # Test allocating sensitivities.
-            Z1, Z2 = randn(N, N), randn(N, N)
-            # Z1, Z2 = diagm(randn(N)), diagm(randn(N))
-            # Z1, Z2 = rand(Uniform(1.0, 1.5), N, N), rand(Uniform(1.0, 1.5), N, N)
-            A, B, tape = Z1'Z1 + UniformScaling(1.0), Z2'Z2 + UniformScaling(1.0), Tape()
-            A, B, tape = Z1, Z2, Tape()
-            A_, B_ = Leaf(tape, A), Leaf(tape, B)
-            ∇f = ∇(eval(DiffBase, f)(A_, B_))
+            # Construct λ-functions for each argument.
+            f, A, B = eval(f), randn(N, N), randn(N, N)
+            λA, λB = A->f(A, B), B->f(A, B)
+            Ȳ, V = f(A, B), 1e-6 * randn(N, N)
 
-            δ_abs, δ_rel = errs(eval(DiffBase, f), A_, B_, ∇f[A_], ∇f[B_])
+            # Compute errors w.r.t. first argument.
+            δ_abs_A, δ_rel_A = check_Dv(λA, Ȳ, A, V)
+            (δ_abs_A > ϵ_abs || δ_rel_A > ϵ_rel || isnan(δ_abs_A) || isnan(δ_rel_A)) &&
+                Nabla.print_tol_err(λA, Ȳ, A, V, δ_abs_A, δ_rel_A)
+            @test δ_abs_A < ϵ_abs && δ_rel_A < ϵ_rel
 
-            # Check that the correct output is computed.
-            @test eval(DiffBase, f)(A, B) == eval(DiffBase, f)(A_, B_).val
-
-            # Check that sensitivities w.r.t. the first input are correct.
-            (any(δ_abs[1] .> ϵ_abs) || any(δ_rel[1] .> ϵ_rel)) &&
-                println(("1", f, δ_abs[1], δ_rel[1], A, B, ∇f[A_], ∇f[B_]))
-            @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)
-
-            # Check that sensitivities w.r.t. the second input are correct.
-            (any(δ_abs[2] .> ϵ_abs) || any(δ_rel[2] .> ϵ_rel)) &&
-                println(("2", f, δ_abs[2], δ_rel[2], A, B, ∇f[A_], ∇f[B_]))
-            @test all(δ_abs[2] .< ϵ_abs) && all(δ_rel[2] .< ϵ_rel)
+            # Compute errors w.r.t. second argument.
+            δ_abs_B, δ_rel_B = check_Dv(λB, Ȳ, B, V)
+            (δ_abs_B > ϵ_abs || δ_rel_B > ϵ_rel || isnan(δ_abs_B) || isnan(δ_rel_B)) &&
+                Nabla.print_tol_err(λB, Ȳ, B, V, δ_abs_B, δ_rel_B)
+            @test δ_abs_B < ϵ_abs && δ_rel_B < ϵ_rel
         end
     end
 end

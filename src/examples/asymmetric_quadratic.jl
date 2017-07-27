@@ -1,5 +1,4 @@
-import Nabla.DiffBase.@differentiable
-@differentiable Asymm_Quadratic begin
+using Nabla
 
 # Generate the values required to compute a matrix quadratic form.
 N = 5
@@ -53,5 +52,3 @@ f(x, y) = x.'A * y
 
 @assert x̄ == z̄[x]
 @assert ȳ == z̄[y]
-
-end

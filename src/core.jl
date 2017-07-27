@@ -1,10 +1,10 @@
-using BenchmarkTools
+using BenchmarkTools, DualNumbers
 
 import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned
 export Leaf, Tape, Node, Branch, ∇, leaves
 
-@inline get_ones(x::Real) = one(x)
-@inline get_ones(x::AbstractArray) = ones(x)
+@inline get_ones(x::∇Real) = one(x)
+@inline get_ones(x::∇RealArray) = ones(x)
 
 """ Basic unit on the computational graph."""
 abstract type Node{T} end
@@ -25,7 +25,7 @@ function show(io::IO, tape::Tape)
     end
 end
 @inline getindex(tape::Tape, n::Int) = Base.getindex(tape.tape, n)
-@inline getindex(tape::Tape, node::T where T<:Node) = Base.getindex(tape, node.pos)
+@inline getindex(tape::Tape, node::Node) = Base.getindex(tape, node.pos)
 @inline endof(tape::Tape) = length(tape)
 @inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
 @inline eachindex(tape::Tape) = eachindex(tape.tape)
@@ -72,8 +72,9 @@ immutable Branch{T, F<:Function, V<:Tuple} <: Node{T}
     tape::Tape
     pos::Int
 end
-@noinline function Branch(f::Function, args::NTuple{N, Any}, tape::Tape) where N
-    unboxed = Base.map(arg->get_original(unbox(arg)), args)
+function Branch(f::Function, args::Tuple, tape::Tape)
+    # unboxed = Base.map(arg->get_original(unbox(arg)), args)
+    unboxed = unbox.(args)
     branch = Branch(f(unboxed...), f, args, tape, length(tape) + 1)
     push!(tape, branch)
     return branch
@@ -121,9 +122,9 @@ function propagate(y::Branch{T}, rvs_tape::Tape) where T
 end
 
 """ Initialise a Tape appropriately for being used as a reverse-tape. """
-function reverse_tape(node::Node)
-    tape = Tape(node.pos)
-    tape[end] = get_ones(node.val)
+function reverse_tape(y::Node{T}, ȳ::T) where T
+    tape = Tape(y.pos)
+    tape[end] = ȳ
     return tape
 end
 
@@ -131,7 +132,8 @@ end
 struct Arg{N} end
 
 """
-    ∇(::Node)
+    ∇(y::Node{<:∇Real})
+    ∇(y::Node{T}, ȳ::T) where T
     ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
     ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
 
@@ -139,18 +141,20 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its\\
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
-function ∇(node::Node)
+function ∇(y::Node{T}, ȳ::T) where T
 
     # Construct reverse tape and initialise the last element.
-    fwd_tape, rvs_tape = node.tape, reverse_tape(node)
+    fwd_tape, rvs_tape = y.tape, reverse_tape(y, ȳ)
 
     # Iterate backwards through the reverse tape and return the result.
     for n in eachindex(rvs_tape)
-        δ = node.pos - n + 1
+        δ = y.pos - n + 1
         isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
     end
     return rvs_tape
 end
+@inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
+
 @inline ∇(x̄, f::Function, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
 """
@@ -169,15 +173,57 @@ function ∇(f::Function, get_output::Bool=false)
     end
 end
 
-"""
-    ∇(f::Function)
+# """
+#     ∇(f::Function)
 
-Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),\\
-will return a Tuple, the first element of which is the output of the function `f` and then\\
-second element of which is (yet another) function `g`. `g` can either be evaluated with no\\
-arguments, in which case it will return the gradient of `f` evaluated at`x`. Alternatively,\\
-it can be evaluated with arguments of the same type and shape as the output of `f(x)`, in\\
-which case it is equivalent to multiplying them 'from the left' by the Jacobian\\
-∂(f(x)) / ∂x.
-"""
-function test end
+# Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),\\
+# will return a Tuple, the first element of which is the output of the function `f` and then\\
+# second element of which is (yet another) function `g`. `g` can either be evaluated with no\\
+# arguments, in which case it will return the gradient of `f` evaluated at`x`. Alternatively,\\
+# it can be evaluated with arguments of the same type and shape as the output of `f(x)`, in\\
+# which case it is equivalent to multiplying them 'from the left' by the Jacobian\\
+# ∂(f(x)) / ∂x.
+# """
+# function ∇(f::Function)
+#     return function(args...)
+#         args_ = Leaf.(Tape(), args)
+#         y = f(args_...)
+#         ∇fx = (ȳ)->∇
+
+#     end
+# end
+
+# A collection of methods for initialising nested indexable containers to zero.
+for f_name in (:zerod_container, :oned_container)
+    eval(quote
+        @inline $f_name(x::Number) = zero(x)
+        @inline $f_name(x::AbstractArray{<:Real}) = zeros(x)
+        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x])
+        @inline function $f_name(x)
+            y = Base.copy(x)
+            [Base.setindex!(y, $f_name(y[n]), n) for n in eachindex(y)]
+            return y
+        end
+    end)
+end
+
+# Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
+# a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
+# The coefficient of this scaling could be improved by implementing a version of DualNumbers
+# which computes from multiple seeds at the same time.
+function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
+    dual_call = Expr(:call, :f)
+    for m in 1:Base.length(x.parameters)
+        push!(dual_call.args, :(Dual(x[$m], $(Base.isequal(n, m) ? 1 : 0))))
+    end
+    return :(dualpart($dual_call))
+end
+@generated fmad(f, x, n) = dual_call_expr(f, x, n)
+function fmad_expr(f, x::Type{<:Tuple})
+    body = Expr(:tuple)
+    for n in 1:Base.length(x.parameters)
+        push!(body.args, dual_call_expr(f, x, Type{Val{n}}))
+    end
+    return body
+end
+@generated fmad(f, x) = fmad_expr(f, x)

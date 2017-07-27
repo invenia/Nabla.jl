@@ -1,68 +1,56 @@
-export discrepancy, compute_errs
+export check_Dv, compute_errs
 
 """
-Compare numerical estimate of projection of gradient with the actual projection of the
-gradient, computed via AGL.
+    approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
 
-Inputs:
-f  - function to compute discrepancy w.r.t. Must be a primitive.
-x0 - point at which to consider discrepancy.
-δ - perturbation to apply to each element in turn.
-diff (optional) - a vector indicating which of the arguments are differentiable.
-trans (optional) - transformation of the output of f to ensure that output is deterministic.
-
-Returns:
-δ_abs - absolute error.
-δ_rel - relative error.
+Estimate the directional derivative of `f` at `x` in direction `v`.
 """
-function discrepancy(f::Function, x0::Tuple, δ::Float64, diff::Vector=[], trans::Function=x->x)
-
-    # If diff doesn't contain anything, then differentiate all arguments.
-    diff = diff == [] ? [true for j in x0] : diff
-
-    # Unbox everything.
-    x0 = map(unbox, x0)
-
-    δ_abs, δ_rel = [], []
-    for n in eachindex(x0)
-
-        # If argument is differentiable then check correctness via finite differencing. If
-        # argument is not differentiable then just return 0.
-        if diff[n] == true
-
-            # Compute x̄ using AutoDiff.
-            x = collect(Any, x0)
-            x[n] = Leaf(Tape(), x0[n])
-            df = ∇(f(x...))
-
-            # Estimate x̄ using finite differencing.
-            x̄ = estimate_x̄(f, x0, δ, x0[n], n, trans)
-
-            # Compute absolute and relative errors for this argument.
-            push!(δ_abs, abs.(x̄ .- df[x[n]]))
-            push!(δ_rel, δ_abs[n] ./ (abs.(x̄) .+ 1e-3))
-        else
-            push!(δ_abs, 0.0)
-            push!(δ_rel, 0.0)
-        end
-    end
-    return δ_abs, δ_rel
+function approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
+    y1, y2 = f.((x - v, x + v))
+    length(y1) == length(ȳ) || throw(ArgumentError("length(y1) != length(y)."))
+    return sum(ȳ .* (y2 - y1) / 2)
+end
+function approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::∇RealArray, v::∇RealArray)
+    length(x) == length(v) || throw(ArgumentError("length(x) != length(v)."))
+    type_tuple = Tuple{Function, ArrayOr∇Real, ArrayOr∇Real, ArrayOr∇Real}
+    return invoke(approximate_Dv, type_tuple, f, ȳ, x, v)
 end
 
-function estimate_x̄(f::Function, x0::Tuple, δ::Float64, x0n::Float64, n::Int, trans::Function)
-    x1, x2 = collect(deepcopy(x0)), collect(deepcopy(x0))
-    x1[n], x2[n] = x0[n] + δ, x0[n] - δ
-    return sum(map(-, trans(f(x1...)), trans(f(x2...))) ./ 2δ)
+"""
+    compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
+
+Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this\\
+result to back-propagate the sensitivity ȳ. If ȳ, x and v are column vectors, then this is\\
+equivalent to computing `ȳ.'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian of `f`\\
+evaluated at `x`. Analogous operations happen for scalars and N-dimensional arrays.
+"""
+function compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
+    return sum(∇(f(Leaf(Tape(), x)), ȳ)[1] .* v)
+end
+function compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::∇RealArray, v::∇RealArray)
+    length(x) == length(v) || throw(ArgumentError("length(x) != length(v)."))
+    type_tuple = Tuple{Function, ArrayOr∇Real, ArrayOr∇Real, ArrayOr∇Real}
+    return invoke(approximate_Dv, type_tuple, f, ȳ, x, v)
 end
 
-function estimate_x̄(f::Function, x0::Tuple, δ::Float64, x0n::AbstractArray, n::Int, trans::Function)
-    x̄ = zeros(x0n)
-    for j in eachindex(x0n)
-        x1, x2 = deepcopy(x0), deepcopy(x0)
-        x1[n][j], x2[n][j] = x0n[j] + δ, x0n[j] - δ
-        x̄[j] = sum(map(-, trans(f(x1...)), trans(f(x2...))) ./ 2δ)
-    end
-    return x̄
-end
+# Compute the absolute and relative errors between x and y respectively.
+compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x) + 1e-12))
 
-compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x)))
+"""
+    check_ȳDv(f, ȳ::T, x::T, v::T, tol_abs::∇Real, tol_rel::∇Real) where T<:ArrayOr∇Real
+
+Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the\\
+reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite\\
+differencing. Returns a Tuple containing the absolute and relative errors.
+"""
+check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T<:ArrayOr∇Real =
+    compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv(f, ȳ, x, v))
+
+function print_tol_err(f, ȳ, x::T, v::T, err_abs::∇Real, err_rel::∇Real) where T<:ArrayOr∇Real
+    println("Large error found in sensitivity for function $f at input")
+    println(x)
+    println("in direction")
+    println(v)
+    println("err_abs = $err_abs, err_rel = $err_rel")
+    throw(error("Large error found in sensitivity."))
+end

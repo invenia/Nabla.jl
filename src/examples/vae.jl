@@ -1,7 +1,4 @@
-import Nabla.DiffCore.@differentiable
-@differentiable VAE begin
-
-using MNIST
+using MNIST, Nabla
 
 """ Implementation of the Adam optimiser. """
 type Adam{T<:AbstractArray}
@@ -109,6 +106,4 @@ function demo_vae(itrs::Int, sz::Int, L::Int)
     sample_vae() = logistic.(Vf * tanh.(Vh * randn(dz)))
 
     return sample_vae, reconstruct, elbos
-end
-
 end

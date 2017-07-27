@@ -1,10 +1,9 @@
 # Hand code the identity because it's really fundamental. It doesn't need to generate a new
 # node on the computational graph since it does nothing, but it is useful to have it's
 # gradient implemented for use in higher-order functions.
-eval(DiffBase, add_intercept(:identity, :(Base.identity), :nothing))
+@explicit_intercepts identity Tuple{Any} 
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
-export identity
 
 _ϵ, lb, ub = 3e-2, -3.0, 3.0
 binary_sensitivities = (
@@ -16,11 +15,11 @@ binary_sensitivities = (
     (:^, :(z̄ * y * z / x), :(z̄ * z * log(x)), (_ϵ, ub), (_ϵ, ub)),
 )
 for (f, x̄, ȳ, r1, r2) in binary_sensitivities
-    eval(DiffBase, add_intercept(f, :(Base.$f), :(Tuple{Real, Real})))
-    eval(DiffBase, :(export $f))
+    @eval import Base.$f
+    @eval @explicit_intercepts $f Tuple{∇Real, ∇Real}
+    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, z, z̄, x::∇Real, y::∇Real) = $x̄
+    @eval ∇(::typeof($f), ::Type{Arg{2}}, p, z, z̄, x::∇Real, y::∇Real) = $ȳ
 end
-
-eval(DiffBase, add_intercept(:exponent, :(Base.exponent), :(Tuple{Real})))
 
 # Definitions for functions of a single argument written as y = f(x). The boolean argument
 # indicates whether the gradient computation requires access to y or not.
@@ -28,7 +27,7 @@ unary_sensitivities = (
     (:-,     :(-1),                           (lb, ub),          false),
     (:sin,   :(1 * cos(x)),                   (lb, ub),          false),
     (:cos,   :(-1 * sin(x)),                  (lb, ub),          false),
-    (:tan,   :(1 * (1 + abs2(y))),            (lb, ub),          true),
+    (:tan,   :(1 * (1 + abs2(y))),            (-π/2 + 1e-3, π/2 - 1e-3), true),
     (:sind,  :(1 * (π / 180) * cosd(x)),      (lb, ub),          false),
     (:cosd,  :(-1 * (π / 180) * sind(x)),     (lb, ub),          false),
     (:tand,  :(1 * (π / 180) * (1 + y^2)),    (lb, ub),          true),
@@ -39,7 +38,7 @@ unary_sensitivities = (
     (:csc,   :(-1 * y * cot(x)),              (_ϵ, π - _ϵ),      true),
     (:cotd,  :(-1 * (π / 180) * cscd(x)^2),   (lb, ub),          false),
     (:secd,  :(1 * y * (π / 180) * tand(x)),  (lb, ub),          true),
-    (:cscd,  :(-1 * y * (π / 180) * cotd(x)), (lb, ub),          true),
+    # (:cscd,  :(-1 * y * (π / 180) * cotd(x)), (lb, ub),          true),
     (:acos,  :(-1 / sqrt(1 - abs2(x))),       (-1 + _ϵ, 1 - _ϵ), false),
     (:asin,  :(1 / sqrt(1 - abs2(x))),        (-1 + _ϵ, 1 - _ϵ), false),
     (:atan,  :(1 / (1 + abs2(x))),            (lb, ub),          false),
@@ -56,44 +55,29 @@ unary_sensitivities = (
     (:log1p, :(1 / (1 + x)),                  (_ϵ, ub),          false),
     (:exp,   :(y),                            (lb, ub),          true),
     (:exp2,  :(y * log(2)),                   (lb, ub),          true),
-    (:exp10, :(y * log(10)),                  (-3.0, 3.0),       true),
+    # (:exp10, :(y * log(10)),                  (-3.0, 3.0),       true),
     (:expm1, :((y + 1)),                      (lb, ub),          true),
     (:sqrt,  :(1 / (2 * y)),                  (_ϵ, ub),          true),
     (:cbrt,  :(1 / (3 * abs2(y))),            (lb, ub),          true),
     (:deg2rad, :(1 * (π / 180)),              (lb, ub),          false),
     (:rad2deg, :(1 / (π / 180)),              (lb, ub),          false),
-    (:significand, :(0.5^exponent(x)),        (lb, ub),          false),
+    # (:significand, :(0.5^exponent(x)),        (lb, ub),          false),
     (:abs2, :(2x),                            (lb, ub),          false),
 )
 
 # Create implementations for each scalar function such that they can be used in the
 # implementation of sensitivities.
-for (f, _, _, _) in unary_sensitivities
-    eval(DiffBase, add_intercept(f, :(Base.$f), :(Tuple{Real})))
-    eval(DiffBase, :(export $f))
-end
-
 for (f, x̄, _, needs_y) in unary_sensitivities
-    func = eval(DiffBase, f)
-    eval(DiffBase, :(@inline ∇(::typeof($func), ::Type{Arg{1}}, p, y, ȳ, x::Real) = ȳ * $x̄))
-    eval(DiffBase, needs_y ?
-        :(@inline ∇(::typeof($f), ::Type{Arg{1}}, x::Real, y) = $x̄) :
-        :(@inline ∇(::typeof($f), ::Type{Arg{1}}, x::Real) = $x̄))
-    eval(DiffBase, :(needs_output(::typeof($func)) = $needs_y))
-end
+    @eval import Base.$f
+    @eval @explicit_intercepts $f Tuple{∇Real}
+    @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Real) = ȳ * $x̄
 
-for (f, x̄, ȳ, r1, r2) in binary_sensitivities
-    func = eval(DiffBase, f)
-    eval(DiffBase, :(@inline ∇(::typeof($func), ::Type{Arg{1}}, p, z, z̄, x::Real, y::Real) = $x̄))
-    eval(DiffBase, :(@inline ∇(::typeof($func), ::Type{Arg{2}}, p, z, z̄, x::Real, y::Real) = $ȳ))
-end
-
-# Taken definitions from Base and copied them here to handle inlining of multiple operations.
-# Not currently efficient - this could probably be improved significantly.
-for op in (:+, :*)
-    @eval DiffBase begin
-        ($op)(a, b, c, xs...) = Base.afoldl($op, ($op)(($op)(a,b),c), xs...)
+    if needs_y
+        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Real, y) = $x̄
+    else
+        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Real) = $x̄
     end
+    @eval needs_output(::typeof($f)) = $needs_y
 end
 
 # A collection of unary sensitivites yet to be implemented.

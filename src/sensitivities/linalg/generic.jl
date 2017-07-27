@@ -1,21 +1,21 @@
 # Implementation of sensitivities for unary linalg optimisations.
 unary_linalg_optimisations = [
-    (:-,          RealArray, RealArray, :(Base.map(-, Ȳ)),                      (lb, ub)),
-    (:trace,      RealArray, Real,      :(Base.Diagonal(ones(size(X, 1)))),     (lb, ub)),
-    (:inv,        RealArray, RealArray, :(-Base.transpose(Y) * Ȳ * Base.transpose(Y)), (lb, ub)),
-    (:det,        RealArray, Real,      :(Y * Ȳ * Base.transpose(Base.inv(X))), (lb, ub)),
-    (:logdet,     RealArray, Real,      :(Ȳ * Base.transpose(Base.inv(X))),     (_ϵ, ub)),
-    (:transpose,  RealArray, RealArray, :(Base.transpose(Ȳ)),                   (lb, ub)),
-    (:ctranspose, RealArray, RealArray, :(Base.ctranspose(Ȳ)),                  (lb, ub)),
+    (:-,          ∇RealArray, ∇RealArray, :(map(-, Ȳ)),                        (lb, ub)),
+    (:trace,      ∇RealArray, ∇Real,      :(Diagonal(ones(size(X, 1)))),       (lb, ub)),
+    (:inv,        ∇RealArray, ∇RealArray, :(-transpose(Y) * Ȳ * transpose(Y)), (lb, ub)),
+    (:det,        ∇RealArray, ∇Real,      :(Y * Ȳ * transpose(inv(X))),        (lb, ub)),
+    (:logdet,     ∇RealArray, ∇Real,      :(Ȳ * transpose(inv(X))),            (_ϵ, ub)),
+    (:transpose,  ∇RealArray, ∇RealArray, :(transpose(Ȳ)),                     (lb, ub)),
+    (:ctranspose, ∇RealArray, ∇RealArray, :(ctranspose(Ȳ)),                    (lb, ub)),
 ]
 for (f, T_In, T_Out, X̄, bounds) in unary_linalg_optimisations
-    eval(DiffBase, add_intercept(f, :(Base.$f), :(Tuple{$(quot(T_In))})))
-    @eval DiffBase ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Out, Ȳ::$T_Out, X::$T_In) = $X̄
-    @eval DiffBase export $f
+    @eval import Base.$f
+    @eval @explicit_intercepts $f Tuple{$T_In}
+    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Out, Ȳ::$T_Out, X::$T_In) = $X̄
 end
 
 # Implementation of sensitivities for binary linalg optimisations.
-const RA = RealArray
+const RA = ∇RealArray
 δ = 1e-5
 binary_linalg_optimisations = [
     (:*,          RA, RA, RA,
@@ -104,14 +104,8 @@ binary_linalg_optimisations = [
         (f, A, B, Ā, B̄)->compute_errs.((∇(inv(A') * B')[A], ∇(inv(A') * B')[B]), (Ā, B̄))),
 ]
 for (f, T_A, T_B, T_Y, Ā, B̄, expected) in binary_linalg_optimisations
-
-    # Create intercepts and export.
-    accepted = :(Tuple{$(quot(T_A)), $(quot(T_B))})
-    eval(DiffBase, add_intercept(f, :(Base.$f), accepted))
-    @eval DiffBase export $f
-
-    # Define sensitivities.
-    f_tp = @eval typeof($f)
-    @eval DiffBase ∇(::$f_tp, ::Type{Arg{1}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $Ā
-    @eval DiffBase ∇(::$f_tp, ::Type{Arg{2}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $B̄
+    @eval import Base.$f
+    @eval @explicit_intercepts $f Tuple{$T_A, $T_B}
+    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $Ā
+    @eval ∇(::typeof($f), ::Type{Arg{2}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $B̄
 end

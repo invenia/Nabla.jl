@@ -1,62 +1,74 @@
 module Nabla
 
-    module DiffCore
+    srand(1234567897)
 
-        import Base.Meta.quot
+    # Some aliases used repeatedly throughout the package.
+    export ∇Real, ∇RealArray, SymOrExpr, ArrayOr∇Real
+    const ∇Real = Real
+    const ∇RealArray = AbstractArray{<:∇Real}
+    const ArrayOr∇Real = Union{AbstractArray{<:∇Real}, ∇Real}
+    const SymOrExpr = Union{Symbol, Expr}
 
-        # Some aliases used repeatedly throughout the package.
-        export SymOrExpr, ArrayOrReal
-        const SymOrExpr = Union{Symbol, Expr}
-        const ArrayOrReal = Union{AbstractArray{<:Real}, Real}
+    # Meta-programming utilities specific to Nabla.
+    include("code_transformation/util.jl")
+    include("code_transformation/differentiable.jl")
 
-        include("code_transformation/util.jl")
-        include("code_transformation/differentiable.jl")
+    # Functionality for constructing computational graphs.
+    include("core.jl")
 
-        # Functionality for constructing computational graphs.
-        include("core.jl")
+    # Functionality for defining new sensitivities.
+    include("sensitivity.jl")
 
-        # Functionality for defining new sensitivities.
-        include("sensitivity.jl")
+    # Finite differencing functionality - only used in tests.
+    include("finite_differencing.jl")
 
-        # Finite differencing functionality - only used in tests.
-        include("finite_differencing.jl")
+    # Sensitivities for the basics.
+    include("sensitivities/indexing.jl")
+    include("sensitivities/scalar.jl")
 
-    end # module Core
+    # Sensitivities for functionals.
+    include("sensitivities/functional/functional.jl")
+    include("sensitivities/functional/reduce.jl")
+    include("sensitivities/functional/reducedim.jl")
 
-    baremodule DiffBase
+    # Linear algebra optimisations.
+    include("sensitivities/linalg/generic.jl")
+    include("sensitivities/linalg/strided.jl")
 
-        using ..DiffCore, DualNumbers
-        import ..DiffCore: ∇, get_original, needs_output
+    # baremodule DiffBase
 
-        import Base
-        import Base: include, @inline, @noinline, push!, any, zeros, π, !, method_exists,
-            error, eltype, zip, similar, size, !=, one, zero, StridedArray, StridedMatrix,
-            @eval, AbstractMatrix, >, <, ones, eachindex, colon, Val
-        import Base.Meta.quot
+    #     using ..DiffCore, DualNumbers
+    #     import ..DiffCore: ∇, get_original, needs_output
 
-        const RealArray = AbstractArray{<:Real}
-        const RS = StridedMatrix{<:Real}
+    #     import Base
+    #     import Base: include, @inline, @noinline, push!, any, zeros, π, !, method_exists,
+    #         error, eltype, zip, similar, size, !=, one, zero, StridedArray, StridedMatrix,
+    #         @eval, AbstractMatrix, >, <, ones, eachindex, colon, Val
+    #     import Base.Meta.quot
 
-        # Sensitivites for the basics.
-        include("sensitivities/indexing.jl")
-        include("sensitivities/scalar.jl")
+    #     const RealArray = AbstractArray{<:Real}
+    #     const RS = StridedMatrix{<:Real}
 
-        # Sensitivities for functionals.
-        include("sensitivities/functional/functional.jl")
-        include("sensitivities/functional/reduce.jl")
-        include("sensitivities/functional/reducedim.jl")
+    #     # Sensitivites for the basics.
+    #     include("sensitivities/indexing.jl")
+    #     include("sensitivities/scalar.jl")
 
-        # Linear algebra optimisations.
-        include("sensitivities/linalg/generic.jl")
-        # include("sensitivities/linalg/uniformscaling.jl")
-        # include("sensitivities/linalg/diagonal.jl")
-        # include("sensitivities/linalg/triangular.jl")
-        include("sensitivities/linalg/strided.jl")
+    #     # Sensitivities for functionals.
+    #     include("sensitivities/functional/functional.jl")
+    #     include("sensitivities/functional/reduce.jl")
+    #     include("sensitivities/functional/reducedim.jl")
 
-        # BLAS sensitivities.
-        # include("sensitivities/blas.jl")
+    #     # Linear algebra optimisations.
+    #     include("sensitivities/linalg/generic.jl")
+    #     # include("sensitivities/linalg/uniformscaling.jl")
+    #     # include("sensitivities/linalg/diagonal.jl")
+    #     # include("sensitivities/linalg/triangular.jl")
+    #     include("sensitivities/linalg/strided.jl")
 
-    end # module DiffCore
+    #     # BLAS sensitivities.
+    #     # include("sensitivities/blas.jl")
+
+    # end # module DiffBase
 
 # Demos and examples.
 # include("examples/mlp.jl")

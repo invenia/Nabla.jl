@@ -1,9 +1,9 @@
 @testset "code_transformation/differentiable" begin
 
-    import Nabla.DiffCore: unionise_type, unionise_arg, unionise_eval, unionise_macro_eval,
+    import Nabla.Nabla: unionise_type, unionise_arg, unionise_eval, unionise_macro_eval,
         unionise_sig, unionise
 
-    # Test DiffCore.unionise_arg. This depends upon DiffCore.unionise_type, so we express
+    # Test Nabla.unionise_arg. This depends upon Nabla.unionise_type, so we express
     # our tests in terms of this.
     @test unionise_arg(:x) == :x
     @test unionise_arg(:foo) == :foo
@@ -15,21 +15,21 @@
     @test unionise_arg(:(::T{V} where V<:Q)) == :(::$(unionise_type(:(T{V} where V<:Q))))
     @test unionise_arg(:(x::T{V} where V<:Q)) == :(x::$(unionise_type(:(T{V} where V<:Q))))
 
-    # Test DiffCore.unionise_eval.
+    # Test Nabla.unionise_eval.
     @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
     @test unionise_eval(:(eval(DiffBase, :foo))) == :(eval(DiffBase, :(@unionise foo)))
     @test unionise_eval(:(eval(:(println("foo"))))) == :(eval(:(@unionise println("foo"))))
     @test unionise_eval(:(eval(DiffBase, :(println("foo"))))) ==
         :(eval(DiffBase, :(@unionise println("foo"))))
 
-    # Test DiffCore.unionise_macro_eval.
+    # Test Nabla.unionise_macro_eval.
     @test unionise_macro_eval(:(@eval foo)) == :(@eval @unionise foo)
     @test unionise_macro_eval(:(@eval DiffBase foo)) == :(@eval DiffBase @unionise foo)
     @test unionise_macro_eval(:(@eval println("foo"))) == :(@eval @unionise println("foo"))
     @test unionise_macro_eval(:(@eval DiffBase println("foo"))) ==
         :(@eval DiffBase @unionise println("foo"))
 
-    # Test DiffCore.unionise. This depends upon DiffCore.unionise_arg, so we express
+    # Test Nabla.unionise. This depends upon Nabla.unionise_arg, so we express
     # our tests in terms of this function.
     @test unionise_sig(:((x,))) == :((x,))
     @test unionise_sig(:((x, y))) == :((x, y))
@@ -39,7 +39,7 @@
     @test unionise_sig(:(foo(x::T))) == :(foo($(unionise_arg(:(x::T)))))
     @test unionise_sig(:(foo(x::T) where T)) == :(foo($(unionise_arg(:(x::T)))) where T)
 
-    # Test DiffCore.make_accept_nodes. Heavily depends upon DiffCore.unionise_sig, so we
+    # Test Nabla.make_accept_nodes. Heavily depends upon Nabla.unionise_sig, so we
     # express tests in terms of this function.
     @test unionise(:hi) == :hi
     @test unionise(:(N = 5)) == :(N = 5)

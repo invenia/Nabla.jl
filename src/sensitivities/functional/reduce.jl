@@ -1,16 +1,14 @@
-export mapreduce, mapfoldl, mapfoldr, reduce, foldl, foldr, sum, prod, mapreducedim
-
-import Nabla.DiffBase.fmad
+export mapreduce, mapfoldl, mapfoldr, mapreducedim
 
 # Intercepts for `mapreduce`, `mapfoldl` and `mapfoldr` under `op` `+`.
-accepted_add = :(Tuple{Any, typeof(+), AbstractArray{<:Real}})
-for (f_name, base_f_name) in ((:mapreduce, :(Base.mapreduce)),
+type_tuple = :(Tuple{Any, typeof(+), AbstractArray{<:Real}})
+for (f, base_f_name) in ((:mapreduce, :(Base.mapreduce)),
                               (:mapfoldl, :(Base.mapfoldl)),
                               (:mapfoldr, :(Base.mapfoldr)))
-    eval(DiffBase, add_intercept(f_name, base_f_name, accepted_add))
-    f_eval = eval(DiffBase, f_name)
-    @eval DiffBase function ∇(
-        ::typeof($f_eval),
+    @eval import Base.$f
+    @eval @explicit_intercepts $f $type_tuple [false, false, true]
+    @eval function ∇(
+        ::typeof($f),
         ::Type{Arg{3}},
         p, y, ȳ, f,
         ::typeof(+),
@@ -25,25 +23,6 @@ for (f_name, base_f_name) in ((:mapreduce, :(Base.mapreduce)),
         end
     end
 end
-
-# Implementation of `foldl`, `foldr` and `reduce` to avoid going into `Base`.
-# Copied directly from `Base`.
-foldl(op, v0, itr) = mapfoldl(identity, op, v0, itr)
-foldl(op, itr) = mapfoldl(identity, op, itr)
-foldr(op, v0, itr) = mapfoldr(identity, op, v0, itr)
-foldr(op, itr) = mapfoldr(identity, op, itr)
-reduce(op, v0, itr) = mapreduce(identity, op, v0, itr)
-reduce(op, itr) = mapreduce(identity, op, itr)
-reduce(op, a::Number) = a
-prevent_base_import.((:foldl, :foldr, :reduce))
-
-# Implementation of `sum` and `prod` to avoid going into Base. Copied directly from `Base`.
-sum(f::Base.Callable, a) = mapreduce(f, +, a)
-sum(a) = mapreduce(identity, +, a)
-sum(a::AbstractArray{Bool}) = Base.countnz(a)
-prod(f::Base.Callable, a) = mapreduce(f, *, a)
-prod(a) = mapreduce(identity, *, a)
-prevent_base_import.((:sum, :prod))
 
 # # Intercepts for mapreduce under multiplication.
 # accepted_mul = :(Tuple{Function, typeof(*), AbstractArray{T} where T<:Real})
