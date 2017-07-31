@@ -3,7 +3,7 @@ export @unionise
 """
     unionise_arg(arg)
 
-Return an expression in which the argument expression `arg` is replaced with an argument\\
+Return an expression in which the argument expression `arg` is replaced with an argument
 whos type admits `Node`s.
 """
 unionise_arg(arg::Symbol) = arg
@@ -15,8 +15,8 @@ end
 """
     get_quote_body(code)
 
-Return the body of a quoted expression or symbol. There is slightly different behaviour\\
-depending upon whether a symbol or expression is quoted and how exactly it is quoted,\\
+Return the body of a quoted expression or symbol. There is slightly different behaviour
+depending upon whether a symbol or expression is quoted and how exactly it is quoted,
 thus we dispatch on whether code is a `:quote` expression or a `QuoteNode` object.
 """
 get_quote_body(code::Expr) = code.args[1]
@@ -25,7 +25,7 @@ get_quote_body(code::QuoteNode) = code.value
 """
     unionise_eval(code::Expr)
 
-Unionise the code inside a call to `eval`, such that when the `eval` call actually occurs\\
+Unionise the code inside a call to `eval`, such that when the `eval` call actually occurs
 the code inside will be unionised.
 """
 function unionise_eval(code::Expr)
@@ -38,7 +38,7 @@ end
 """
     unionise_macro_eval(code::Expr)
 
-Unionise the code in a call to @eval, such that when the `eval` call actually occurs, the\\
+Unionise the code in a call to @eval, such that when the `eval` call actually occurs, the
 code inside will be unionised.
 """
 function unionise_macro_eval(code::Expr)
@@ -51,7 +51,7 @@ end
 """
     unionise_sig(code)
 
-`code` should be a `tuple`, `call` or `where` expression (containing a `tuple` or `call`).\\
+`code` should be a `tuple`, `call` or `where` expression (containing a `tuple` or `call`).
 Returns a signature which accepts `Node`s.
 """
 unionise_sig(code::Symbol) = code
@@ -91,7 +91,7 @@ function unionise(code::Expr)
     elseif code.head == :call && code.args[1] == :eval
         return unionise_eval(code)
     elseif code.head == :macrocall && code.args[1] == Symbol("@eval")
-        return unionise_macro_eval(code) 
+        return unionise_macro_eval(code)
     else
         return Expr(code.head, [unionise(arg) for arg in code.args]...)
     end
@@ -100,7 +100,7 @@ end
 """
     @unionise code
 
-Transform code such that each function definition accepts `Node` objects as arguments,\\
+Transform code such that each function definition accepts `Node` objects as arguments,
 without effecting dispatch in other ways.
 """
 macro unionise(code)
