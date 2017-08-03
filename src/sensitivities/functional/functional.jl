@@ -1,28 +1,20 @@
 # Implementation of functionals (i.e. higher-order functions).
 import Base.Broadcast.broadcast_shape
 
-# # Implementation of sensitivities w.r.t. `map`.
-# import Base.map
-# @explicit_intercepts map Tuple{Any, ∇RealArray} [false, true]
-# println(macroexpand(:(@union_intercepts map Tuple{Any, Vararg{∇RealArray}} Tuple{Any, Vararg})))
-# @union_intercepts map Tuple{Any, Vararg{∇RealArray}} Tuple{Any, Vararg}
+# Implementation of sensitivities w.r.t. `map`.
+import Base.map
+@explicit_intercepts map Tuple{Any, ∇RealArray} [false, true]
+@union_intercepts map Tuple{Any, Vararg{∇RealArray}} Tuple{Any, Vararg}
 
-# foo(x) = 5
-# foo(x, y) = x + y
-# println(4 .* 5)
-# println(map(foo, randn(10)))
-# println(@which map(foo, randn(10), randn(10)))
-# println(map(foo, Leaf(Tape(), randn(10)), randn(10)))
+# Make sure that we're not trying to differentiate the function being mapped.
+∇(::typeof(map), ::Type{Arg{1}}, p, y, ȳ, f::Function, A::∇RealArray...) =
+    throw(error("First argument of `map` is not differentiable."))
 
-# # Make sure that we're not trying to differentiate the function being mapped.
-# ∇(::typeof(map), ::Type{Arg{1}}, p, y, ȳ, f::Function, A::∇RealArray...) =
-#     throw(error("First argument of `map` is not differentiable."))
-
-# # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-# ∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇RealArray...) where N =
-#     method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...}) ?
-#         Base.map((yn, ȳn, An...)->∇(f, Arg{N-1}, p, yn, ȳn, An...), y, ȳ, A...) :
-#         Base.map((ȳn, An...)->ȳn * fmad(f, An, Val{N-1}), ȳ, A...)
+# Compute sensitivity w.r.t. the N^{th} input, N > 1.
+∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇RealArray...) where N =
+    method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...}) ?
+        Base.map((yn, ȳn, An...)->∇(f, Arg{N-1}, p, yn, ȳn, An...), y, ȳ, A...) :
+        Base.map((ȳn, An...)->ȳn * fmad(f, An, Val{N-1}), ȳ, A...)
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 import Base.broadcast
