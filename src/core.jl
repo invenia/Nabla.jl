@@ -137,8 +137,8 @@ struct Arg{N} end
     ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
     ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
 
-To implement a new reverse-mode sensitivity for the `N^{th}` argument of function `f`. p\\
-is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its\\
+To implement a new reverse-mode sensitivity for the `N^{th}` argument of function `f`. p
+is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
 function ∇(y::Node{T}, ȳ::T) where T
@@ -176,12 +176,12 @@ end
 # """
 #     ∇(f::Function)
 
-# Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),\\
-# will return a Tuple, the first element of which is the output of the function `f` and then\\
-# second element of which is (yet another) function `g`. `g` can either be evaluated with no\\
-# arguments, in which case it will return the gradient of `f` evaluated at`x`. Alternatively,\\
-# it can be evaluated with arguments of the same type and shape as the output of `f(x)`, in\\
-# which case it is equivalent to multiplying them 'from the left' by the Jacobian\\
+# Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),
+# will return a Tuple, the first element of which is the output of the function `f` and then
+# second element of which is (yet another) function `g`. `g` can either be evaluated with no
+# arguments, in which case it will return the gradient of `f` evaluated at`x`. Alternatively,
+# it can be evaluated with arguments of the same type and shape as the output of `f(x)`, in
+# which case it is equivalent to multiplying them 'from the left' by the Jacobian
 # ∂(f(x)) / ∂x.
 # """
 # function ∇(f::Function)
@@ -201,7 +201,9 @@ for f_name in (:zerod_container, :oned_container)
         @inline $f_name(x::Tuple) = ([$f_name(n) for n in x])
         @inline function $f_name(x)
             y = Base.copy(x)
-            [Base.setindex!(y, $f_name(y[n]), n) for n in eachindex(y)]
+            for n in eachindex(y)
+                @inbounds y[n] = $f_name(y[n])
+            end
             return y
         end
     end)

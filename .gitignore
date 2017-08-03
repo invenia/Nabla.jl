@@ -3,3 +3,4 @@
 *.jl.mem
 *.pdf
 *.DS_Store
+docs/build/

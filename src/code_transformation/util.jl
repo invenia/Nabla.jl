@@ -12,7 +12,7 @@ end
 """
     unionise_type(tp::Union{Symbol, Expr})
 
-Returns an expression for the type union of `tp` and `Node{<:tp}`. e.g.\\
+Returns an expression for the type union of `tp` and `Node{<:tp}`. e.g.
 `unionise_type(:Real)` returns `:(Union{Real, Node{<:Real}})`.
 """
 function unionise_type(tp::Union{Symbol, Expr})
@@ -24,8 +24,8 @@ end
 """
     replace_body(unionall::Union{Symbol, Expr}, replacement::Union{Symbol, Expr})
 
-Replace the body of an expression representing a `UnionAll`. e.g.\\
-replace_body(:(Tuple{T, T} where T), :foo) returns the (nonsensical) expression\\
+Replace the body of an expression representing a `UnionAll`. e.g.
+replace_body(:(Tuple{T, T} where T), :foo) returns the (nonsensical) expression
 :(foo where T). If `unionall` is a `Symbol`, then `replacement` is returned.
 """
 replace_body(unionall::Expr, replacement::Union{Symbol, Expr}) =
@@ -37,7 +37,7 @@ replace_body(::Symbol, replacement::Union{Symbol, Expr}) = replacement
 """
     get_body(x::Union{Symbol, Expr})
 
-Get the body from an expression representing a `UnionAll`. e.g. :(Tuple{T, T} where T)\\
+Get the body from an expression representing a `UnionAll`. e.g. :(Tuple{T, T} where T)
 returns :(Tuple{T, T}). If `x` is a `Symbol`, then `x` is returned unaltered.
 """
 get_body(unionall::Expr) = unionall.head == :where ? get_body(unionall.args[1]) : unionall
@@ -46,7 +46,7 @@ get_body(body::Symbol) = body
 """
     get_types(type_tuple::Expr)
 
-Return the types from a type-tuple expression. e.g. :(Tuple{Float64, Real}) returns a\\
+Return the types from a type-tuple expression. e.g. :(Tuple{Float64, Real}) returns a
 vector [:Float64, :Real]
 """
 get_types(type_tuple::Expr) = type_tuple.args[2:end]
@@ -82,7 +82,7 @@ end
 """
     replace_vararg(typ::SymOrExpr, vararg_info::Tuple)
 
-Convert `typ` to the `Vararg` containing elements of type `typ` specified by\\
+Convert `typ` to the `Vararg` containing elements of type `typ` specified by
 `vararg_info`, which should be a `Tuple` returned from `remove_vararg`.
 """
 replace_vararg(typ::SymOrExpr, vararg_info::Tuple) =

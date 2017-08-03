@@ -19,9 +19,9 @@ end
 """
     compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
 
-Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this\\
-result to back-propagate the sensitivity ȳ. If ȳ, x and v are column vectors, then this is\\
-equivalent to computing `ȳ.'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian of `f`\\
+Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this
+result to back-propagate the sensitivity ȳ. If ȳ, x and v are column vectors, then this is
+equivalent to computing `ȳ.'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian of `f`
 evaluated at `x`. Analogous operations happen for scalars and N-dimensional arrays.
 """
 function compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
@@ -39,8 +39,8 @@ compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x) + 1e-12))
 """
     check_ȳDv(f, ȳ::T, x::T, v::T, tol_abs::∇Real, tol_rel::∇Real) where T<:ArrayOr∇Real
 
-Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the\\
-reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite\\
+Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
+reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite
 differencing. Returns a Tuple containing the absolute and relative errors.
 """
 check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T<:ArrayOr∇Real =

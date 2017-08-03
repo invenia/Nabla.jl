@@ -4,9 +4,9 @@ export Arg, add_∇, add_∇!, ∇, preprocess, @explicit_intercepts, @union_int
 """
     @union_intercepts f type_tuple invoke_type_tuple
 
-Interception strategy based on adding a method to `f` which accepts the union of each of\\
-the types specified by `type_tuple`. If none of the arguments are `Node`s then the method\\
-of `f` specified by `invoke_type_tuple` is invoked. 
+Interception strategy based on adding a method to `f` which accepts the union of each of
+the types specified by `type_tuple`. If none of the arguments are `Node`s then the method
+of `f` specified by `invoke_type_tuple` is invoked.
 """
 macro union_intercepts(f::Symbol, type_tuple::Expr, invoke_type_tuple::Expr)
     return esc(union_intercepts(f, type_tuple, invoke_type_tuple))
@@ -27,10 +27,10 @@ end
     @explicit_intercepts(f::Symbol, type_tuple::Expr, is_node::Expr)
     @explicit_intercepts(f::Symbol, type_tuple::Expr)
 
-Create a collection of methods which intecept the function calls to `f` in which at least\\
-one argument is a `Node`. Types of arguments are specified by the type tuple expression\\
-in `type_tuple`. If there are arguments which are not differentiable, they can be\\
-specified by providing a boolean vector `is_node` which indicates those arguments that are\\
+Create a collection of methods which intecept the function calls to `f` in which at least
+one argument is a `Node`. Types of arguments are specified by the type tuple expression
+in `type_tuple`. If there are arguments which are not differentiable, they can be
+specified by providing a boolean vector `is_node` which indicates those arguments that are
 differentiable with `true` values and those which are not as `false`.
 """
 macro explicit_intercepts(f::SymOrExpr, type_tuple::Expr, is_node::Expr)
@@ -44,8 +44,8 @@ end
 """
     explicit_intercepts(f::Symbol, types::Expr, is_node::Vector)
 
-Return a `:block` expression which evaluates to declare all of the combinations of methods\\
-that could be required to catch if a `Node` is ever passed to the function specified in\\
+Return a `:block` expression which evaluates to declare all of the combinations of methods
+that could be required to catch if a `Node` is ever passed to the function specified in
 `expr`.
 """
 function explicit_intercepts(f::SymOrExpr, types::Expr, is_node::Vector{Bool})
@@ -70,8 +70,8 @@ end
         arg_names::Vector{Symbol},
     )
 
-Construct a method of the Function `f`, whose argument's types are specified by\\
-`type_tuple`. Arguments which are potentially `Node`s should be indicated by `true` values\\
+Construct a method of the Function `f`, whose argument's types are specified by
+`type_tuple`. Arguments which are potentially `Node`s should be indicated by `true` values
 in `is_node`.
 """
 function boxed_method(
@@ -98,8 +98,8 @@ boxed_method(f, t, n) = boxed_method(f, t, n, [gensym() for _ in n])
 """
     get_sig(f::Symbol, arg_names::Vector{Symbol}, types::Vector)
 
-Generate a function signature for `f` in which the arguments, whose names are `arg_names`,\\
-specified by the `true` entires of `is_node` have type `Node`. The other arguments have\\
+Generate a function signature for `f` in which the arguments, whose names are `arg_names`,
+specified by the `true` entires of `is_node` have type `Node`. The other arguments have
 types specified by `types`.
 """
 get_sig(f::SymOrExpr, arg_names::Vector{Symbol}, types::Vector) =
@@ -108,7 +108,7 @@ get_sig(f::SymOrExpr, arg_names::Vector{Symbol}, types::Vector) =
 """
     get_body(foo::Symbol, type_tuple::Expr, arg_names::Vector, invoke_type_tuple::Expr)
 
-Get the body of the @generated function which is used to intercept the invokations\\
+Get the body of the @generated function which is used to intercept the invokations
 specified by type_tuple.
 """
 function get_body(
@@ -184,13 +184,14 @@ end
 """
     add_∇(f::Function, arg::Type{Arg{N}} where N, δ::Function)
 
-Convenience functions for declaring extra ∇ reverse-mode sensitivity implementations.\\
-`f` is the function to which the sensitivity should be added, and `arg` specifies the\\
-argument w.r.t. which the sensitivity should be added. `δ` is the implementation of the \\
-sensitivity. Doesn't return anything, and calls eval from within 
-e.g.\\
-    add_∇(+, Arg{1}, (p, x, y, z, z̄)->z̄)\\
-will make the sensitivity w.r.t. the first argument of `+` the lambda function provided.\\
+Convenience functions for declaring extra ∇ reverse-mode sensitivity implementations.
+`f` is the function to which the sensitivity should be added, and `arg` specifies the
+argument w.r.t. which the sensitivity should be added. `δ` is the implementation of the
+sensitivity. Doesn't return anything, and calls eval from within e.g.
+
+    add_∇(+, Arg{1}, (p, x, y, z, z̄)->z̄)
+
+will make the sensitivity w.r.t. the first argument of `+` the lambda function provided.
 """
 function add_∇(f::Function, arg::Type{Arg{N}}, δ::Function) where N
     global ∇(::typeof(f), ::Type{Arg{N}}, p, y, ȳ, x...) = δ(p, y, ȳ, x...)
@@ -202,8 +203,8 @@ end
 """
     preprocess(::Function, args...)
 
-Default implementation of preprocess returns an empty Tuple. Individual sensitivity\\
-implementations should add methods specific to their use case. The output is passed\\
+Default implementation of preprocess returns an empty Tuple. Individual sensitivity
+implementations should add methods specific to their use case. The output is passed
 in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
 """
 @inline preprocess(::Function, args...) = ()
@@ -211,8 +212,8 @@ in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respe
 """
     needs_output(::Function)
 
-Returns a bool determining whether the particular function in question requires access to\\
-its output to compute it's gradient. Defaults to true. Useful for making efficient\\
+Returns a bool determining whether the particular function in question requires access to
+its output to compute it's gradient. Defaults to true. Useful for making efficient
 implementations of `mapreduce` and `mapreducedim`.
 """
 @inline needs_output(::Function) = true
