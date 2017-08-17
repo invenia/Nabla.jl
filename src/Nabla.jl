@@ -1,7 +1,5 @@
 module Nabla
 
-    srand(1234567897)
-
     # Some aliases used repeatedly throughout the package.
     export ∇Real, ∇RealArray, SymOrExpr, ArrayOr∇Real
     const ∇Real = Real
@@ -19,7 +17,8 @@ module Nabla
     # Functionality for defining new sensitivities.
     include("sensitivity.jl")
 
-    # Finite differencing functionality - only used in tests.
+    # Finite differencing functionality - only used in tests. Would be good to move this
+    # into a separate module at some point.
     include("finite_differencing.jl")
 
     # Sensitivities for the basics.

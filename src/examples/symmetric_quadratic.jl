@@ -38,7 +38,7 @@ println()
 # Define the function to be differentiated. Parameters w.r.t. which we want gradients must
 # be arguments. Parameters that we don't want gradients w.r.t. should be passed in via a
 # closure.
-f(x) = x.'A * x
+@unionise f(x::AbstractVector) = x.'A * x
 
 # Compute a function `∇f` which computes the derivative of `f` w.r.t. the input.
 ∇f = ∇(f)

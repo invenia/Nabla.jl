@@ -73,7 +73,6 @@ immutable Branch{T, F<:Function, V<:Tuple} <: Node{T}
     pos::Int
 end
 function Branch(f::Function, args::Tuple, tape::Tape)
-    # unboxed = Base.map(arg->get_original(unbox(arg)), args)
     unboxed = unbox.(args)
     branch = Branch(f(unboxed...), f, args, tape, length(tape) + 1)
     push!(tape, branch)
@@ -133,11 +132,14 @@ struct Arg{N} end
 
 """
     ∇(y::Node{<:∇Real})
-
-Return a `Tape` object which can be indexed using `Node`s.
-
-
     ∇(y::Node{T}, ȳ::T) where T
+
+Return a `Tape` object which can be indexed using `Node`s, each element of which contains
+the result of multiplying `ȳ` by the transpose of the Jacobian of the function specified by
+the `Tape` object in `y`. If `y` is a scalar and `ȳ = 1` then this is equivalent to
+computing the gradient of `y` w.r.t. each of the elements in the `Tape`.
+
+
     ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
     ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
 

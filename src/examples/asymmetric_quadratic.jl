@@ -41,7 +41,7 @@ println("Gradient of z w.r.t. y at $y_ is $ȳ")
 # Define the function to be differentiated. Parameters w.r.t. which we want gradients must
 # be arguments. Parameters that we don't want gradients w.r.t. should be passed in via a
 # closure.
-f(x, y) = x.'A * y
+@unionise f(x::AbstractVector, y::AbstractVector) = x.'A * y
 
 # Compute a function `∇f` which computes the derivative of `f` w.r.t. the inputs.
 ∇f = ∇(f)
