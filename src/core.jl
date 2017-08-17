@@ -1,4 +1,4 @@
-using BenchmarkTools, DualNumbers
+using DualNumbers
 
 import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned
 export Leaf, Tape, Node, Branch, ∇, leaves
