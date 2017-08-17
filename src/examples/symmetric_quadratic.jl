@@ -12,8 +12,7 @@ x_ = randn(N)
 x = Leaf(Tape(), x_)
 
 # Compute the forward pass.
-# y = sum((A * x) .* x)
-y = x.'A * x
+y = x.' * (A * x) # Temporary bracketting because we don't support RowVectors yet.
 println("Output of the forward pass is:")
 println(y)
 println()
@@ -38,7 +37,7 @@ println()
 # Define the function to be differentiated. Parameters w.r.t. which we want gradients must
 # be arguments. Parameters that we don't want gradients w.r.t. should be passed in via a
 # closure.
-@unionise f(x::AbstractVector) = x.'A * x
+@unionise f(x::AbstractVector) = x.' * (A * x)
 
 # Compute a function `∇f` which computes the derivative of `f` w.r.t. the input.
 ∇f = ∇(f)

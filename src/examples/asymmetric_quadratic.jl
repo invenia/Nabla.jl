@@ -12,7 +12,8 @@ x_, y_ = randn(N), randn(N)
 x, y = Leaf.(Tape(), (x_, y_))
 
 # Compute the forward pass.
-z = x.'A * y
+z = x.' * (A * y) # Temporary bracketting because we don't support RowVectors yet.
+
 println("Output of the forward pass is:")
 println(z)
 println()
