@@ -108,7 +108,7 @@ unbox(x) = x
 function propagate(y::Branch{T}, rvs_tape::Tape) where T
     tape = rvs_tape.tape
     ȳ, f = tape[y.pos]::T, y.f
-    xs, xids = Base.map(unbox, y.args), Base.map(pos, y.args)
+    xs, xids = map(unbox, y.args), map(pos, y.args)
     p = preprocess(f, y.val, ȳ, xs...)
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
@@ -133,6 +133,10 @@ struct Arg{N} end
 
 """
     ∇(y::Node{<:∇Real})
+
+Return a `Tape` object which can be indexed using `Node`s.
+
+
     ∇(y::Node{T}, ȳ::T) where T
     ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
     ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
@@ -194,10 +198,11 @@ end
 # end
 
 # A collection of methods for initialising nested indexable containers to zero.
-for f_name in (:zerod_container, :oned_container)
+for (f_name, scalar_init, array_init) in
+    zip((:zerod_container, :oned_container), (:zero, :one), (:zeros, :ones))
     eval(quote
-        @inline $f_name(x::Number) = zero(x)
-        @inline $f_name(x::AbstractArray{<:Real}) = zeros(x)
+        @inline $f_name(x::Number) = $scalar_init(x)
+        @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
         @inline $f_name(x::Tuple) = ([$f_name(n) for n in x])
         @inline function $f_name(x)
             y = Base.copy(x)
