@@ -182,25 +182,6 @@ function tape_expr(x::Tuple, syms::NTuple{N, Symbol} where N, is_node::Vector{Bo
 end
 
 """
-    add_∇(f::Function, arg::Type{Arg{N}} where N, δ::Function)
-
-Convenience functions for declaring extra ∇ reverse-mode sensitivity implementations.
-`f` is the function to which the sensitivity should be added, and `arg` specifies the
-argument w.r.t. which the sensitivity should be added. `δ` is the implementation of the
-sensitivity. Doesn't return anything, and calls eval from within e.g.
-
-    add_∇(+, Arg{1}, (p, x, y, z, z̄)->z̄)
-
-will make the sensitivity w.r.t. the first argument of `+` the lambda function provided.
-"""
-function add_∇(f::Function, arg::Type{Arg{N}}, δ::Function) where N
-    global ∇(::typeof(f), ::Type{Arg{N}}, p, y, ȳ, x...) = δ(p, y, ȳ, x...)
-end
-function add_∇!(f::Function, arg::Type{Arg{N}}, δ::Function) where N
-    global ∇(x̄, ::typeof(f), ::Type{Arg{N}}, p, y, ȳ, x...) = δ(x̄, p, y, ȳ, x...)
-end
-
-"""
     preprocess(::Function, args...)
 
 Default implementation of preprocess returns an empty Tuple. Individual sensitivity

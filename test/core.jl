@@ -10,6 +10,30 @@ let
     @test !isassigned(Tape(1), 1)
     @test !isassigned(Tape(26), 26)
 
+    # Check that printing works as expected.
+    let
+        buffer = IOBuffer()
+        show(buffer, Tape())
+        @test String(buffer) == "Empty tape.\n"
+    end
+    let
+        buffer = IOBuffer()
+        show(buffer, Tape(1))
+        @test String(buffer) == "1 #undef\n"
+    end
+    let
+        buffer = IOBuffer()
+        show(buffer, Tape(2))
+        @test String(buffer) == "1 #undef\n2 #undef\n"
+    end
+    let
+        buffer = IOBuffer()
+        tape = Tape(1)
+        tape[1] = 5
+        show(buffer, tape)
+        @test String(buffer) == "1 5\n"
+    end
+
     # Check isassigned consistency.
     leaf = Leaf(Tape(), 5)
     @test isassigned(leaf.tape.tape, leaf.pos) == isassigned(leaf.tape, leaf)
@@ -78,4 +102,47 @@ let
     @test ∇(br, 2)[br.args[1]] == 2 * foo_coeff
 
 end # let
+
+# Check that the convenience implementation of ∇ works as intended.
+let
+    f(x, y) = 2x + y
+    ∇f = ∇(f)
+    ∇f_out = ∇(f, true)
+
+    @test_throws MethodError ∇f(randn(5), randn(5))
+    x, y = randn(), randn()
+    ∇z = ∇(f(Leaf.(Tape(), (x, y))...))
+    @test ∇f(x, y) == (∇z[1], ∇z[2])
+    z, (∇x, ∇y) = ∇f_out(x, y)
+    @test z.val == f(x, y)
+    @test (∇x, ∇y) == ∇f(x, y)
+end
+
+# Tests for zero'd and one'd containers.
+let
+    import Nabla: zerod_container, oned_container
+    @test zerod_container(1.0) == 0.0
+    @test zerod_container(1) == 0
+    @test oned_container(1.0) == 1.0
+    @test oned_container(5) == 1
+
+    @test zerod_container(randn(5)) == zeros(5)
+    @test oned_container(randn(5)) == ones(5)
+    @test zerod_container(randn(5, 4, 3, 2, 1)) == zeros(5, 4, 3, 2, 1)
+    @test oned_container(randn(5, 4, 3, 2, 1)) == ones(5, 4, 3, 2, 1)
+
+    @test zerod_container((1.0, 1)) == (0.0, 0)
+    @test oned_container((0, 0.0)) == (1, 1.0)
+    @test zerod_container((randn(), randn(5))) == (0.0, zeros(5))
+    @test oned_container((randn(5), randn())) == (ones(5), 1.0)
+    @test zerod_container((1.0, (randn(5), randn(5)))) == (0.0, (zeros(5), zeros(5)))
+    @test oned_container((randn(), (randn(5), randn(5)))) == (1.0, (ones(5), ones(5)))
+
+    @test zerod_container([[1.0], [1.0]]) == [[0.0], [0.0]]
+    @test oned_container([[5.0], [4.0]]) == [[1.0], [1.0]]
+
+    @test zerod_container(Dict("a"=>5.0, "b"=>randn(3))) == Dict("a"=>0.0, "b"=>zeros(3))
+    @test oned_container(Dict("a"=>5.0, "b"=>randn(3))) == Dict("a"=>1.0, "b"=>ones(3))
+end
+
 end # testset "core"

@@ -13,13 +13,13 @@
             # Test allocating sensitivites on first arg.
             δ_abs_A, δ_rel_A = check_Dv(λA, Ȳ, A, V)
             (δ_abs_A > ϵ_abs || δ_rel_A > ϵ_rel || isnan(δ_abs_A) || isnan(δ_rel_A)) &&
-                Nabla.print_tol_err(λA, Ȳ, A, V, δ_abs_A, δ_rel_A)
+                print_tol_err(λA, Ȳ, A, V, δ_abs_A, δ_rel_A)
             @test δ_abs_A < ϵ_abs && δ_rel_A < ϵ_rel
 
             # Compute errors w.r.t. second argument.
             δ_abs_B, δ_rel_B = check_Dv(λB, Ȳ, B, V)
             (δ_abs_B > ϵ_abs || δ_rel_B > ϵ_rel || isnan(δ_abs_B) || isnan(δ_rel_B)) &&
-                Nabla.print_tol_err(λB, Ȳ, B, V, δ_abs_B, δ_rel_B)
+                print_tol_err(λB, Ȳ, B, V, δ_abs_B, δ_rel_B)
             @test δ_abs_B < ϵ_abs && δ_rel_B < ϵ_rel
 
             # THESE TESTS NEED TO BE REINSTANTIATED AT SOME POINT BEFORE RELEASE.
