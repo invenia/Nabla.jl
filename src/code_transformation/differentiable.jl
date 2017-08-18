@@ -63,8 +63,6 @@ function unionise_sig(code::Expr)
         new_body = Expr(:call, body.args[1], unionise_arg.(body.args[2:end])...)
     elseif body.head == Symbol("::")
         new_body = unionise_arg(body)
-    else
-        throw(error("Not sure what to do."))
     end
     return replace_body(code, new_body)
 end
@@ -106,18 +104,3 @@ without effecting dispatch in other ways.
 macro unionise(code)
     return esc(unionise(code))
 end
-
-"""
-    unionised_include(path::AbstractString)
-
-Apply the @unionise macro to all of the code loaded in an `include` call.
-"""
-unionised_include(path::AbstractString) =
-    include_string("@unionise begin " * readstring(open(path)) * " end")
-
-"""
-    unionise_include(code::Expr)
-
-Return an expression which calls `unionised_include` instead of simply `include`.
-"""
-unionise_include(code::Expr) = Expr(:call, :unionised_include, code.args[2])

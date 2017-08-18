@@ -1,10 +1,7 @@
 using DualNumbers
 
 import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned
-export Leaf, Tape, Node, Branch, ∇, leaves
-
-@inline get_ones(x::∇Real) = one(x)
-@inline get_ones(x::∇RealArray) = ones(x)
+export Leaf, Tape, Node, Branch, ∇
 
 """ Basic unit on the computational graph."""
 abstract type Node{T} end
@@ -82,7 +79,6 @@ show(io::IO, branch::Branch{T, V}) where {T, V} =
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 show(io::IO, branch::Branch{T}) where T<:AbstractArray =
     print(io, "Branch{$T} $(size(branch.val)), f=$(branch.f)")
-
 
 """
     pos(x::Node)
@@ -205,7 +201,7 @@ for (f_name, scalar_init, array_init) in
     eval(quote
         @inline $f_name(x::Number) = $scalar_init(x)
         @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
-        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x])
+        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...)
         @inline function $f_name(x)
             y = Base.copy(x)
             for n in eachindex(y)

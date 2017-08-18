@@ -2,10 +2,16 @@
 
     let ϵ_abs = 1e-5, ϵ_rel = 1e-4, v = 1e-6, ȳ = 5.0, z̄ = 4.0
 
+        let
+            @test ∇(identity, Arg{1}, 5.0, 4.0, 3.0, 2.0) == 3.0
+            @test ∇(identity, Arg{1}, 5) == 1
+            @test ∇(identity, Arg{1}, 5.0) == 1.0
+        end
+
         function unary_test(f, x)
             δ_abs, δ_rel = check_Dv(eval(f), ȳ, x, v)
             (δ_abs > ϵ_abs || δ_rel > ϵ_rel || isnan(δ_abs) || isnan(δ_rel)) &&
-                Nabla.print_tol_err(eval(f), ȳ, x, v, δ_abs, δ_rel)
+                print_tol_err(eval(f), ȳ, x, v, δ_abs, δ_rel)
             @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
         end
 
@@ -26,13 +32,13 @@
             # Compute error w.r.t. first argument and check results.
             δ_abs_x, δ_rel_x = check_Dv(λx, z̄, x, v)
             (δ_abs_x > ϵ_abs || δ_rel_x > ϵ_rel || isnan(δ_abs_x) || isnan(δ_rel_x)) &&
-                Nabla.print_tol_err(f, z̄, x, v, δ_abs_x, δ_rel_x)
+                print_tol_err(f, z̄, x, v, δ_abs_x, δ_rel_x)
             @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
 
             # Compute error w.r.t. second argument and check results.
             δ_abs_y, δ_rel_y = check_Dv(λy, z̄, y, v)
             (δ_abs_y > ϵ_abs || δ_rel_y > ϵ_rel || isnan(δ_abs_y) || isnan(δ_rel_y)) &&
-                Nabla.print_tol_err(f, z̄, y, v, δ_abs_y, δ_rel_y)
+                print_tol_err(f, z̄, y, v, δ_abs_y, δ_rel_y)
             @test δ_abs_y < ϵ_abs && δ_rel_y < ϵ_rel
         end
 

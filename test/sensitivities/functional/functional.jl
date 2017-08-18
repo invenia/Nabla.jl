@@ -71,6 +71,15 @@
     #     @test ∇(s_)[z_] == getindex.(map((x, y, z)->fmad(f, (x, y, z)), x, y, z), 3)
     # end
 
+    # Check that `broadcastsum!` works as intended.
+    let
+        Z, X, Y = [1 2; 3 4], [1 2], [5 6; 7 8]
+        @test Nabla.broadcastsum!(x->2x, false, copy(X), Z) == [2 + 6 4 + 8]
+        @test Nabla.broadcastsum!(x->2x, true, copy(X), Z) == X + [2 + 6 4 + 8]
+        @test Nabla.broadcastsum!(x->2x, false, copy(Y), Z) == 2Z
+        @test Nabla.broadcastsum!(x->2x, true, copy(Y), Z) == Y + 2Z
+    end
+
     # Check that `broadcast` returns the correct gradient under the defined unary functions.
     function check_unary_broadcast(f, x)
         x_ = Leaf(Tape(), x)

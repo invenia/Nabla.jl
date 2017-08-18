@@ -45,12 +45,3 @@ differencing. Returns a Tuple containing the absolute and relative errors.
 """
 check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T<:ArrayOr∇Real =
     compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv(f, ȳ, x, v))
-
-function print_tol_err(f, ȳ, x::T, v::T, err_abs::∇Real, err_rel::∇Real) where T<:ArrayOr∇Real
-    println("Large error found in sensitivity for function $f at input")
-    println(x)
-    println("in direction")
-    println(v)
-    println("err_abs = $err_abs, err_rel = $err_rel")
-    throw(error("Large error found in sensitivity."))
-end
