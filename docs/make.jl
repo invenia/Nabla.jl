@@ -14,10 +14,10 @@ makedocs(
     ],
 )
 
-#=deploydocs(
+deploydocs(
     repo = "github.com/invenia/Nabla.jl.git",
     julia = "0.6",
     target = "build",
     deps = nothing,
     make = nothing,
-)=#
+)
