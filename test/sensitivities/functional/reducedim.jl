@@ -27,7 +27,7 @@
         @test ∇(s, ones(s.val))[x4] == 2x4_
 
         # Check that `sum` works correctly with `Node`s.
-        x_sum = randn(rng, 5, 4, 3)
-        @test sum(x_sum, [2, 3]) == mapreducedim(identity, +, x_sum, [2, 3])
+        x_sum = Leaf(Tape(), randn(rng, 5, 4, 3))
+        @test sum(x_sum, [2, 3]).val == mapreducedim(identity, +, x_sum, [2, 3]).val
     end
 end
