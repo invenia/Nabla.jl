@@ -53,5 +53,8 @@
             binary_test(f, range_x[2], range_y[1])
             binary_test(f, range_x[2], range_y[2])
         end
+
+        # Test exponentiation amibiguity is resolved.
+        @test ∇(x->x^2)(1) == (2.0,)
     end
 end
