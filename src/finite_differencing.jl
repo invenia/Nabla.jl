@@ -1,20 +1,29 @@
 export check_Dv, compute_errs
 
 """
+    approximate_Dv(
+        f::Function,
+        ȳ::ArrayOr∇Real,
+        x::Tuple{Vararg{ArrayOr∇Real}},
+        v::Tuple{Vararg{ArrayOr∇Real}},
+    )
     approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
 
-Estimate the directional derivative of `f` at `x` in direction `v`.
+Estimate the directional derivative of `f` at `x` in direction `v`. If the function has
+multiple arguments, `x` and `v` should be `Tuple`s of inputs and directions respectively.
 """
-function approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
-    y1, y2 = f.((x - v, x + v))
+function approximate_Dv(
+    f::Function,
+    ȳ::ArrayOr∇Real,
+    x::Tuple{Vararg{ArrayOr∇Real}},
+    v::Tuple{Vararg{ArrayOr∇Real}},
+)
+    y1, y2 = f(map(-, x, v)...), f(map(+, x, v)...)
     length(y1) == length(ȳ) || throw(ArgumentError("length(y1) != length(y)."))
     return sum(ȳ .* (y2 - y1) / 2)
 end
-function approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::∇RealArray, v::∇RealArray)
-    length(x) == length(v) || throw(ArgumentError("length(x) != length(v)."))
-    type_tuple = Tuple{Function, ArrayOr∇Real, ArrayOr∇Real, ArrayOr∇Real}
-    return invoke(approximate_Dv, type_tuple, f, ȳ, x, v)
-end
+approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
+    approximate_Dv(f, ȳ, (x,), (v,))
 
 """
     compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
@@ -24,14 +33,18 @@ result to back-propagate the sensitivity ȳ. If ȳ, x and v are column vectors
 equivalent to computing `ȳ.'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian of `f`
 evaluated at `x`. Analogous operations happen for scalars and N-dimensional arrays.
 """
-function compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
-    return sum(∇(f(Leaf(Tape(), x)), ȳ)[1] .* v)
+function compute_Dv(
+    f::Function,
+    ȳ::ArrayOr∇Real,
+    x::Tuple{Vararg{ArrayOr∇Real}},
+    v::Tuple{Vararg{ArrayOr∇Real}},
+)
+    x_ = Leaf.(Tape(), x)
+    ∇f = ∇(f(x_...), ȳ)
+    return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
-function compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::∇RealArray, v::∇RealArray)
-    length(x) == length(v) || throw(ArgumentError("length(x) != length(v)."))
-    type_tuple = Tuple{Function, ArrayOr∇Real, ArrayOr∇Real, ArrayOr∇Real}
-    return invoke(approximate_Dv, type_tuple, f, ȳ, x, v)
-end
+compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
+    compute_Dv(f, ȳ, (x,), (v,))
 
 # Compute the absolute and relative errors between x and y respectively.
 compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x) + 1e-12))
@@ -43,5 +56,5 @@ Compare the directional derivative of `f` at `x` in the direction `v` multiplied
 reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite
 differencing. Returns a Tuple containing the absolute and relative errors.
 """
-check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T<:ArrayOr∇Real =
+check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T =
     compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv(f, ȳ, x, v))
