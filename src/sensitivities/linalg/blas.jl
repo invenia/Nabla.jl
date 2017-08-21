@@ -1,101 +1,122 @@
-# import Base.LinAlg.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemv, syrk, symm,
-#     symv, trmm, trsm, trmv, trsv
+import Base.LinAlg.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemv, syrk, symm,
+    symv, trmm, trsm, trmv, trsv
 
-# let f = :dot, par_types = [:(T <: StridedArray), :(V <: StridedArray)]
+const SA = StridedArray
 
-#     # Simple Julia dot.
-#     new_x̄ = :(x̄ = z̄ * y)
-#     update_x̄ = :(broadcast!((x̄, y, z̄)->x̄ + z̄ * y, x̄, x̄, y, z̄))
-#     new_ȳ = :(ȳ = z̄ * x)
-#     update_ȳ = :(broadcast!((x, ȳ, z̄)->ȳ + z̄ * x, ȳ, x, ȳ, z̄))
-#     generate_primitive(f, par_types, [:x, :y], [:x̄, :ȳ], [:T, :V], [true, true], :z, :z̄,
-#         [new_x̄, new_ȳ], [update_x̄, update_ȳ])
+# Short-form `dot`.
+@explicit_intercepts dot Tuple{StridedArray, StridedArray}
+∇(::typeof(dot), ::Type{Arg{1}}, p, z, z̄, x::SA, y::SA) = z̄ .* y
+∇(::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = z̄ .* x
+∇(x̄, ::typeof(dot), ::Type{Arg{1}}, p, z, z̄, x::SA, y::SA) = (x̄ .= x̄ .+ z̄ .* y)
+∇(ȳ, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = (ȳ .+ ȳ .+ z̄ .* x)
 
-#     # Full BLAS dot.
-#     new_x̄ = :(x̄ = scal!(n, z̄, blascopy!(n, y, iy, zeros(x), ix), ix))
-#     update_x̄ = :(broadcast!((x̄, δx̄)->x̄ + δx̄, x̄, x̄, scal!(n, z̄, blascopy!(n, y, iy, zeros(x), ix), ix)))
-#     new_ȳ = :(ȳ = scal!(n, z̄, blascopy!(n, x, ix, zeros(y), iy), iy))
-#     update_ȳ = :(broadcast!((ȳ, δȳ->ȳ + δȳ, scal!(n, z̄, blascopy!(n, x, ix, zeros(y), iy), iy))))
-#     generate_primitive(f, par_types, [:n, :x, :ix, :y, :iy], [:n̄, :x̄, :ix̄, :ȳ, :iȳ],
-#         [:Int, :T, :Int, :V, :Int], [false, true, false, true, false], :z, :z̄,
-#         [:nothing, new_x̄, :nothing, new_ȳ, :nothing],
-#         [:nothing, update_x̄, :nothing, update_ȳ, :nothing])
+# Long-form `dot`.
+@explicit_intercepts(
+    dot,
+    Tuple{Int, StridedArray, Int, StridedArray, Int},
+    [false, true, false, true, false],
+)
+∇(::typeof(dot), ::Type{Arg{2}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
+    scal!(n, z̄, blascopy!(n, y, iy, zeros(x), ix), ix)
+∇(::typeof(dot), ::Type{Arg{4}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
+    scal!(n, z̄, blascopy!(n, x, ix, zeros(y), iy), iy)
+∇(x̄, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
+    (x̄ .= x̄ .+ scal!(n, z̄, blascopy!(n, y, iy, zeros(x), ix), ix))
+∇(ȳ, ::typeof(dot), ::Type{Arg{4}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
+    (ȳ .= ȳ .+ scal!(n, z̄, blascopy!(n, x, ix, zeros(y), iy), iy))
+
+# Short-form `nrm2`.
+@explicit_intercepts nrm2 Tuple{Union{StridedVector, Array}}
+∇(::typeof(nrm2), ::Type{Arg{1}}, p, y, ȳ, x) = x * (ȳ / y)
+∇(x̄, ::typeof(nrm2), ::Type{Arg{1}}, p, y, ȳ, x) = (x̄ .= x̄ .+ x .* (ȳ / y))
+
+# Long-form `nrm2`.
+@explicit_intercepts(
+    nrm2,
+    Tuple{Integer, Union{DenseArray, Ptr{<:AbstractFloat}}, Integer},
+    [false, true, false],
+)
+∇(::typeof(nrm2), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
+    scal!(n, z̄ / z, blascopy!(n, x, inc, zeros(x), inc), inc)
+∇(x̄, ::typeof(nrm2), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
+    (x̄ .= x̄ .+ scal!(n, z̄ / z, blascopy!(n, x, inc, zeros(x), inc), inc))
+
+# Short-form `asum`.
+@explicit_intercepts asum Tuple{Union{StridedVector, Array}}
+∇(::typeof(asum), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ .* sign.(x)
+∇(x̄, ::typeof(asum), ::Type{Arg{1}}, p, y, ȳ, x) = (x̄ .= x̄ .+ x .* ȳ .* sign.(x))
+
+# Long-form `asum`.
+@explicit_intercepts(
+    asum,
+    Tuple{Integer, Union{DenseArray, Ptr{<:AbstractFloat}}, Integer},
+    [false, true, false],
+)
+∇(::typeof(asum), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
+    scal!(n, z̄, blascopy!(n, sign(x), inc, zeros(x), inc), inc)
+∇(x̄, ::typeof(asum), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
+    (x̄ .= x̄ .+ scal!(n, z̄, blascopy!(n, sign(x), inc, zeros(x), inc), inc))
+
+
+# Some weird stuff going on that I haven't figured out yet.
+# let f = :(scal{T <: AbstractArray, V <: AbstractFloat})
+#     ā = :(blascopy!(n, z̄, inc, zeros(X), inc) .* X)
+#     X̄ = :(scal!(n, a, z̄, inc))
+#     @eva; @primitive $f(n::Int, a::V, X::T, inc::Int) z z̄ false $ā $X̄ false
 # end
 
-# let f = :nrm2, par_types = [:(T <: StridedArray)]
+# gemm
+@explicit_intercepts(
+    gemm,
+    Tuple{Char, Char, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    [false, false, true, true],
+)
+@explicit_intercepts(
+    gemm,
+    Tuple{Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    [false, false, true, true, true]
+)
+function Ā_gemm(Ȳ, tA, tB, α, A, B)
+    uppercase(tA) == 'N' ?
+        uppercase(tB) == 'N' ?
+            gemm('N', 'T', α, Ȳ, B) :
+            gemm('N', 'N', α, Ȳ, B) :
+        uppercase(tB) == 'N' ?
+            gemm('N', 'T', α, B, Ȳ) :
+            gemm('T', 'T', α, B, Ȳ)
+end
+function Ā!_gemm(Ȳ, tA, tB, α, A, B, Ā)
+    uppercase(tA) == 'N' ?
+        uppercase(tB) == 'N' ?
+            gemm!('N', 'T', α, Ȳ, B, 1.0, Ā) :
+            gemm!('N', 'N', α, Ȳ, B, 1.0, Ā) :
+        uppercase(tB) == 'N' ?
+            gemm!('N', 'T', α, B, Ȳ, 1.0, Ā) :
+            gemm!('T', 'T', α, B, Ȳ, 1.0, Ā)
+end
+function B̄_gemm(Ȳ, tA, tB, α, A, B)
+    uppercase(tA) == 'N' ?
+        uppercase(tB) == 'N' ?
+            gemm('T', 'N', α, A, Ȳ) :
+            gemm('T', 'N', α, Ȳ, A) :
+        uppercase(tB) == 'N' ?
+            gemm('N', 'N', α, A, Ȳ) :
+            gemm('T', 'T', α, Ȳ, A)
+end
+function B̄!_gemm(Ȳ, tA, tB, α, A, B, B̄)
+    uppercase(tA) == 'N' ?
+        uppercase(tB) == 'N' ?
+            gemm!('T', 'N', α, A, Ȳ, 1.0, B̄) :
+            gemm!('T', 'N', α, Ȳ, A, 1.0, B̄) :
+        uppercase(tB) == 'N' ?
+            gemm!('N', 'N', α, A, Ȳ, 1.0, B̄) :
+            gemm!('T', 'T', α, Ȳ, A, 1.0, B̄)
+end
+∇(::typeof(gemm), ::Type{Arg{3}}, p, Y, Ȳ, tA, tB, α, A, B) = sum(Ȳ .* Y) / α
+∇(::typeof(gemm), ::Type{Arg{4}}, p, Y, Ȳ, tA, tB, α, A, B) = Ā_gemm(Ȳ, tA, tB, α, A, B)
+∇(::typeof(gemm), ::Type{Arg{5}}, p, Y, Ȳ, tA, tB, α, A, B) = B̄_gemm(Ȳ, tA, tB, α, A, B)
 
-#     # Simple Julia nrm2.
-#     new_x̄ = :(x̄ = x * (z̄ / z))
-#     update_x̄ = :(broadcast!((x, c, x̄)->x̄ + c * x, x̄, x, z̄ / z, x̄))
-#     generate_primitive(f, par_types, [:x], [:x̄], [:T], [true], :z, :z̄, [new_x̄], [update_x̄])
 
-#     # Full BLAS nrm2.
-#     new_x̄ = :(x̄ = scal!(n, z̄ / z, blascopy!(n, x, inc, zeros(x), inc), inc))
-#     update_x̄ = :(broadcast!((x̄, δx̄)->x̄ + δx̄, scal!(n, z̄ / z, blascopy!(n, x, inc, zeros(x), inc), inc)))
-#     generate_primitive(f, par_types, [:n, :x, :inc], [:nothing, :x̄, :nothing],
-#         [:Int, :T, :Int], [false, true, false], :z, :z̄, [:nothing, new_x̄, :nothing],
-#         [:nothing, update_x̄, :nothing])
-# end
-
-# let f = :asum, par_types = [:(T <: AbstractArray)]
-
-#     # Simple Julia asum.
-#     new_x̄ = :(x̄ = broadcast((x, z̄)->z̄ * sign(x), x, z̄))
-#     update_x̄ = :(broadcast!((x̄, x, z̄)->x̄ + z̄ * sign(x), x̄, x, z̄))
-#     generate_primitive(f, par_types, [:x], [:x̄], [:T], [true], :z, :z̄, [new_x̄], [update_x̄])
-
-#     # Full BLAS asum.
-#     new_x̄ = :(x̄ = scal!(n, z̄, blascopy!(n, sign(x), inc, zeros(x), inc), inc))
-#     update_x̄ = :(broadcast!((x̄, δx̄)->x̄ + δx̄, scal!(n, z̄, blascopy!(n, sign(x), inc, zeros(x), inc), inc)))
-#     generate_primitive(f, par_types, [:n, :x, :inc], [:nothing, :x̄, :nothing],
-#         [:Int, :T, :Int], [false, true, false], :z, :z̄, [:nothing, new_x̄, :nothing],
-#         [:nothing, update_x̄, :nothing])
-# end
-
-# # Some weird stuff going on that I haven't figured out yet.
-# # let f = :(scal{T <: AbstractArray, V <: AbstractFloat})
-# #     ā = :(blascopy!(n, z̄, inc, zeros(X), inc) .* X)
-# #     X̄ = :(scal!(n, a, z̄, inc))
-# #     @eva; @primitive $f(n::Int, a::V, X::T, inc::Int) z z̄ false $ā $X̄ false
-# # end
-
-# # gemm
-# function Ā_gemm(Ȳ, tA, tB, α, A, B)
-#     uppercase(tA) == 'N' ?
-#         uppercase(tB) == 'N' ?
-#             gemm('N', 'T', α, Ȳ, B) :
-#             gemm('N', 'N', α, Ȳ, B) :
-#         uppercase(tB) == 'N' ?
-#             gemm('N', 'T', α, B, Ȳ) :
-#             gemm('T', 'T', α, B, Ȳ)
-# end
-# function Ā!_gemm(Ȳ, tA, tB, α, A, B, Ā)
-#     uppercase(tA) == 'N' ?
-#         uppercase(tB) == 'N' ?
-#             gemm!('N', 'T', α, Ȳ, B, 1.0, Ā) :
-#             gemm!('N', 'N', α, Ȳ, B, 1.0, Ā) :
-#         uppercase(tB) == 'N' ?
-#             gemm!('N', 'T', α, B, Ȳ, 1.0, Ā) :
-#             gemm!('T', 'T', α, B, Ȳ, 1.0, Ā)
-# end
-# function B̄_gemm(Ȳ, tA, tB, α, A, B)
-#     uppercase(tA) == 'N' ?
-#         uppercase(tB) == 'N' ?
-#             gemm('T', 'N', α, A, Ȳ) :
-#             gemm('T', 'N', α, Ȳ, A) :
-#         uppercase(tB) == 'N' ?
-#             gemm('N', 'N', α, A, Ȳ) :
-#             gemm('T', 'T', α, Ȳ, A)
-# end
-# function B̄!_gemm(Ȳ, tA, tB, α, A, B, B̄)
-#     uppercase(tA) == 'N' ?
-#         uppercase(tB) == 'N' ?
-#             gemm!('T', 'N', α, A, Ȳ, 1.0, B̄) :
-#             gemm!('T', 'N', α, Ȳ, A, 1.0, B̄) :
-#         uppercase(tB) == 'N' ?
-#             gemm!('N', 'N', α, A, Ȳ, 1.0, B̄) :
-#             gemm!('T', 'T', α, Ȳ, A, 1.0, B̄)
-# end
 # let f = :gemm
 #     par_types = [:(T <: StridedMatrix), :(V <: StridedMatrix), :(W <: AbstractFloat)]
 #     ᾱ, ᾱ! = :(ᾱ = sum(Ȳ .* Y) / α), :(ᾱ + sum(Ȳ .* Y) / α)
