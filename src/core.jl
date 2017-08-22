@@ -62,10 +62,10 @@ args - Values indicating which elements in the tape will require updating by thi
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
 """
-immutable Branch{T, F<:Function, V<:Tuple} <: Node{T}
+immutable Branch{T} <: Node{T}
     val::T
-    f::F
-    args::V
+    f::Function
+    args::Tuple
     tape::Tape
     pos::Int
 end
@@ -75,7 +75,7 @@ function Branch(f::Function, args::Tuple, tape::Tape)
     push!(tape, branch)
     return branch
 end
-show(io::IO, branch::Branch{T, V}) where {T, V} =
+show(io::IO, branch::Branch{T}) where T =
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 show(io::IO, branch::Branch{T}) where T<:AbstractArray =
     print(io, "Branch{$T} $(size(branch.val)), f=$(branch.f)")

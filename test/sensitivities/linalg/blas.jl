@@ -15,7 +15,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         for _ in 1:10
             x, y, vx, vy = randn.(rng, [10, 6, 10, 6])
             _dot = (x, y)->dot(5, x, 2, y, 1)
-            δ_abs_x, δ_rel_x = check_Dv(dot, randn(rng), x, δ * randn(rng, 10))
+            δ_abs_x, δ_rel_x = check_Dv(_dot, randn(rng), (x, y), δ .* (vx, vy))
             @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
         end
     end
@@ -56,110 +56,166 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     #     @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)
     # end
 
+    # Test each of the four permutations of `gemm`.
     import Base.BLAS.gemm
-    let rng = MersenneTwister(123456)
-        α, A, B = randn(rng), randn(rng, 100, 100), randn(rng, 100, 100)
-        λα = α->gemm('N', 'n', α, A, B)
-        λA, λB A->gemm('N', 'n', α, A, B), B->gemm('n', 'N', α, A, B)
+    let rng = MersenneTwister(123456), N = 100, δ = 1e-6
+        for _ in 1:10
+            α, vα = randn.([rng, rng])
+            A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
+            λs = [(α, A, B)->gemm('n', 'N', α, A, B),
+                  (α, A, B)->gemm('T', 'n', α, A, B),
+                  (α, A, B)->gemm('N', 't', α, A, B),
+                  (α, A, B)->gemm('t', 'T', α, A, B)]
+            γs = [(A, B)->gemm('n', 'N', A, B),
+                  (A, B)->gemm('T', 'n', A, B),
+                  (A, B)->gemm('N', 't', A, B),
+                  (A, B)->gemm('t', 'T', A, B)]
+            for (λ, γ) in zip(λs, γs)
+                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
+                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
+                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, B), (A, B), δ .* (VA, VB))
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+            end
+        end
     end
 
-    # # Testing for each permutation of possible (real-valued) transpositions for gemm.
-    # let α = randn(), A = randn(3, 3), B = randn(3, 3)
-    #     diff = [false, false, true, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.gemm, ('N', 'n', α, A, B), δ, diff)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.gemm, ('t', 'n', α, A, B), δ, diff)
-    #     δ_abs_3, δ_rel_3 = discrepancy(BLAS.gemm, ('n', 'T', α, A, B), δ, diff)
-    #     δ_abs_4, δ_rel_4 = discrepancy(BLAS.gemm, ('T', 't', α, A, B), δ, diff)
+    # Test both permutations of `gemv`.
+    import Base.BLAS.gemv
+    let rng = MersenneTwister(123456), N = 100, δ = 1e-6
+        for _ in 1:10
+            α, vα = randn.([rng, rng])
+            A, VA = randn.(rng, [N, N], [N, N])
+            x, vx = randn.(rng, [N, N])
+            λs = [(α, A, x)->gemv('T', α, A, x), (α, A, x)->gemv('N', α, A, x)]
+            γs = [(A, x)->gemv('T', A, x), (A, x)->gemv('N', A, x)]
+            for (λ, γ) in zip(λs, γs)
+                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, x), (α, A, x), δ .* (vα, VA, vx))
+                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
+                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, x), (A, x), δ .* (VA, vx))
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+            end
+        end
+    end
 
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    #     @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
-    #     @test all(map(check_abs, δ_abs_4)) && all(map(check_rel, δ_rel_4))
-    # end
+    # Test all four permutations of `syrk`.
+    import Base.BLAS.syrk
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
+        λs = [(α, A)->lmask .* syrk('L', 'N', α, A),
+              (α, A)->umask .* syrk('U', 'N', α, A),
+              (α, A)->lmask .* syrk('L', 'T', α, A),
+              (α, A)->umask .* syrk('U', 'T', α, A)]
+        γs = [A->lmask .* syrk('L', 'N', A),
+              A->umask .* syrk('U', 'N', A),
+              A->lmask .* syrk('L', 'T', A),
+              A->umask .* syrk('U', 'T', A)]
+        for _ in 1:10
+            α, vα = randn.([rng, rng])
+            A, VA = randn.(rng, [N, N], [N, N])
+            for (λ, γ) in zip(λs, γs)
+                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A), (α, A), δ .* (vα, VA))
+                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
+                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A), A, δ .* VA)
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+            end
+        end
+    end
 
-    # # Testing for gemv with both options.
-    # let α = randn(), A = randn(3, 3), x = randn(3)
-    #     diff = [false, true, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.gemv, ('N', α, A, x), δ, diff)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.gemv, ('T', α, A, x), δ, diff)
+    # Test all four permutations of `symm`.
+    import Base.BLAS.symm
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
+        λs = [(α, A, B)->symm('L', 'L', α, A, B),
+              (α, A, B)->symm('R', 'U', α, A, B),
+              (α, A, B)->symm('R', 'L', α, A, B),
+              (α, A, B)->symm('L', 'U', α, A, B)]
+        γs = [(A, B)->symm('L', 'L', A, B),
+              (A, B)->symm('R', 'U', A, B),
+              (A, B)->symm('R', 'L', A, B),
+              (A, B)->symm('L', 'U', A, B)]
+        for _ in 1:10
+            α, vα = randn.([rng, rng])
+            A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
+            for (λ, γ) in zip(λs, γs)
+                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
+                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
+                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, B), (A, B), δ .* (VA, VB))
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+            end
+        end
+    end
 
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    # end
+    import Base.BLAS.symv
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        λs = [(α, A, x)->symv('L', α, A, x), (α, A, x)->symv('U', α, A, x)]
+        γs = [(A, x)->symv('L', A, x), (A, x)->symv('U', A, x)]
+        for _ in 1:10
+            α, vα = randn.([rng, rng])
+            A, VA = randn.(rng, [N, N], [N, N])
+            x, vx = randn.(rng, [N, N])
+            for (λ, γ) in zip(λs, γs)
+                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, x), (α, A, x), δ .* (vα, VA, vx))
+                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
+                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, x), (A, x), δ .* (VA, vx))
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+            end
+        end
+    end
 
-    # # Testing for syrk with all four permutations of inputs.
-    # let α = randn(), A = randn(3, 2)
-    #     diff = [false, false, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.syrk, ('L', 'N', α, A), δ, diff, tril)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.syrk, ('U', 'N', α, A), δ, diff, triu)
-    #     δ_abs_3, δ_rel_3 = discrepancy(BLAS.syrk, ('L', 'T', α, A), δ, diff, tril)
-    #     δ_abs_4, δ_rel_4 = discrepancy(BLAS.syrk, ('U', 'T', α, A), δ, diff, triu)
+    import Base.BLAS.trmm
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+            λ = (α, A, B)->trmm(side, ul, tA, dA, α, A, B)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
+                δ_abs, δ_rel = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
+                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            end
+        end
+    end
 
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    #     @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
-    #     @test all(map(check_abs, δ_abs_4)) && all(map(check_rel, δ_rel_4))
-    # end
+    import Base.BLAS.trmv
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+            λ = (A, b)->trmv(ul, tA, dA, A, b)
+            for _ in 1:10
+                A, VA = randn.(rng, [N, N], [N, N])
+                b, vb = randn.(rng, [N, N])
+                δ_abs, δ_rel = check_Dv(λ, λ(A, b), (A, b), δ .* (VA, vb))
+                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            end
+        end
+    end
 
-    # # Testing for symm with all four permutations of inputs.
-    # let α = randn(), A = full(Symmetric(randn(3, 3))), B1 = randn(3, 2), B2 = randn(2, 3)
-    #     diff = [false, false, true, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.symm, ('L', 'L', α, A, B1), δ, diff)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.symm, ('L', 'U', α, A, B1), δ, diff)
-    #     δ_abs_3, δ_rel_3 = discrepancy(BLAS.symm, ('R', 'L', α, A, B2), δ, diff)
-    #     δ_abs_4, δ_rel_4 = discrepancy(BLAS.symm, ('R', 'U', α, A, B2), δ, diff)
+    import Base.BLAS.trsm
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+            λ = (α, A, X)->trsm(side, ul, tA, dA, α, A, X)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, X, VA, VX = randn.(rng, [N, N, N, N], [N, N, N, N])
+                A = randn(rng, N, N) + UniformScaling(3)
+                δ_abs, δ_rel = check_Dv(λ, λ(α, A, X), (α, A, X), δ .* (vα, VA, VX))
+                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            end
+        end
+    end
 
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    #     @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
-    #     @test all(map(check_abs, δ_abs_4)) && all(map(check_rel, δ_rel_4))
-    # end
-
-    # # Testing for symv with both permutations.
-    # let α = randn(), A = full(Symmetric(randn(3, 3))), B = randn(3)
-    #     diff = [false, true, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.symv, ('L', α, A, B), δ, diff)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.symv, ('U', α, A, B), δ, diff)
-
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    # end
-
-    # # Testing for trmm.
-    # let α = randn(), A = randn(3, 3), B = randn(3, 3)
-    #     diff = [false, false, false, false, true, true, true]
-    #     for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
-    #         δ_abs, δ_rel = discrepancy(BLAS.trmm, (side, ul, tA, dA, α, A, B), δ, diff)
-    #         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
-    #     end
-    # end
-
-    # # Testing for trmv.
-    # let A = randn(3, 3), B = randn(3)
-    #     diff = [false, false, false, true, true]
-    #     for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
-    #         δ_abs, δ_rel = discrepancy(BLAS.trmv, (ul, tA, dA, A, B), δ, diff)
-    #         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
-    #     end
-    # end
-
-    # # Testing for trsm.
-    # let α = randn(), A = randn(3, 3), B = randn(3, 3)
-    #     diff = [false, false, false, false, true, true, true]
-    #     for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
-    #         δ_abs, δ_rel = discrepancy(BLAS.trsm, (side, ul, tA, dA, α, A, B), δ, diff)
-    #         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
-    #     end
-    # end
-
-    # # Testing for trsv.
-    # let A = randn(3, 3), B = randn(3)
-    #     diff = [false, false, false, true, true]
-    #     for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
-    #         δ_abs, δ_rel = discrepancy(BLAS.trsv, (ul, tA, dA, A, B), 1e-8, diff)
-    #         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
-    #     end
-    # end
+    import Base.BLAS.trsv
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+            λ = (A, x)->trsv(ul, tA, dA, A, x)
+            for _ in 1:10
+                A = randn(rng, N, N) + UniformScaling(1)
+                A = A.'A
+                VA = randn(rng, N, N)
+                x, vx = randn.(rng, [N, N])
+                δ_abs, δ_rel = check_Dv(λ, λ(A, x), (A, x), δ .* (VA, vx))
+                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            end
+        end
+    end
 
 end # let
 
