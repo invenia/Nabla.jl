@@ -287,48 +287,112 @@ end
     A::StridedVecOrMat{T},
 ) where T<:∇Real = ∇(Ā, syrk, Arg{4}, p, Y, Ȳ, uplo, char, one(eltype(A)), A)
 
-# # syrk
-# function Ā_syrk(Ȳ, uplo, trans, α, A)
-#     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
-#     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
-#     return uppercase(trans) == 'N' ? out : out.'
-# end
-# function Ā!_syrk(Ȳ, uplo, trans, α, A, Ā)
-#     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
-#     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
-#     return broadcast!((ā, δā)->ā+δā, Ā, Ā, uppercase(trans) == 'N' ? out : out.')
-# end
-# let f = :syrk
-#     ᾱ = :(g! = uppercase(uplo) == 'L' ? tril! : triu!; ᾱ = sum(g!(Ȳ .* Y)) / α)
-#     ᾱ! = :(g! = uppercase(uplo) == 'L' ? tril! : trui!; ᾱ += sum(g!(Ȳ .* Y)) / α)
-#     Ā = :(Ā = Ā_syrk(Ȳ, uplo, trans, α, A))
-#     Ā! = :(Ā!_syrk(Ȳ, uplo, trans, α, A, Ā))
-#     generate_primitive(f, [:(T <: Number), :(V <: StridedMatrix)],
-#         [:uplo, :trans, :α, :A], [:nothing, :nothing, :ᾱ, :Ā], [:Char, :Char, :T, :V],
-#         [false, false, true, true], :Y, :Ȳ, [:nothing, :nothing, ᾱ, Ā],
-#         [:nothing, :nothing, ᾱ!, Ā!])
-# end
+# `symm` sensitivity implementations.
+@explicit_intercepts(
+    symm,
+    Tuple{Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    [false, false, true, true, true],
+)
+∇(::typeof(symm), ::Type{Arg{3}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = sum(Ȳ .* Y) / α
+function ∇(::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real
+    tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
+    g! = uppercase(ul) == 'L' ? tril! : triu!
+    return α * g!(tmp + tmp' - Diagonal(tmp))
+end
+function ∇(Ā::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real
+    tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
+    g! = uppercase(ul) == 'L' ? tril! : triu!
+    return broadcast!((ā, δā)->ā + δā, Ā, Ā, α * g!(tmp + tmp' - Diagonal(tmp)))
+end
+∇(::typeof(symm), ::Type{Arg{5}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = symm(side, ul, α, A, Ȳ)
+∇(B̄::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{5}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = symm!(side, ul, α, A, Ȳ, 1.0, B̄)
 
-# # symm
-# function Ā_symm(Ȳ, side, ul, α, A, B)
-#     tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
-#     g! = uppercase(ul) == 'L' ? tril! : triu!
-#     return α * g!(tmp + tmp' - Diagonal(tmp))
-# end
-# function Ā!_symm(Ȳ, side, ul, α, A, B, Ā)
-#     tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
-#     g! = uppercase(ul) == 'L' ? tril! : triu!
-#     return broadcast!((ā, δā)->ā + δā, Ā, Ā, α * g!(tmp + tmp' - Diagonal(tmp)))
-# end
-# let f = :symm
-#     ᾱ, ᾱ! = :(ᾱ = sum(Ȳ .* Y) / α), :(ᾱ += sum(Ȳ .* Y) / α)
-#     Ā, Ā! = :(Ā = Ā_symm(Ȳ, side, ul, α, A, B)), :(Ā!_symm(Ȳ, side, ul, α, A, B, Ā))
-#     B̄, B̄! = :(B̄ = symm(side, ul, α, A, Ȳ)), :(symm!(side, ul, α, A, Ȳ, 1.0, B̄))
-#     generate_primitive(f, [:(T <: Number), :(V <: StridedMatrix), :(W <: StridedMatrix)],
-#         [:side, :ul, :α, :A, :B], [:nothing, :nothing, :ᾱ, :Ā, :B̄],
-#         [:Char, :Char, :T, :V, :W], [false, false, true, true, true], :Y, :Ȳ,
-#         [:nothing, :nothing, ᾱ, Ā, B̄], [:nothing, :nothing, ᾱ!, Ā!, B̄!])
-# end
+# `symm` sensitivity implementations for `α=1`.
+@explicit_intercepts(
+    symm,
+    Tuple{Char, Char, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    [false, false, true, true],
+)
+∇(::typeof(symm), ::Type{Arg{3}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = ∇(symm, Arg{4}, p, Y, Ȳ, side, ul, one(T), A, B)
+∇(Ā::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{3}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = ∇(Ā, symm, Arg{4}, p, Y, Ȳ, side, ul, one(T), A, B)
+∇(::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = ∇(symm, Arg{5}, p, Y, Ȳ, side, ul, one(T), A, B)
+∇(B̄::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
+    side::Char,
+    ul::Char,
+    A::StridedMatrix{T},
+    B::StridedMatrix{T},
+) where T<:∇Real = ∇(B̄, symm, Arg{5}, p, Y, Ȳ, side, ul, one(T), A, B)
+
+# `symv` sensitivity implementations.
+@explicit_intercepts(
+    symv,
+    Tuple{Char, T, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    [false, true, true, true],
+)
+∇(::typeof(symv), ::Type{Arg{2}}, p, y, ȳ,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    x::StridedVector{T},
+) where T<:∇Real = dot(ȳ, y) / α
+∇(::typeof(symv), ::Type{Arg{3}}, p, y, ȳ,
+    ul::Char,
+    α::T,
+    A::StridedMatrix{T},
+    x::StridedVector{T},
+) where T<:∇Real
+
+# `symv` sensitivity implementations for `α=1`.
+@explicit_intercepts(
+    symv,
+    Tuple{Char, T, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    [false, true, true, true],
+)
 
 # # symv
 # let f = :symv

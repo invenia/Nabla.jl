@@ -27,7 +27,4 @@ using Base.Test, Nabla, Distributions
     # # include("sensitivities/linalg/triangular.jl")
     # include("sensitivities/linalg/strided.jl")
     include("sensitivities/linalg/blas.jl")
-
-    # Test BLAS sensitivities.
-    
 end

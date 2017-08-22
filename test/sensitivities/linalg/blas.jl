@@ -100,58 +100,50 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # Test all four permutations of `syrk`.
     import Base.BLAS.syrk
     let rng = MersenneTwister(123456), N = 10, δ = 1e-6
-        for _ in 1:1
+        lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
+        λs = [(α, A)->lmask .* syrk('L', 'N', α, A),
+              (α, A)->umask .* syrk('U', 'N', α, A),
+              (α, A)->lmask .* syrk('L', 'T', α, A),
+              (α, A)->umask .* syrk('U', 'T', α, A)]
+        γs = [A->lmask .* syrk('L', 'N', A),
+              A->umask .* syrk('U', 'N', A),
+              A->lmask .* syrk('L', 'T', A),
+              A->umask .* syrk('U', 'T', A)]
+        for _ in 1:10
             α, vα = randn.([rng, rng])
             A, VA = randn.(rng, [N, N], [N, N])
-            λs = [(α, A)->syrk('L', 'N', α, A),
-                  (α, A)->syrk('U', 'N', α, A),
-                  (α, A)->syrk('L', 'T', α, A),
-                  (α, A)->syrk('U', 'T', α, A)]
-            γs = [A->syrk('L', 'N', A),
-                  A->syrk('U', 'N', A),
-                  A->syrk('L', 'T', A),
-                  A->syrk('U', 'T', A)]
             for (λ, γ) in zip(λs, γs)
-                println("approximate_Dv")
-                println(Nabla.approximate_Dv(λ, λ(α, A), (α, A), δ .* (vα, VA)))
-                println("compute_Dv")
-                println(Nabla.compute_Dv(λ, λ(α, A), (α, A), δ .* (vα, VA)))
                 δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A), (α, A), δ .* (vα, VA))
-                println((δ_abs_λ, δ_rel_λ))
                 @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
                 δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A), A, δ .* VA)
-                # @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
             end
         end
     end
 
-    # # Testing for syrk with all four permutations of inputs.
-    # let α = randn(), A = randn(3, 2)
-    #     diff = [false, false, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.syrk, ('L', 'N', α, A), δ, diff, tril)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.syrk, ('U', 'N', α, A), δ, diff, triu)
-    #     δ_abs_3, δ_rel_3 = discrepancy(BLAS.syrk, ('L', 'T', α, A), δ, diff, tril)
-    #     δ_abs_4, δ_rel_4 = discrepancy(BLAS.syrk, ('U', 'T', α, A), δ, diff, triu)
-
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    #     @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
-    #     @test all(map(check_abs, δ_abs_4)) && all(map(check_rel, δ_rel_4))
-    # end
-
-    # # Testing for symm with all four permutations of inputs.
-    # let α = randn(), A = full(Symmetric(randn(3, 3))), B1 = randn(3, 2), B2 = randn(2, 3)
-    #     diff = [false, false, true, true, true]
-    #     δ_abs_1, δ_rel_1 = discrepancy(BLAS.symm, ('L', 'L', α, A, B1), δ, diff)
-    #     δ_abs_2, δ_rel_2 = discrepancy(BLAS.symm, ('L', 'U', α, A, B1), δ, diff)
-    #     δ_abs_3, δ_rel_3 = discrepancy(BLAS.symm, ('R', 'L', α, A, B2), δ, diff)
-    #     δ_abs_4, δ_rel_4 = discrepancy(BLAS.symm, ('R', 'U', α, A, B2), δ, diff)
-
-    #     @test all(map(check_abs, δ_abs_1)) && all(map(check_rel, δ_rel_1))
-    #     @test all(map(check_abs, δ_abs_2)) && all(map(check_rel, δ_rel_2))
-    #     @test all(map(check_abs, δ_abs_3)) && all(map(check_rel, δ_rel_3))
-    #     @test all(map(check_abs, δ_abs_4)) && all(map(check_rel, δ_rel_4))
-    # end
+    # Test all four permutations of `symm`.
+    import Base.BLAS.symm
+    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+        lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
+        λs = [(α, A, B)->symm('L', 'L', α, A, B),
+              (α, A, B)->symm('R', 'U', α, A, B),
+              (α, A, B)->symm('R', 'L', α, A, B),
+              (α, A, B)->symm('L', 'U', α, A, B)]
+        γs = [(A, B)->symm('L', 'L', A, B),
+              (A, B)->symm('R', 'U', A, B),
+              (A, B)->symm('R', 'L', A, B),
+              (A, B)->symm('L', 'U', A, B)]
+        for _ in 1:10
+            α, vα = randn.([rng, rng])
+            A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
+            for (λ, γ) in zip(λs, γs)
+                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
+                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
+                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, B), (A, B), δ .* (VA, VB))
+                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+            end
+        end
+    end
 
     # # Testing for symv with both permutations.
     # let α = randn(), A = full(Symmetric(randn(3, 3))), B = randn(3)
