@@ -116,6 +116,15 @@ function propagate(y::Branch{T}, rvs_tape::Tape) where T
     return nothing
 end
 
+function propagate(fwd_tape::Tape, rvs_tape::Tape)
+    for n in eachindex(rvs_tape)
+        δ = length(rvs_tape) - n + 1
+        isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
+    end
+    return rvs_tape
+end
+
+
 """ Initialise a Tape appropriately for being used as a reverse-tape. """
 function reverse_tape(y::Node{T}, ȳ::T) where T
     tape = Tape(y.pos)
@@ -147,15 +156,10 @@ function ∇(y::Node{T}, ȳ::T) where T
 
     # Construct reverse tape and initialise the last element.
     fwd_tape, rvs_tape = y.tape, reverse_tape(y, ȳ)
-
-    # Iterate backwards through the reverse tape and return the result.
-    for n in eachindex(rvs_tape)
-        δ = y.pos - n + 1
-        isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
-    end
-    return rvs_tape
+    return propagate(fwd_tape, rvs_tape)
 end
 @inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
+
 
 @inline ∇(x̄, f::Function, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
