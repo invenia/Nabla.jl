@@ -1,11 +1,11 @@
 using Base.Test, Nabla, Distributions
 
-@testset "Core" begin
-    include("core.jl")
-    include("code_transformation/util.jl")
-    include("code_transformation/differentiable.jl")
-    include("sensitivity.jl")
-end
+# @testset "Core" begin
+#     include("core.jl")
+#     include("code_transformation/util.jl")
+#     include("code_transformation/differentiable.jl")
+#     include("sensitivity.jl")
+# end
 
 @testset "Sensitivities" begin
 

@@ -6,24 +6,17 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     import Base.BLAS.dot
     let rng = MersenneTwister(123456)
         for _ in 1:10
-            x, y = randn(rng, 5), randn(rng, 5)
-            λx, λy = x->dot(x, y), y->dot(x, y)
-
-            δ_abs_x, δ_rel_x = check_Dv(λx, randn(rng), x, δ * randn(rng, 5))
+            x, y, vx, vy = randn.(rng, [5, 5, 5, 5])
+            δ_abs_x, δ_rel_x = check_Dv(dot, randn(rng), (x, y), δ .* (vx, vy))
             @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
-            δ_abs_y, δ_rel_y = check_Dv(λy, randn(rng), y, δ * randn(rng, 5))
-            @test δ_abs_y < ϵ_abs && δ_rel_y < ϵ_rel
         end
     end
     let rng = MersenneTwister(123456)
         for _ in 1:10
-            x, y = randn(rng, 10), randn(rng, 6)
-            λx, λy = x->dot(5, x, 2, y, 1), y->dot(5, x, 2, y, 1)
-
-            δ_abs_x, δ_rel_x = check_Dv(λx, randn(rng), x, δ * randn(rng, 10))
+            x, y, vx, vy = randn.(rng, [10, 6, 10, 6])
+            _dot = (x, y)->dot(5, x, 2, y, 1)
+            δ_abs_x, δ_rel_x = check_Dv(dot, randn(rng), x, δ * randn(rng, 10))
             @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
-            δ_abs_y, δ_rel_y = check_Dv(λy, randn(rng), y, δ * randn(rng, 6))
-            @test δ_abs_y < ϵ_abs && δ_rel_y < ϵ_rel
         end
     end
 
