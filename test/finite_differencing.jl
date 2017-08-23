@@ -1,4 +1,4 @@
-import Nabla: ∇, compute_Dv, approximate_Dv
+import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
 @testset "finite_differencing" begin
 
     let
@@ -27,16 +27,22 @@ import Nabla: ∇, compute_Dv, approximate_Dv
 
         # Check that Nabla and finite differencing yield the correct results for scalars.
         @test compute_Dv(foo, 1.0, 1.0, 1.0) ≈ 5
+        @test compute_Dv_update(foo, 1.0, 1.0, 1.0) ≈ 5
         @test approximate_Dv(foo, 1.0, 1.0, 1.0) ≈ 5
         @test compute_Dv(foo, 1.0, (1.0, 1.0), (1.0, 1.0)) ≈ 5 + 6
+        @test compute_Dv_update(foo, 1.0, (1.0, 1.0), (1.0, 1.0)) ≈ 5 + 6
         @test approximate_Dv(foo, 1.0, (1.0, 1.0), (1.0, 1.0)) ≈ 5 + 6
         @test compute_Dv(foo, 5.0, (1.0, 1.0), (1.0, 1.0)) ≈ (5 + 6) * 5.0
+        @test compute_Dv_update(foo, 5.0, (1.0, 1.0), (1.0, 1.0)) ≈ (5 + 6) * 5.0
         @test approximate_Dv(foo, 5.0, (1.0, 1.0), (1.0, 1.0)) ≈ (5 + 6) * 5.0
         @test compute_Dv(foo, 1.0, (10.0, 5.0), (1.0, 1.0)) ≈ 5 + 6
+        @test compute_Dv_update(foo, 1.0, (10.0, 5.0), (1.0, 1.0)) ≈ 5 + 6
         @test approximate_Dv(foo, 1.0, (10.0, 5.0), (1.0, 1.0)) ≈ 5 + 6
         @test compute_Dv(foo, 1.0, (1.0, 1.0), (7.5, 6.3)) ≈ 5 * 7.5 + 6 * 6.3
+        @test compute_Dv_update(foo, 1.0, (1.0, 1.0), (7.5, 6.3)) ≈ 5 * 7.5 + 6 * 6.3
         @test approximate_Dv(foo, 1.0, (1.0, 1.0), (7.5, 6.3)) ≈ 5 * 7.5 + 6 * 6.3
         @test compute_Dv(foo, 5.0, (10.0, 5.0), (7.5, 6.3)) ≈ (5 * 7.5 + 6 * 6.3) * 5
+        @test compute_Dv_update(foo, 5.0, (10.0, 5.0), (7.5, 6.3)) ≈ (5 * 7.5 + 6 * 6.3) * 5
         @test approximate_Dv(foo, 5.0, (10.0, 5.0), (7.5, 6.3)) ≈ (5 * 7.5 + 6 * 6.3) * 5
 
         # Check that finite differencing yields approximately correct results for vectors.
@@ -44,15 +50,21 @@ import Nabla: ∇, compute_Dv, approximate_Dv
         z̄, x, y, vx, vy = ones.((N, N, N, N, N))
         @test compute_Dv(foo, z̄, (x, y), (vx, vy)) ≈
             sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
+        @test compute_Dv_update(foo, z̄, (x, y), (vx, vy)) ≈
+            sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
         @test approximate_Dv(foo, z̄, (x, y), (vx, vy)) ≈
             sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
         z̄ = randn(N)
         @test compute_Dv(foo, z̄, (x, y), (vx, vy)) ≈
             sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
+        @test compute_Dv_update(foo, z̄, (x, y), (vx, vy)) ≈
+            sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
         @test approximate_Dv(foo, z̄, (x, y), (vx, vy)) ≈
             sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
         v = randn(N)
         @test compute_Dv(foo, z̄, (x, y), (vx, vy)) ≈
+            sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
+        @test compute_Dv_update(foo, z̄, (x, y), (vx, vy)) ≈
             sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
         @test approximate_Dv(foo, z̄, (x, y), (vx, vy)) ≈
             sum(z̄ .* (UniformScaling(10) * vx)) + sum(z̄ .* (UniformScaling(11) * vy))
@@ -62,9 +74,13 @@ import Nabla: ∇, compute_Dv, approximate_Dv
         Z̄, X, Y, VX, VY = ones.((M, M, M, M, M), (N, N, N, N, N))
         @test approximate_Dv(foo, Z̄, (X, Y), (VX, VY)) ≈
             compute_Dv(foo, Z̄, (X, Y), (VX, VY))
+        @test compute_Dv(foo, Z̄, (X, Y), (VX, VY)) ≈
+            compute_Dv_update(foo, Z̄, (X, Y), (VX, VY))
         Ȳ = randn(M, N)
         @test approximate_Dv(foo, Z̄, (X, Y), (VX, VY)) ≈
             compute_Dv(foo, Z̄, (X, Y), (VX, VY))
+        @test compute_Dv(foo, Z̄, (X, Y), (VX, VY)) ≈
+            compute_Dv_update(foo, Z̄, (X, Y), (VX, VY))
     end
 end
 

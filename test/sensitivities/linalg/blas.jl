@@ -99,21 +99,14 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
     # Test all four permutations of `syrk`.
     import Base.BLAS.syrk
-    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+    let rng = MersenneTwister(123456), N = 100, δ = 1e-6
         lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
-        λs = [(α, A)->lmask .* syrk('L', 'N', α, A),
-              (α, A)->umask .* syrk('U', 'N', α, A),
-              (α, A)->lmask .* syrk('L', 'T', α, A),
-              (α, A)->umask .* syrk('U', 'T', α, A)]
-        γs = [A->lmask .* syrk('L', 'N', A),
-              A->umask .* syrk('U', 'N', A),
-              A->lmask .* syrk('L', 'T', A),
-              A->umask .* syrk('U', 'T', A)]
-        for _ in 1:10
-            α, vα = randn.([rng, rng])
-            A, VA = randn.(rng, [N, N], [N, N])
-            A += I
-            for (λ, γ) in zip(λs, γs)
+        for uplo in ['L', 'U'], trans in ['N', 'T']
+            λ = (α, A)->(uplo == 'L' ? lmask : umask) .* syrk(uplo, trans, α, A)
+            γ = A->(uplo == 'L' ? lmask : umask) .* syrk(uplo, trans, A)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, VA = randn.(rng, [N, N], [N, N])
                 δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A), (α, A), δ .* (vα, VA))
                 @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
                 δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A), A, δ .* VA)

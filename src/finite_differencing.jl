@@ -56,12 +56,14 @@ function compute_Dv_update(
     y = f(x_...)
     rtape = reverse_tape(y, ȳ)
     for n in 1:length(rtape) - 1
-        rtape[n] = zerod_container(y.tape[n])
+        rtape[n] = zerod_container(y.tape[n].val)
     end
-    println(rtape)
-    ∇f = propagate(y.tape, reverse_tape)
+    ∇f = propagate(y.tape, rtape)
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
+compute_Dv_update(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
+    compute_Dv_update(f, ȳ, (x,), (v,))
+
 
 # Compute the absolute and relative errors between x and y respectively.
 compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x) + 1e-12))
