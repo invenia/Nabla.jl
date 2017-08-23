@@ -20,7 +20,7 @@ end
     include("sensitivities/functional/reduce.jl")
     include("sensitivities/functional/reducedim.jl")
 
-    Test sensitivities for linear algebra optimisations.
+    # Test sensitivities for linear algebra optimisations.
     include("sensitivities/linalg/generic.jl")
     # include("sensitivities/linalg/uniformscaling.jl")
     # include("sensitivities/linalg/diagonal.jl")
