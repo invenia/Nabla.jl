@@ -112,6 +112,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
         for _ in 1:10
             α, vα = randn.([rng, rng])
             A, VA = randn.(rng, [N, N], [N, N])
+            A += I
             for (λ, γ) in zip(λs, γs)
                 δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A), (α, A), δ .* (vα, VA))
                 @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel

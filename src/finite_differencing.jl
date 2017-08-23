@@ -46,11 +46,28 @@ end
 compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
     compute_Dv(f, ȳ, (x,), (v,))
 
+function compute_Dv_update(
+    f::Function,
+    ȳ::ArrayOr∇Real,
+    x::Tuple{Vararg{ArrayOr∇Real}},
+    v::Tuple{Vararg{ArrayOr∇Real}},
+)
+    x_ = Leaf.(Tape(), x)
+    y = f(x_...)
+    rtape = reverse_tape(y, ȳ)
+    for n in 1:length(rtape) - 1
+        rtape[n] = zerod_container(y.tape[n])
+    end
+    println(rtape)
+    ∇f = propagate(y.tape, reverse_tape)
+    return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
+end
+
 # Compute the absolute and relative errors between x and y respectively.
 compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x) + 1e-12))
 
 """
-    check_ȳDv(f, ȳ::T, x::T, v::T, tol_abs::∇Real, tol_rel::∇Real) where T<:ArrayOr∇Real
+    check_Dv(f, ȳ::T, x::T, v::T, tol_abs::∇Real, tol_rel::∇Real) where T
 
 Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
 reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite
@@ -58,3 +75,14 @@ differencing. Returns a Tuple containing the absolute and relative errors.
 """
 check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T =
     compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv(f, ȳ, x, v))
+
+"""
+    check_Dv_update(f, ȳ::T, x::T, v::T, tol_abs::∇Real, tol_rel::∇Real) where T
+
+Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
+reverse-mode sensitivity ȳ as computed by Nabla with a zerod tape, against an estimate
+produced by finite differencing. Returns a Tuple containing the absolute and relative
+errors.
+"""
+check_Dv_update(f, ȳ::T, x::T, v::T, tol_abs::∇Real, tol_rel::∇Real) where T =
+    compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv_update(f, ȳ, x, v))

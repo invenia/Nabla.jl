@@ -39,7 +39,7 @@ import Nabla: ∇, compute_Dv, approximate_Dv
         @test compute_Dv(foo, 5.0, (10.0, 5.0), (7.5, 6.3)) ≈ (5 * 7.5 + 6 * 6.3) * 5
         @test approximate_Dv(foo, 5.0, (10.0, 5.0), (7.5, 6.3)) ≈ (5 * 7.5 + 6 * 6.3) * 5
 
-        # # Check that finite differencing yields approximately correct results for vectors.
+        # Check that finite differencing yields approximately correct results for vectors.
         N = 3
         z̄, x, y, vx, vy = ones.((N, N, N, N, N))
         @test compute_Dv(foo, z̄, (x, y), (vx, vy)) ≈

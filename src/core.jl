@@ -152,14 +152,8 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
-function ∇(y::Node{T}, ȳ::T) where T
-
-    # Construct reverse tape and initialise the last element.
-    fwd_tape, rvs_tape = y.tape, reverse_tape(y, ȳ)
-    return propagate(fwd_tape, rvs_tape)
-end
+∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
-
 
 @inline ∇(x̄, f::Function, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 

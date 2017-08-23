@@ -9,7 +9,7 @@ end
 
 @testset "Sensitivities" begin
 
-    # include("finite_differencing.jl")
+    include("finite_differencing.jl")
 
     # Test sensitivities for the basics.
     include("sensitivities/indexing.jl")
@@ -20,11 +20,11 @@ end
     include("sensitivities/functional/reduce.jl")
     include("sensitivities/functional/reducedim.jl")
 
-    # # Test sensitivities for linear algebra optimisations.
-    # include("sensitivities/linalg/generic.jl")
-    # # include("sensitivities/linalg/uniformscaling.jl")
-    # # include("sensitivities/linalg/diagonal.jl")
-    # # include("sensitivities/linalg/triangular.jl")
-    # include("sensitivities/linalg/strided.jl")
+    # Test sensitivities for linear algebra optimisations.
+    include("sensitivities/linalg/generic.jl")
+    # include("sensitivities/linalg/uniformscaling.jl")
+    # include("sensitivities/linalg/diagonal.jl")
+    # include("sensitivities/linalg/triangular.jl")
+    include("sensitivities/linalg/strided.jl")
     include("sensitivities/linalg/blas.jl")
 end
