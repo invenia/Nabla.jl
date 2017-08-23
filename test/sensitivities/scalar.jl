@@ -8,19 +8,13 @@
             @test ∇(identity, Arg{1}, 5.0) == 1.0
         end
 
-        function unary_test(f, x)
-            δ_abs, δ_rel = check_Dv(eval(f), ȳ, x, v)
-            (δ_abs > ϵ_abs || δ_rel > ϵ_rel || isnan(δ_abs) || isnan(δ_rel)) &&
-                print_tol_err(eval(f), ȳ, x, v, δ_abs, δ_rel)
-            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
-        end
-
+        unary_check(f, x) = check_errs(eval(f), ȳ, x, v, ϵ_abs, ϵ_rel)
         for (f, x̄, range) in Nabla.unary_sensitivities
             for _ in 1:10
-                unary_test(f, rand() * (range[2] - range[1]) + range[1])
+                @test unary_check(f, rand() * (range[2] - range[1]) + range[1])
             end
-            unary_test(f, range[1])
-            unary_test(f, range[2])
+            @test unary_check(f, range[1])
+            @test unary_check(f, range[2])
         end
 
         function binary_test(f, x, y)

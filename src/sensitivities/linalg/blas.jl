@@ -234,58 +234,58 @@ const SA = StridedArray
     x::StridedVector{T},
 ) where T<:∇Real = ∇(x̄, gemv, Arg{4}, p, y, ȳ, tA, one(T), A, x)
 
-# `syrk` sensitivity implementations.
-@explicit_intercepts(
-    syrk,
-    Tuple{Char, Char, ∇Real, StridedVecOrMat{<:∇Real}},
-    [false, false, true, true],
-)
-function ∇(::typeof(syrk), ::Type{Arg{3}}, p, Y, Ȳ,
-    uplo::Char,
-    trans::Char,
-    α::∇Real,
-    A::StridedVecOrMat{<:∇Real},
-)
-    g! = uppercase(uplo) == 'L' ? tril! : triu!
-    return sum(g!(Ȳ .* Y)) / α
-end
-function ∇(::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
-    uplo::Char,
-    trans::Char,
-    α::∇Real,
-    A::StridedVecOrMat{<:∇Real},
-)
-    triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
-    out = gemm('N', trans, α, triȲ .+ triȲ.', A)
-    return uppercase(trans) == 'N' ? out : out.'
-end
-function ∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
-    uplo::Char,
-    trans::Char,
-    α::∇Real,
-    A::StridedVecOrMat{T},
-) where T<:∇Real
-    triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
-    out = gemm('N', trans, α, triȲ .+ triȲ.', A)
-    return broadcast!((ā, δā)->ā+δā, Ā, Ā, uppercase(trans) == 'N' ? out : out.')
-end
+# # `syrk` sensitivity implementations.
+# @explicit_intercepts(
+#     syrk,
+#     Tuple{Char, Char, ∇Real, StridedVecOrMat{<:∇Real}},
+#     [false, false, true, true],
+# )
+# function ∇(::typeof(syrk), ::Type{Arg{3}}, p, Y, Ȳ,
+#     uplo::Char,
+#     trans::Char,
+#     α::∇Real,
+#     A::StridedVecOrMat{<:∇Real},
+# )
+#     g! = uppercase(uplo) == 'L' ? tril! : triu!
+#     return sum(g!(Ȳ .* Y)) / α
+# end
+# function ∇(::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
+#     uplo::Char,
+#     trans::Char,
+#     α::∇Real,
+#     A::StridedVecOrMat{<:∇Real},
+# )
+#     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
+#     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
+#     return uppercase(trans) == 'N' ? out : out.'
+# end
+# function ∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
+#     uplo::Char,
+#     trans::Char,
+#     α::∇Real,
+#     A::StridedVecOrMat{T},
+# ) where T<:∇Real
+#     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
+#     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
+#     return broadcast!((ā, δā)->ā+δā, Ā, Ā, uppercase(trans) == 'N' ? out : out.')
+# end
 
-# `syrk` sensitivity implementations for `α=1`.
-@explicit_intercepts(
-    syrk,
-    Tuple{Char, Char, StridedVecOrMat{<:∇Real}},
-    [false, false, true],
-)
-∇(::typeof(syrk), ::Type{Arg{3}}, p, Y, Ȳ,
-    uplo::Char,
-    trans::Char,
-    A::StridedVecOrMat{<:∇Real},
-) = ∇(syrk, Arg{4}, p, Y, Ȳ, uplo, trans, one(eltype(A)), A)
-∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
-    uplo::Char,
-    trans::Char,
-    A::StridedVecOrMat{T},
-) where T<:∇Real = ∇(Ā, syrk, Arg{4}, p, Y, Ȳ, uplo, char, one(eltype(A)), A)
+# # `syrk` sensitivity implementations for `α=1`.
+# @explicit_intercepts(
+#     syrk,
+#     Tuple{Char, Char, StridedVecOrMat{<:∇Real}},
+#     [false, false, true],
+# )
+# ∇(::typeof(syrk), ::Type{Arg{3}}, p, Y, Ȳ,
+#     uplo::Char,
+#     trans::Char,
+#     A::StridedVecOrMat{<:∇Real},
+# ) = ∇(syrk, Arg{4}, p, Y, Ȳ, uplo, trans, one(eltype(A)), A)
+# ∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
+#     uplo::Char,
+#     trans::Char,
+#     A::StridedVecOrMat{T},
+# ) where T<:∇Real = ∇(Ā, syrk, Arg{4}, p, Y, Ȳ, uplo, char, one(eltype(A)), A)
 
 # `symm` sensitivity implementations.
 @explicit_intercepts(
