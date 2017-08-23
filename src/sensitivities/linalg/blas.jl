@@ -1,5 +1,5 @@
-import Base.LinAlg.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemv, syrk, symm,
-    symv, trmm, trsm, trmv, trsv
+import Base.LinAlg.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemm!, gemv, gemv!,
+    syrk, symm, symm!, symv, symv!, trmm, trsm, trmv, trsv, trsv!, ger!
 
 const SA = StridedArray
 
@@ -44,7 +44,7 @@ const SA = StridedArray
 # Short-form `asum`.
 @explicit_intercepts asum Tuple{Union{StridedVector, Array}}
 ∇(::typeof(asum), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ .* sign.(x)
-∇(x̄, ::typeof(asum), ::Type{Arg{1}}, p, y, ȳ, x) = (x̄ .= x̄ .+ x .* ȳ .* sign.(x))
+∇(x̄, ::typeof(asum), ::Type{Arg{1}}, p, y, ȳ, x) = (x̄ .= x̄ .+ ȳ .* sign.(x))
 
 # Long-form `asum`.
 @explicit_intercepts(
@@ -548,11 +548,6 @@ end
     A::StridedMatrix{T},
     x::StridedVector{T},
 ) where T<:∇Real = trsv(ul, uppercase(ta) == 'N' ? 'T' : 'N', dA, A, ȳ)
-∇(x̄::StridedVector{T}, ::typeof(trsv), ::Type{Arg{5}}, p, y, ȳ,
-    ul::Char, ta::Char, dA::Char,
-    A::StridedMatrix{T},
-    x::StridedVector{T},
-) where T<:∇Real = trsv!(ul, uppercase(ta) == 'N' ? 'T' : 'N', dA, A, ȳ, 1.0, x̄)
 
 # # # TODO: Banded matrix operations.
 # # # gbmv

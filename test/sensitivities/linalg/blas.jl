@@ -1,52 +1,44 @@
 @testset "sensitivities/blas" begin
 
-let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
+let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6, c_rel = 1e6
 
-    # Testing allocating sensitivities for dot.
     import Base.BLAS.dot
     let rng = MersenneTwister(123456)
         for _ in 1:10
             x, y, vx, vy = randn.(rng, [5, 5, 5, 5])
-            δ_abs_x, δ_rel_x = check_Dv(dot, randn(rng), (x, y), δ .* (vx, vy))
-            @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
+            @test check_errs(dot, dot(x ,y), (x, y), (vx, vy), ϵ_abs, c_rel)
         end
     end
     let rng = MersenneTwister(123456)
         for _ in 1:10
             x, y, vx, vy = randn.(rng, [10, 6, 10, 6])
             _dot = (x, y)->dot(5, x, 2, y, 1)
-            δ_abs_x, δ_rel_x = check_Dv(_dot, randn(rng), (x, y), δ .* (vx, vy))
-            @test δ_abs_x < ϵ_abs && δ_rel_x < ϵ_rel
+            @test check_errs(_dot, _dot(x, y), (x, y), (vx, vy), ϵ_abs, c_rel)
         end
     end
 
-    # Testing allocating sensitivities for nrm2.
     import Base.BLAS.nrm2
     let rng = MersenneTwister(123456)
         for _ in 1:10
-            δ_abs, δ_rel = check_Dv(nrm2, randn(rng), randn(rng, 100), δ * randn(rng, 100))
-            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            x, vx = randn(rng, 100), δ * randn(rng, 100)
+            @test check_errs(nrm2, randn(rng), x, vx, ϵ_abs, c_rel)
         end
     end
     let rng = MersenneTwister(123456)
         λ = x->nrm2(50, x, 2)
         for _ in 1:10
-            δ_abs, δ_rel = check_Dv(λ, randn(rng), randn(rng, 100), δ * randn(rng, 100))
-            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            x, vx = randn(rng, 100), δ * randn(rng, 100)
+            @test check_errs(λ, randn(rng), x, vx, ϵ_abs, c_rel)
         end
     end
 
-    # Testing allocating sensivities for asum.
     import Base.BLAS.asum
     let rng = MersenneTwister(123456)
-        for _ in 1:10
-            δ_abs, δ_rel = check_Dv(asum, randn(rng), randn(rng, 100), δ * randn(rng, 100))
-            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
-        end
         λ = x->asum(50, x, 2)
         for _ in 1:10
-            δ_abs, δ_rel = check_Dv(λ, randn(rng), randn(rng, 100), δ * randn(rng, 100))
-            @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+            x, vx = randn(rng, 100), δ * randn(rng, 100)
+            @test check_errs(asum, randn(rng), x, vx, ϵ_abs, c_rel)
+            @test check_errs(λ, randn(rng), x, vx, ϵ_abs, c_rel)
         end
     end
 
@@ -59,22 +51,13 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # Test each of the four permutations of `gemm`.
     import Base.BLAS.gemm
     let rng = MersenneTwister(123456), N = 100, δ = 1e-6
-        for _ in 1:10
-            α, vα = randn.([rng, rng])
-            A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
-            λs = [(α, A, B)->gemm('n', 'N', α, A, B),
-                  (α, A, B)->gemm('T', 'n', α, A, B),
-                  (α, A, B)->gemm('N', 't', α, A, B),
-                  (α, A, B)->gemm('t', 'T', α, A, B)]
-            γs = [(A, B)->gemm('n', 'N', A, B),
-                  (A, B)->gemm('T', 'n', A, B),
-                  (A, B)->gemm('N', 't', A, B),
-                  (A, B)->gemm('t', 'T', A, B)]
-            for (λ, γ) in zip(λs, γs)
-                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
-                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
-                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, B), (A, B), δ .* (VA, VB))
-                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+        for tA in ['T', 'N'], tB in ['T', 'N']
+            λ, γ = (α, A, B)->gemm(tA, tB, α, A, B), (A, B)->gemm(tA, tB, A, B)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
+                @test check_errs(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB), ϵ_abs, c_rel)
+                @test check_errs(γ, γ(A, B), (A, B), δ .* (VA, VB), ϵ_abs, c_rel)
             end
         end
     end
@@ -82,17 +65,14 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     # Test both permutations of `gemv`.
     import Base.BLAS.gemv
     let rng = MersenneTwister(123456), N = 100, δ = 1e-6
-        for _ in 1:10
-            α, vα = randn.([rng, rng])
-            A, VA = randn.(rng, [N, N], [N, N])
-            x, vx = randn.(rng, [N, N])
-            λs = [(α, A, x)->gemv('T', α, A, x), (α, A, x)->gemv('N', α, A, x)]
-            γs = [(A, x)->gemv('T', A, x), (A, x)->gemv('N', A, x)]
-            for (λ, γ) in zip(λs, γs)
-                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, x), (α, A, x), δ .* (vα, VA, vx))
-                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
-                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, x), (A, x), δ .* (VA, vx))
-                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+        for tA in ['T', 'N']
+            λ, γ = (α, A, x)->gemv('T', α, A, x), (A, x)->gemv('T', A, x)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, VA = randn.(rng, [N, N], [N, N])
+                x, vx = randn.(rng, [N, N])
+                @test check_errs(λ, λ(α, A, x), (α, A, x), δ .* (vα, VA, vx), ϵ_abs, c_rel)
+                @test check_errs(γ, γ(A, x), (A, x), δ .* (VA, vx), ϵ_abs, c_rel)
             end
         end
     end
@@ -118,41 +98,29 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
 
     # Test all four permutations of `symm`.
     import Base.BLAS.symm
-    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
+    let rng = MersenneTwister(123456), N = 100, δ = 1e-6
         lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
-        λs = [(α, A, B)->symm('L', 'L', α, A, B),
-              (α, A, B)->symm('R', 'U', α, A, B),
-              (α, A, B)->symm('R', 'L', α, A, B),
-              (α, A, B)->symm('L', 'U', α, A, B)]
-        γs = [(A, B)->symm('L', 'L', A, B),
-              (A, B)->symm('R', 'U', A, B),
-              (A, B)->symm('R', 'L', A, B),
-              (A, B)->symm('L', 'U', A, B)]
-        for _ in 1:10
-            α, vα = randn.([rng, rng])
-            A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
-            for (λ, γ) in zip(λs, γs)
-                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
-                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
-                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, B), (A, B), δ .* (VA, VB))
-                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+        for side in ['L', 'R'], ul in ['L', 'U']
+            λ, γ = (α, A, B)->symm(side, ul, α, A, B), (A, B)->symm(side, ul, A, B)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
+                @test check_errs(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB), ϵ_abs, c_rel)
+                @test check_errs(γ, γ(A, B), (A, B), δ .* (VA, VB), ϵ_abs, c_rel)
             end
         end
     end
 
     import Base.BLAS.symv
-    let rng = MersenneTwister(123456), N = 10, δ = 1e-6
-        λs = [(α, A, x)->symv('L', α, A, x), (α, A, x)->symv('U', α, A, x)]
-        γs = [(A, x)->symv('L', A, x), (A, x)->symv('U', A, x)]
-        for _ in 1:10
-            α, vα = randn.([rng, rng])
-            A, VA = randn.(rng, [N, N], [N, N])
-            x, vx = randn.(rng, [N, N])
-            for (λ, γ) in zip(λs, γs)
-                δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A, x), (α, A, x), δ .* (vα, VA, vx))
-                @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
-                δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A, x), (A, x), δ .* (VA, vx))
-                @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
+    let rng = MersenneTwister(123456), N = 100, δ = 1e-6
+        for ul in ['L', 'U']
+            λ, γ = (α, A, x)->symv(ul, α, A, x), (A, x)->symv(ul, A, x)
+            for _ in 1:10
+                α, vα = randn.([rng, rng])
+                A, VA = randn.(rng, [N, N], [N, N])
+                x, vx = randn.(rng, [N, N])
+                @test check_errs(λ, λ(α, A, x), (α, A, x), δ .* (vα, VA, vx), ϵ_abs, c_rel)
+                @test check_errs(γ, γ(A, x), (A, x), δ .* (VA, vx), ϵ_abs, c_rel)
             end
         end
     end
@@ -164,8 +132,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
             for _ in 1:10
                 α, vα = randn.([rng, rng])
                 A, B, VA, VB = randn.(rng, [N, N, N, N], [N, N, N, N])
-                δ_abs, δ_rel = check_Dv(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB))
-                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+                @test check_errs(λ, λ(α, A, B), (α, A, B), δ .* (vα, VA, VB), ϵ_abs, c_rel)
             end
         end
     end
@@ -177,8 +144,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
             for _ in 1:10
                 A, VA = randn.(rng, [N, N], [N, N])
                 b, vb = randn.(rng, [N, N])
-                δ_abs, δ_rel = check_Dv(λ, λ(A, b), (A, b), δ .* (VA, vb))
-                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+                @test check_errs(λ, λ(A, b), (A, b), δ .* (VA, vb), ϵ_abs, c_rel)
             end
         end
     end
@@ -191,8 +157,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
                 α, vα = randn.([rng, rng])
                 A, X, VA, VX = randn.(rng, [N, N, N, N], [N, N, N, N])
                 A = randn(rng, N, N) + UniformScaling(3)
-                δ_abs, δ_rel = check_Dv(λ, λ(α, A, X), (α, A, X), δ .* (vα, VA, VX))
-                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+                @test check_errs(λ, λ(α, A, X), (α, A, X), δ .* (vα, VA, VX), ϵ_abs, c_rel)
             end
         end
     end
@@ -206,8 +171,7 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
                 A = A.'A
                 VA = randn(rng, N, N)
                 x, vx = randn.(rng, [N, N])
-                δ_abs, δ_rel = check_Dv(λ, λ(A, x), (A, x), δ .* (VA, vx))
-                @test δ_abs < ϵ_abs && δ_rel < ϵ_rel
+                @test check_errs(λ, λ(A, x), (A, x), δ .* (VA, vx), ϵ_abs, c_rel)
             end
         end
     end

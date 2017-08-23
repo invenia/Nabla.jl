@@ -65,10 +65,10 @@ compute_Dv_update(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayO
     compute_Dv_update(f, ȳ, (x,), (v,))
 
 # Compute the absolute and relative errors between x and y respectively.
-compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (abs.(x) + 1e-12))
+compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (max.(abs.(x), abs.(y))))
 
 """
-    check_Dv(f, ȳ::T, x::T, v::T) where T
+    check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T
 
 Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
 reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite
@@ -78,27 +78,34 @@ check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T =
     compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv(f, ȳ, x, v))
 
 """
-    check_Dv_update(f, ȳ::T, x::T, v::T) where T
+    check_Dv_update(f, ȳ::ArrayOr∇Real, x::T, v::T) where T
 
 Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
 reverse-mode sensitivity ȳ as computed by Nabla with a zerod tape, against an estimate
 produced by finite differencing. Returns a Tuple containing the absolute and relative
 errors.
 """
-check_Dv_update(f, ȳ::T, x::T, v::T) where T =
+check_Dv_update(f, ȳ::ArrayOr∇Real, x::T, v::T) where T =
     compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv_update(f, ȳ, x, v))
 
 """
-    check_errs(f, ȳ::T, x::T, v::T, ϵ_abs::∇Real, ϵ_rel::∇Real)::Bool where T
+    check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, ϵ_rel::∇Real)::Bool where T
 
 Check that the difference between finite differencing directional derivative estimation and
 RMAD directional derivative computation for function `f` at `x` in direction `v`, for both
 allocating and in-place modes, has absolute and relative errors of `ϵ_abs` and `ϵ_rel`
 respectively, when scaled by reverse-mode sensitivity `ȳ`. 
 """
-function check_errs(f, ȳ::T, x::T, v::T, ϵ_abs::∇Real, ϵ_rel::∇Real)::Bool where T
-    δ_abs_alloc, δ_rel_alloc = check_Dv(f, ȳ, x, v)
-    δ_abs_inplace, δ_rel_inlpace = check_Dv_update(f, ȳ, x, v)
-    return δ_abs_alloc < ϵ_abs && δ_rel_alloc < ϵ_rel &&
-           δ_abs_inplace < ϵ_abs && δ_rel_inlpace < ϵ_rel
+function check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, c_rel::∇Real)::Bool where T
+    ∇x_alloc = compute_Dv(f, ȳ, x, v)
+    ∇x_inplace = compute_Dv_update(f, ȳ, x, v)
+    ∇x_fin_diff = approximate_Dv(f, ȳ, x, v)
+
+    checks_pass = check_tol(∇x_alloc, ∇x_fin_diff, ϵ_abs, c_rel) &&
+                  check_tol(∇x_inplace, ∇x_fin_diff, ϵ_abs, c_rel)
+    checks_pass || println("f is $f, ∇x_alloc is $∇x_alloc, ∇x_inplace is $∇x_inplace and ∇x_fin_diff is $∇x_fin_diff")
+    return checks_pass
 end
+
+check_tol(x, y, ϵ_abs, c_rel) =
+    abs.(x - y) .< max(c_rel * eps(c_rel) .* max.(abs.(x), abs.(y)), ϵ_abs)

@@ -1,9 +1,9 @@
 # Implementation of sensitivities for unary linalg optimisations.
 unary_linalg_optimisations = [
     (:-,          ∇RealArray, ∇RealArray, :(map(-, Ȳ)),                        (lb, ub)),
-    (:trace,      ∇RealArray, ∇Real,      :(Diagonal(Ȳ .* ones(size(X, 1)))),  (lb, ub)),
+    (:trace,      ∇RealArray, ∇Real,      :(Diagonal(fill!(similar(X), Ȳ))),  (lb, ub)),
     (:inv,        ∇RealArray, ∇RealArray, :(-transpose(Y) * Ȳ * transpose(Y)), (lb, ub)),
-    (:det,        ∇RealArray, ∇Real,      :(Y * Ȳ * transpose(inv(X))),        (lb, ub)),
+    (:det,        ∇RealArray, ∇Real,      :(Y * Ȳ * transpose(inv(X))),        (_ϵ, ub)),
     (:logdet,     ∇RealArray, ∇Real,      :(Ȳ * transpose(inv(X))),            (_ϵ, ub)),
     (:transpose,  ∇RealArray, ∇RealArray, :(transpose(Ȳ)),                     (lb, ub)),
     (:ctranspose, ∇RealArray, ∇RealArray, :(ctranspose(Ȳ)),                    (lb, ub)),
