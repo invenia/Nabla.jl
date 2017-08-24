@@ -26,7 +26,12 @@ approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr�
     approximate_Dv(f, ȳ, (x,), (v,))
 
 """
-    compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
+    compute_Dv(
+        f::Function,
+        ȳ::ArrayOr∇Real,
+        x::Tuple{Vararg{ArrayOr∇Real}},
+        v::Tuple{Vararg{ArrayOr∇Real}},
+    )
 
 Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this
 result to back-propagate the sensitivity ȳ. If ȳ, x and v are column vectors, then this is
@@ -63,30 +68,6 @@ function compute_Dv_update(
 end
 compute_Dv_update(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
     compute_Dv_update(f, ȳ, (x,), (v,))
-
-# Compute the absolute and relative errors between x and y respectively.
-compute_errs(x, y) = (abs.(x - y), abs.(x - y) ./ (max.(abs.(x), abs.(y))))
-
-"""
-    check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T
-
-Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
-reverse-mode sensitivity ȳ as computed by Nabla against an estimate produced by finite
-differencing. Returns a Tuple containing the absolute and relative errors.
-"""
-check_Dv(f, ȳ::ArrayOr∇Real, x::T, v::T) where T =
-    compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv(f, ȳ, x, v))
-
-"""
-    check_Dv_update(f, ȳ::ArrayOr∇Real, x::T, v::T) where T
-
-Compare the directional derivative of `f` at `x` in the direction `v` multiplied by the
-reverse-mode sensitivity ȳ as computed by Nabla with a zerod tape, against an estimate
-produced by finite differencing. Returns a Tuple containing the absolute and relative
-errors.
-"""
-check_Dv_update(f, ȳ::ArrayOr∇Real, x::T, v::T) where T =
-    compute_errs(approximate_Dv(f, ȳ, x, v), compute_Dv_update(f, ȳ, x, v))
 
 """
     check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, ϵ_rel::∇Real)::Bool where T
