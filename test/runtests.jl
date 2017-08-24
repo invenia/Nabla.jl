@@ -26,7 +26,5 @@ end
     # include("sensitivities/linalg/diagonal.jl")
     # include("sensitivities/linalg/triangular.jl")
     include("sensitivities/linalg/strided.jl")
-
-    # Test BLAS sensitivities.
-    # include("sensitivities/blas.jl")
+    include("sensitivities/linalg/blas.jl")
 end

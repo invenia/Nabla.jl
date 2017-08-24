@@ -33,5 +33,6 @@ module Nabla
     # Linear algebra optimisations.
     include("sensitivities/linalg/generic.jl")
     include("sensitivities/linalg/strided.jl")
+    include("sensitivities/linalg/blas.jl")
 
 end # module Nabla

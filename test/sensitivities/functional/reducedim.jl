@@ -1,4 +1,4 @@
-@testset "functional/mapreducedim" begin
+@testset "sensitivities/functional/mapreducedim" begin
 
     let
         # mapreducedim on a single-dimensional array should be consistent with mapreduce.
