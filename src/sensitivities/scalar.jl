@@ -81,6 +81,9 @@ for (f, x̄, _, needs_y) in unary_sensitivities
     @eval needs_output(::typeof($f)) = $needs_y
 end
 
+# Add method to resolve exponentiation ambiguity.
+^(n::Node{<:Real}, p::Integer) = invoke(^, Tuple{Node{<:Real}, Real}, n, p)
+
 # A collection of unary sensitivites yet to be implemented.
 
 # atan2, asind, acosd, atand, asec, acsc,

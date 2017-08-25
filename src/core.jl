@@ -62,10 +62,10 @@ args - Values indicating which elements in the tape will require updating by thi
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
 """
-immutable Branch{T, F<:Function, V<:Tuple} <: Node{T}
+immutable Branch{T} <: Node{T}
     val::T
-    f::F
-    args::V
+    f::Function
+    args::Tuple
     tape::Tape
     pos::Int
 end
@@ -75,7 +75,7 @@ function Branch(f::Function, args::Tuple, tape::Tape)
     push!(tape, branch)
     return branch
 end
-show(io::IO, branch::Branch{T, V}) where {T, V} =
+show(io::IO, branch::Branch{T}) where T =
     print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
 show(io::IO, branch::Branch{T}) where T<:AbstractArray =
     print(io, "Branch{$T} $(size(branch.val)), f=$(branch.f)")
@@ -116,6 +116,15 @@ function propagate(y::Branch{T}, rvs_tape::Tape) where T
     return nothing
 end
 
+function propagate(fwd_tape::Tape, rvs_tape::Tape)
+    for n in eachindex(rvs_tape)
+        δ = length(rvs_tape) - n + 1
+        isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
+    end
+    return rvs_tape
+end
+
+
 """ Initialise a Tape appropriately for being used as a reverse-tape. """
 function reverse_tape(y::Node{T}, ȳ::T) where T
     tape = Tape(y.pos)
@@ -143,18 +152,7 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
-function ∇(y::Node{T}, ȳ::T) where T
-
-    # Construct reverse tape and initialise the last element.
-    fwd_tape, rvs_tape = y.tape, reverse_tape(y, ȳ)
-
-    # Iterate backwards through the reverse tape and return the result.
-    for n in eachindex(rvs_tape)
-        δ = y.pos - n + 1
-        isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
-    end
-    return rvs_tape
-end
+∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
 
 @inline ∇(x̄, f::Function, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
