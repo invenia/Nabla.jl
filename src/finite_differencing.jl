@@ -2,10 +2,10 @@ export check_Dv, check_Dv_update, check_errs
 
 """
     approximate_Dv(
-        f::Function,
+        f,
         ȳ::ArrayOr∇Real,
         x::Tuple{Vararg{ArrayOr∇Real}},
-        v::Tuple{Vararg{ArrayOr∇Real}},
+            v::Tuple{Vararg{ArrayOr∇Real}},
     )
     approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real)
 
@@ -13,7 +13,7 @@ Estimate the directional derivative of `f` at `x` in direction `v`. If the funct
 multiple arguments, `x` and `v` should be `Tuple`s of inputs and directions respectively.
 """
 function approximate_Dv(
-    f::Function,
+    f,
     ȳ::ArrayOr∇Real,
     x::Tuple{Vararg{ArrayOr∇Real}},
     v::Tuple{Vararg{ArrayOr∇Real}},
@@ -22,7 +22,7 @@ function approximate_Dv(
     length(y1) == length(ȳ) || throw(ArgumentError("length(y1) != length(y)."))
     return sum(ȳ .* (y2 - y1) / 2)
 end
-approximate_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
+approximate_Dv(f, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
     approximate_Dv(f, ȳ, (x,), (v,))
 
 """
@@ -39,7 +39,7 @@ equivalent to computing `ȳ.'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian
 evaluated at `x`. Analogous operations happen for scalars and N-dimensional arrays.
 """
 function compute_Dv(
-    f::Function,
+    f,
     ȳ::ArrayOr∇Real,
     x::Tuple{Vararg{ArrayOr∇Real}},
     v::Tuple{Vararg{ArrayOr∇Real}},
@@ -48,11 +48,11 @@ function compute_Dv(
     ∇f = ∇(f(x_...), ȳ)
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
-compute_Dv(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
+compute_Dv(f, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
     compute_Dv(f, ȳ, (x,), (v,))
 
 function compute_Dv_update(
-    f::Function,
+    f,
     ȳ::ArrayOr∇Real,
     x::Tuple{Vararg{ArrayOr∇Real}},
     v::Tuple{Vararg{ArrayOr∇Real}},
@@ -66,7 +66,7 @@ function compute_Dv_update(
     ∇f = propagate(y.tape, rtape)
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
-compute_Dv_update(f::Function, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
+compute_Dv_update(f, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
     compute_Dv_update(f, ȳ, (x,), (v,))
 
 """

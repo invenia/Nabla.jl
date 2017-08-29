@@ -1,6 +1,6 @@
 @testset "sensitivities/scalar" begin
 
-    let ϵ_abs = 1e-5, c_rel = 1e-4, v = 1e-6, ȳ = 5.0, z̄ = 4.0
+    let ϵ_abs = 1e-5, c_rel = 1e6, v = 1e-6, ȳ = 5.0, z̄ = 4.0
 
         let
             @test ∇(identity, Arg{1}, 5.0, 4.0, 3.0, 2.0) == 3.0

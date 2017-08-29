@@ -4,8 +4,11 @@ module Nabla
     export ∇Real, ∇RealArray, SymOrExpr, ArrayOr∇Real
     const ∇Real = Real
     const ∇RealArray = AbstractArray{<:∇Real}
+    const ∇RealAV = AbstractVector{<:∇Real}
+    const ∇RealAM = AbstractMatrix{<:∇Real}
     const ArrayOr∇Real = Union{AbstractArray{<:∇Real}, ∇Real}
     const SymOrExpr = Union{Symbol, Expr}
+
 
     # Meta-programming utilities specific to Nabla.
     include("code_transformation/util.jl")
@@ -34,6 +37,8 @@ module Nabla
     include("sensitivities/linalg/generic.jl")
     include("sensitivities/linalg/strided.jl")
     include("sensitivities/linalg/blas.jl")
+    include("sensitivities/linalg/diagonal.jl")
+    include("sensitivities/linalg/triangular.jl")
     include("sensitivities/linalg/factorization/cholesky.jl")
 
 end # module Nabla

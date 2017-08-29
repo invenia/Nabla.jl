@@ -85,8 +85,8 @@
         x_ = Leaf(Tape(), x)
         s = broadcast(f, x_)
         return Nabla.needs_output(f) ?
-            ∇(s, ones(s.val))[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
-            ∇(s, ones(s.val))[x_] == ∇.(f, Arg{1}, x)
+            ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x, Base.map(f, x)) :
+            ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
     end
     for (f, _, bounds, _) in Nabla.unary_sensitivities
         x = rand(Uniform(bounds[1], bounds[2]), 100)
@@ -102,8 +102,8 @@
         ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
         ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
         @test broadcast(f, x, y) == s.val
-        @test ∇s[x_] == ∇x
-        @test ∇s[y_] == ∇y
+        @test ∇s[x_] ≈ ∇x
+        @test ∇s[y_] ≈ ∇y
     end
     function check_binary_broadcast(f, x::Real, y)
         tape = Tape()
@@ -113,8 +113,8 @@
         ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y))
         ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
         @test broadcast(f, x, y) == s.val
-        @test ∇s[x_] == ∇x
-        @test ∇s[y_] == ∇y
+        @test ∇s[x_] ≈ ∇x
+        @test ∇s[y_] ≈ ∇y
     end
     function check_binary_broadcast(f, x, y::Real)
         tape = Tape()
@@ -124,8 +124,8 @@
         ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
         ∇y = sum(broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y))
         @test broadcast(f, x, y) == s.val
-        @test ∇s[x_] == ∇x
-        @test ∇s[y_] == ∇y
+        @test ∇s[x_] ≈ ∇x
+        @test ∇s[y_] ≈ ∇y
     end
     for (f, _, _, x_bounds, y_bounds) in Nabla.binary_sensitivities
         x_distr = Uniform(x_bounds[1], x_bounds[2])
