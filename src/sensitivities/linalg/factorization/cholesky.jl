@@ -14,7 +14,7 @@ const AM = AbstractMatrix
 const UT = UpperTriangular
 @explicit_intercepts chol Tuple{AbstractMatrix{<:∇Real}}
 ∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::UT{T}, Σ::AM{T}) where T<:∇Real =
-    chol_blocked_rev(full(Ū), full(U), 1, 'U')
+    chol_blocked_rev(full(Ū), full(U), 25, 'U')
 
 """
     level2partition(A::AbstractMatrix, j::Int, ul::Char)
