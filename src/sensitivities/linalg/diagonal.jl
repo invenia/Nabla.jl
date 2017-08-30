@@ -45,7 +45,7 @@ end
 
 @explicit_intercepts logdet Tuple{Diagonal{<:∇Real}}
 ∇(::typeof(logdet), ::Type{Arg{1}}, p, y::∇Real, ȳ::∇Real, X::∇RealDiag) =
-    Diagonal(y ./ X.diag)
+    Diagonal(ȳ ./ X.diag)
 function ∇(
     X̄::∇RealDiag,
     ::typeof(logdet),

@@ -30,7 +30,7 @@
         for _ in 1:10
             A = Diagonal(exp.(randn(rng, N)))
             VA = Diagonal(δ .* randn(rng, N))
-            @test check_errs(det, 10.0, A, VA, ϵ_abs, c_rel)
+            @test check_errs(logdet, 10.0, A, VA, ϵ_abs, c_rel)
         end
     end
 end
