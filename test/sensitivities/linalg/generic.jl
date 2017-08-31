@@ -9,16 +9,12 @@
         trand(rng::AbstractRNG, ::∇Arrays) = rand(rng, N, N)
         trand(rng::AbstractRNG, ::Type{∇Real}) = rand(rng)
 
-        # Get the identity associated to an object.
-        id(::Any) = I
-        id(::Number) = I.λ
-
         # Test unary linalg sensitivities.
         for (f, T_In, T_Out, X̄, bounds) in Nabla.unary_linalg_optimisations
             Z = trand(rng, T_In) .* (bounds[2] - bounds[1]) + bounds[1]
-            X = Z'Z + 1e-6id(Z)
+            X = Z'Z + 1e-6 * one(Z)
             Ȳ, V = eval(f)(X), 1e-3 * trandn(rng, T_In)
-            @test check_errs(eval(f), Ȳ, X, V'V + 1e-6id(V), ϵ_abs, c_rel)
+            @test check_errs(eval(f), Ȳ, X, V'V + 1e-6 * one(V), ϵ_abs, c_rel)
         end
 
         # Test binary linalg sensitivities.
