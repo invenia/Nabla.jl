@@ -4,8 +4,9 @@
 
     let c_rel = 1e4, ε_abs = 1e-16, rng = MersenneTwister(123456)
         x = randn(2, 10)
-        A = randn(4, 5)
-        f = x̂ -> reshape(x̂, 5, 4) * A
-        @test check_errs(f, f(x), (x,), (1e-6 * randn(size(x)...),), ε_abs, c_rel)
+        f1 = x̂ -> reshape(x̂, 5, 4)
+        f2 = x̂ -> reshape(x̂, (5, 4))
+        @test check_errs(f1, f1(x), (x,), (1e-6 * randn(size(x)...),), ε_abs, c_rel)
+        @test check_errs(f2, f2(x), (x,), (1e-6 * randn(size(x)...),), ε_abs, c_rel)
     end
 end
