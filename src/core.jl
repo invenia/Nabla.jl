@@ -64,12 +64,12 @@ pos - the location of this Branch in the tape to which it is assigned.
 """
 immutable Branch{T} <: Node{T}
     val::T
-    f::Function
+    f
     args::Tuple
     tape::Tape
     pos::Int
 end
-function Branch(f::Function, args::Tuple, tape::Tape)
+function Branch(f, args::Tuple, tape::Tape)
     unboxed = unbox.(args)
     branch = Branch(f(unboxed...), f, args, tape, length(tape) + 1)
     push!(tape, branch)
@@ -155,7 +155,7 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 ∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
 
-@inline ∇(x̄, f::Function, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
+@inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
 """
     ∇(f::Function)

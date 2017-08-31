@@ -1,4 +1,4 @@
-@testset "sensitivities/blas" begin
+@testset "sensitivities/linalg/blas" begin
 
 let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6, c_rel = 1e6
 
