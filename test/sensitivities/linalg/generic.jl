@@ -3,11 +3,11 @@
     let ϵ_abs = 1e-6, c_rel = 1e6, N = 5, rng = MersenneTwister(123456)
 
         # Generate random test quantities for specific types.
-        ∇Arrays = Union{Type{∇RealArray}, Type{ArrayOr∇Real}}
+        ∇Arrays = Union{Type{∇Array}, Type{∇ArrayOrScalar}}
         trandn(rng::AbstractRNG, ::∇Arrays) = randn(rng, N, N)
-        trandn(rng::AbstractRNG, ::Type{∇Real}) = randn(rng)
+        trandn(rng::AbstractRNG, ::Type{∇Scalar}) = randn(rng)
         trand(rng::AbstractRNG, ::∇Arrays) = rand(rng, N, N)
-        trand(rng::AbstractRNG, ::Type{∇Real}) = rand(rng)
+        trand(rng::AbstractRNG, ::Type{∇Scalar}) = rand(rng)
 
         # Test unary linalg sensitivities.
         for (f, T_In, T_Out, X̄, bounds) in Nabla.unary_linalg_optimisations

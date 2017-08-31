@@ -12,8 +12,8 @@ Julia.
 
 const AM = AbstractMatrix
 const UT = UpperTriangular
-@explicit_intercepts chol Tuple{AbstractMatrix{<:∇Real}}
-∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::UT{T}, Σ::AM{T}) where T<:∇Real =
+@explicit_intercepts chol Tuple{AbstractMatrix{<:∇Scalar}}
+∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::UT{T}, Σ::AM{T}) where T<:∇Scalar =
     chol_blocked_rev(full(Ū), full(U), 25, true)
 
 """
@@ -125,7 +125,7 @@ chol_unblocked_rev(Σ̄::AM, L::AM, upper::Bool) = chol_unblocked_rev!(copy(Σ̄
         L::AbstractMatrix{T},
         Nb::Int,
         upper::Bool
-    ) where T<:∇Real
+    ) where T<:∇Scalar
 
 Compute the sensitivities of the Cholesky factorisation using a blocked, cache-friendly 
 procedure. `Σ̄` are the sensitivities of `L`, and will be transformed into the sensitivities
@@ -133,7 +133,7 @@ of `Σ`, where `Σ = LLᵀ`. `Nb` is the block-size to use. If the upper triangl
 to represent the factorization, that is `Σ = UᵀU` where `U := Lᵀ`, then this should be
 indicated by passing `upper = true`.
 """
-function chol_blocked_rev!(Σ̄::AM{T}, L::AM{T}, Nb::Int, upper::Bool) where T<:∇Real
+function chol_blocked_rev!(Σ̄::AM{T}, L::AM{T}, Nb::Int, upper::Bool) where T<:∇Scalar
 
     # Check that L is square, that Σ̄ is square and that they are the same size.
     M, N = size(Σ̄)

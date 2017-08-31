@@ -1,7 +1,7 @@
 # Use BLAS.gemm for strided matrix-matrix multiplication sensitivites. Don't bother with
 # BLAS for matrix-vector stuff yet. Definitely an optimisation that we might want to
 # consider at some point in the future though.
-const RS = StridedMatrix{<:∇Real}
+const RS = StridedMatrix{<:∇Scalar}
 strided_matmul = [
     (:*,         'N', 'C', :Ȳ, :B, 'C', 'N', :A, :Ȳ),
     (:At_mul_B,  'N', 'T', :B, :Ȳ, 'N', 'N', :A, :Ȳ),

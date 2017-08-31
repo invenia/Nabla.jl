@@ -136,7 +136,7 @@ end
 struct Arg{N} end
 
 """
-    ∇(y::Node{<:∇Real})
+    ∇(y::Node{<:∇Scalar})
     ∇(y::Node{T}, ȳ::T) where T
 
 Return a `Tape` object which can be indexed using `Node`s, each element of which contains
@@ -153,7 +153,7 @@ is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
 ∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
-@inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
+@inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(y.val))
 
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 

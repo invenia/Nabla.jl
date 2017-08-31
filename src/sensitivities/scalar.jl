@@ -17,9 +17,9 @@ binary_sensitivities = (
 )
 for (f, x̄, ȳ, r1, r2) in binary_sensitivities
     @eval import Base.$f
-    @eval @explicit_intercepts $f Tuple{∇Real, ∇Real}
-    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, z, z̄, x::∇Real, y::∇Real) = $x̄
-    @eval ∇(::typeof($f), ::Type{Arg{2}}, p, z, z̄, x::∇Real, y::∇Real) = $ȳ
+    @eval @explicit_intercepts $f Tuple{∇Scalar, ∇Scalar}
+    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = $x̄
+    @eval ∇(::typeof($f), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = $ȳ
 end
 
 # Definitions for functions of a single argument written as y = f(x). The boolean argument
@@ -70,13 +70,13 @@ unary_sensitivities = (
 # implementation of sensitivities.
 for (f, x̄, _, needs_y) in unary_sensitivities
     @eval import Base.$f
-    @eval @explicit_intercepts $f Tuple{∇Real}
-    @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Real) = ȳ * $x̄
+    @eval @explicit_intercepts $f Tuple{∇Scalar}
+    @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $x̄
 
     if needs_y
-        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Real, y) = $x̄
+        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar, y) = $x̄
     else
-        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Real) = $x̄
+        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $x̄
     end
     @eval needs_output(::typeof($f)) = $needs_y
 end

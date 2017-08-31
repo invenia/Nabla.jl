@@ -3,25 +3,25 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
 
     let
         # Define a dummy test function.
-        foo(x::∇Real) = 5x
-        foo(x::∇Real, y::∇Real) = 5x + 6y
-        foo(x::Vector{<:∇Real}, y::Vector{<:∇Real}) = 10x + 11y
-        foo(x::Matrix{<:∇Real}, y::Matrix{<:∇Real}) = 15x + 16y
+        foo(x::∇Scalar) = 5x
+        foo(x::∇Scalar, y::∇Scalar) = 5x + 6y
+        foo(x::Vector{<:∇Scalar}, y::Vector{<:∇Scalar}) = 10x + 11y
+        foo(x::Matrix{<:∇Scalar}, y::Matrix{<:∇Scalar}) = 15x + 16y
 
         # Create sensitivity intercepts.
-        @explicit_intercepts foo Tuple{∇Real}
-        @explicit_intercepts foo Tuple{∇Real, ∇Real}
-        @explicit_intercepts foo Tuple{Vector{<:∇Real}, Vector{<:∇Real}}
-        @explicit_intercepts foo Tuple{Matrix{<:∇Real}, Matrix{<:∇Real}}
+        @explicit_intercepts foo Tuple{∇Scalar}
+        @explicit_intercepts foo Tuple{∇Scalar, ∇Scalar}
+        @explicit_intercepts foo Tuple{Vector{<:∇Scalar}, Vector{<:∇Scalar}}
+        @explicit_intercepts foo Tuple{Matrix{<:∇Scalar}, Matrix{<:∇Scalar}}
 
         # Define sensitivity implementations.
-        const _Vec = Vector{<:∇Real}
-        const _Mat = Matrix{<:∇Real}
-        Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Real) = 5z̄
-        Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Real, y::∇Real) = 5z̄
+        const _Vec = Vector{<:∇Scalar}
+        const _Mat = Matrix{<:∇Scalar}
+        Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar) = 5z̄
+        Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 5z̄
         Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::_Vec, y::_Vec) = 10z̄
         Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::_Mat, y::_Mat) = 15z̄
-        Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::∇Real, y::∇Real) = 6z̄
+        Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 6z̄
         Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::_Vec, y::_Vec) = 11z̄
         Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::_Mat, y::_Mat) = 16z̄
 
@@ -84,7 +84,7 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
     end
 end
 
-function print_tol_err(f, ȳ, x::T, v::T, err_abs::∇Real, err_rel::∇Real) where T<:ArrayOr∇Real
+function print_tol_err(f, ȳ, x::T, v::T, err_abs::∇Scalar, err_rel::∇Scalar) where T<:∇ArrayOrScalar
     println("Large error found in sensitivity for function $f at input")
     println(x)
     println("in direction")

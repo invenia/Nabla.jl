@@ -1,14 +1,14 @@
 # Implementation of sensitivities for unary linalg optimisations.
 unary_linalg_optimisations = [
-    (:-,          ∇RealArray, ∇RealArray, :(map(-, Ȳ)),                        (lb, ub)),
-    (:trace,      ∇RealArray, ∇Real,      :(Diagonal(fill!(similar(X), Ȳ))),  (lb, ub)),
-    (:inv,        ∇RealArray, ∇RealArray, :(-transpose(Y) * Ȳ * transpose(Y)), (lb, ub)),
-    (:det,        ∇RealArray, ∇Real,      :(Y * Ȳ * transpose(inv(X))),        (_ϵ, ub)),
-    (:logdet,     ∇RealArray, ∇Real,      :(Ȳ * transpose(inv(X))),            (_ϵ, ub)),
-    (:transpose,  ∇RealArray, ∇RealArray, :(transpose(Ȳ)),                     (lb, ub)),
-    (:ctranspose, ∇RealArray, ∇RealArray, :(ctranspose(Ȳ)),                    (lb, ub)),
-    (:vecnorm,    ∇RealArray, ∇Real,      :(Ȳ ./ Y .* abs2.(X) ./ X),          (lb, ub)),
-    (:vecnorm,    ∇Real,      ∇Real,      :(Ȳ * sign(X)),                      (lb, ub))
+    (:-,          ∇Array, ∇Array, :(map(-, Ȳ)),                        (lb, ub)),
+    (:trace,      ∇Array, ∇Scalar,      :(Diagonal(fill!(similar(X), Ȳ))),  (lb, ub)),
+    (:inv,        ∇Array, ∇Array, :(-transpose(Y) * Ȳ * transpose(Y)), (lb, ub)),
+    (:det,        ∇Array, ∇Scalar,      :(Y * Ȳ * transpose(inv(X))),        (_ϵ, ub)),
+    (:logdet,     ∇Array, ∇Scalar,      :(Ȳ * transpose(inv(X))),            (_ϵ, ub)),
+    (:transpose,  ∇Array, ∇Array, :(transpose(Ȳ)),                     (lb, ub)),
+    (:ctranspose, ∇Array, ∇Array, :(ctranspose(Ȳ)),                    (lb, ub)),
+    (:vecnorm,    ∇Array, ∇Scalar,      :(Ȳ ./ Y .* abs2.(X) ./ X),          (lb, ub)),
+    (:vecnorm,    ∇Scalar,      ∇Scalar,      :(Ȳ * sign(X)),                      (lb, ub))
 ]
 for (f, T_In, T_Out, X̄, bounds) in unary_linalg_optimisations
     @eval import Base.$f
@@ -17,8 +17,8 @@ for (f, T_In, T_Out, X̄, bounds) in unary_linalg_optimisations
 end
 
 # Implementation of sensitivities for binary linalg optimisations.
-const RA = ∇RealArray
-const RRA = Union{∇Real, ∇RealArray}
+const RA = ∇Array
+const RRA = Union{∇Scalar, ∇Array}
 δ = 1e-5
 binary_linalg_optimisations = [
     (:*,          RA, RA, RRA,
@@ -84,10 +84,10 @@ binary_linalg_optimisations = [
     (:Ac_ldiv_Bc, RA, RA, RRA,
         :(-Y * Ac_rdiv_Bc(Ȳ, A)),
         :(Ac_rdiv_Bc(Ȳ, A))),
-    (:vecnorm,    RA, ∇Real, ∇Real,
+    (:vecnorm,    RA, ∇Scalar, ∇Scalar,
         :(Ȳ .* Y^(1 - B) .* abs.(A).^B ./ A),
         :(Ȳ * (Y^(1 - B) * sum(abs.(A).^B .* log.(abs.(A))) - Y * log(Y)) / B)),
-    (:vecnorm,    ∇Real, ∇Real, ∇Real,
+    (:vecnorm,    ∇Scalar, ∇Scalar, ∇Scalar,
         :(Ȳ * sign(A)),
         :(0)),
 

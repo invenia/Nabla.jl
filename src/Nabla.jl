@@ -1,12 +1,12 @@
 module Nabla
 
     # Some aliases used repeatedly throughout the package.
-    export ∇Real, ∇RealArray, SymOrExpr, ArrayOr∇Real
-    const ∇Real = Real
-    const ∇RealArray = AbstractArray{<:∇Real}
-    const ∇RealAV = AbstractVector{<:∇Real}
-    const ∇RealAM = AbstractMatrix{<:∇Real}
-    const ArrayOr∇Real = Union{AbstractArray{<:∇Real}, ∇Real}
+    export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
+    const ∇Scalar = Real
+    const ∇Array = AbstractArray{<:∇Scalar}
+    const ∇AbstractVector = AbstractVector{<:∇Scalar}
+    const ∇AbstractMatrix = AbstractMatrix{<:∇Scalar}
+    const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
     const SymOrExpr = Union{Symbol, Expr}
 
 

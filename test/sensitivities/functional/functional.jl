@@ -204,7 +204,7 @@
         @test z_.val == f.(x)
         @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
     end
-    function check_unary_dot(f, x::∇Real)
+    function check_unary_dot(f, x::∇Scalar)
         x_ = Leaf(Tape(), x)
         z_ = f.(x_)
         @test z_.val == f.(x)
@@ -226,7 +226,7 @@
         @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
         @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
     end
-    function check_binary_dot(f, x::∇Real, y::∇Real)
+    function check_binary_dot(f, x::∇Scalar, y::∇Scalar)
         x_, y_ = Leaf.(Tape(), (x, y))
         z_ = f.(x_, y_)
         @test ∇(z_)[x_] == ∇(broadcast(f, x_, y_))[x_]

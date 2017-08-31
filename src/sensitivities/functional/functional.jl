@@ -3,20 +3,20 @@ import Base.Broadcast.broadcast_shape
 
 # Implementation of sensitivities w.r.t. `map`.
 import Base.map
-@explicit_intercepts map Tuple{Any, ∇RealArray} [false, true]
-@union_intercepts map Tuple{Any, Vararg{∇RealArray}} Tuple{Any, Vararg}
+@explicit_intercepts map Tuple{Any, ∇Array} [false, true]
+@union_intercepts map Tuple{Any, Vararg{∇Array}} Tuple{Any, Vararg}
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇RealArray...) where N =
+∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
     method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...}) ?
         Base.map((yn, ȳn, An...)->∇(f, Arg{N-1}, p, yn, ȳn, An...), y, ȳ, A...) :
         Base.map((ȳn, An...)->ȳn * fmad(f, An, Val{N-1}), ȳ, A...)
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 import Base.broadcast
-@union_intercepts broadcast Tuple{Any, Vararg{∇Real}} Tuple{Any, Vararg{Number}}
+@union_intercepts broadcast Tuple{Any, Vararg{∇Scalar}} Tuple{Any, Vararg{Number}}
 @explicit_intercepts broadcast Tuple{Any, Any} [false, true]
-@union_intercepts broadcast Tuple{Any, Vararg{ArrayOr∇Real}} Tuple{Any, Any, Vararg}
+@union_intercepts broadcast Tuple{Any, Vararg{∇ArrayOrScalar}} Tuple{Any, Any, Vararg}
 
 """
     broadcastsum!(f::Function, add::Bool, z, As...)
@@ -56,42 +56,42 @@ function broadcastsum(f::Function, add::Bool, z::Number, As...)
 end
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::ArrayOr∇Real...) where N =
+∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇ArrayOrScalar...) where N =
     method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...}) ?
         broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N-1}, p, yn, ȳn, xn...), false, A[N-1], y, ȳ, A...) :
         broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N-1}), false, A[N-1], ȳ, A...)
 
 # Addition.
-@eval @explicit_intercepts $(Symbol("+")) Tuple{ArrayOr∇Real, ArrayOr∇Real}
-@inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@eval @explicit_intercepts $(Symbol("+")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
+@inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, +, x, y)
-@inline ∇(::typeof(+), ::Type{Arg{2}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@inline ∇(::typeof(+), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{3}, p, z, z̄, +, x, y)
 
 # Multiplication.
-@eval @explicit_intercepts $(Symbol("*")) Tuple{ArrayOr∇Real, ArrayOr∇Real}
-@inline ∇(::typeof(*), ::Type{Arg{1}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@eval @explicit_intercepts $(Symbol("*")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
+@inline ∇(::typeof(*), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, *, x, y)
-@inline ∇(::typeof(*), ::Type{Arg{2}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@inline ∇(::typeof(*), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{3}, p, z, z̄, *, x, y)
 
 # Subtraction.
-@eval @explicit_intercepts $(Symbol("-")) Tuple{ArrayOr∇Real, ArrayOr∇Real}
-@inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@eval @explicit_intercepts $(Symbol("-")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
+@inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, -, x, y)
-@inline ∇(::typeof(-), ::Type{Arg{2}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@inline ∇(::typeof(-), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{3}, p, z, z̄, -, x, y)
 
 # Division from the right by a scalar.
-@eval @explicit_intercepts $(Symbol("/")) Tuple{∇RealArray, ∇Real}
-@inline ∇(::typeof(/), ::Type{Arg{1}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@eval @explicit_intercepts $(Symbol("/")) Tuple{∇Array, ∇Scalar}
+@inline ∇(::typeof(/), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, /, x, y)
-@inline ∇(::typeof(/), ::Type{Arg{2}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@inline ∇(::typeof(/), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{3}, p, z, z̄, /, x, y)
 
 # Division from the left by a scalar.
-@eval @explicit_intercepts $(Symbol("\\")) Tuple{∇Real, ∇RealArray}
-@inline ∇(::typeof(\), ::Type{Arg{1}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@eval @explicit_intercepts $(Symbol("\\")) Tuple{∇Scalar, ∇Array}
+@inline ∇(::typeof(\), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, \, x, y)
-@inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::ArrayOr∇Real, y::ArrayOr∇Real) =
+@inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{3}, p, z, z̄, \, x, y)
