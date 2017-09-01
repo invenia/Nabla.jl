@@ -68,7 +68,7 @@ const SA = StridedArray
 # `gemm` sensitivities implementation.
 @explicit_intercepts(
     gemm,
-    Tuple{Char, Char, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    Tuple{Char, Char, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Scalar,
     [false, false, true, true],
 )
 ∇(::typeof(gemm), ::Type{Arg{3}}, p, Y, Ȳ,
@@ -77,7 +77,7 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     B::StridedMatrix{T},
-) where T<:∇Real = sum(Ȳ .* Y) / α
+) where T<:∇Scalar = sum(Ȳ .* Y) / α
 
 ∇(::typeof(gemm), ::Type{Arg{4}}, p, Y, Ȳ,
     tA::Char,
@@ -85,7 +85,7 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     B::StridedMatrix{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     uppercase(tA) == 'N' ?
         uppercase(tB) == 'N' ?
             gemm('N', 'T', α, Ȳ, B) :
@@ -100,7 +100,7 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     B::StridedMatrix{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     uppercase(tA) == 'N' ?
         uppercase(tB) == 'N' ?
             gemm!('N', 'T', α, Ȳ, B, 1.0, Ā) :
@@ -115,7 +115,7 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     B::StridedMatrix{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     uppercase(tA) == 'N' ?
         uppercase(tB) == 'N' ?
             gemm('T', 'N', α, A, Ȳ) :
@@ -130,7 +130,7 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     B::StridedMatrix{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     uppercase(tA) == 'N' ?
         uppercase(tB) == 'N' ?
             gemm!('T', 'N', α, A, Ȳ, 1.0, B̄) :
@@ -142,7 +142,7 @@ const SA = StridedArray
 # `gemm` sensitivities implementation for `α = 1`.
 @explicit_intercepts(
     gemm,
-    Tuple{Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    Tuple{Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Scalar,
     [false, false, true, true, true]
 )
 ∇(::typeof(gemm), ::Type{Arg{3}}, p, Y, Ȳ,
@@ -150,30 +150,30 @@ const SA = StridedArray
     tB::Char,
     A::StridedMatrix{T},
     B::StridedMatrix{T}
-) where T<:∇Real = ∇(gemm, Arg{4}, p, Y, Ȳ, tA, tB, one(T), A, B)
+) where T<:∇Scalar = ∇(gemm, Arg{4}, p, Y, Ȳ, tA, tB, one(T), A, B)
 ∇(Ā, ::typeof(gemm), ::Type{Arg{3}}, p, Y, Ȳ,
     tA::Char,
     tB::Char,
     A::StridedMatrix{T},
     B::StridedMatrix{T}
-) where T<:∇Real = ∇(Ā, gemm, Arg{4}, p, Y, Ȳ, tA, tB, one(T), A, B)
+) where T<:∇Scalar = ∇(Ā, gemm, Arg{4}, p, Y, Ȳ, tA, tB, one(T), A, B)
 ∇(::typeof(gemm), ::Type{Arg{4}}, p, Y, Ȳ,
     tA::Char,
     tB::Char,
     A::StridedMatrix{T},
     B::StridedMatrix{T},
-) where T<:∇Real = ∇(gemm, Arg{5}, p, Y, Ȳ, tA, tB, one(T), A, B)
+) where T<:∇Scalar = ∇(gemm, Arg{5}, p, Y, Ȳ, tA, tB, one(T), A, B)
 ∇(B̄, ::typeof(gemm), ::Type{Arg{4}}, p, Y, Ȳ,
     tA::Char,
     tB::Char,
     A::StridedMatrix{T},
     B::StridedMatrix{T}
-) where T<:∇Real = ∇(B̄, gemm, Arg{5}, p, Y, Ȳ, tA, tB, one(T), A, B)
+) where T<:∇Scalar = ∇(B̄, gemm, Arg{5}, p, Y, Ȳ, tA, tB, one(T), A, B)
 
 # `gemv` sensitivities implementation.
 @explicit_intercepts(
     gemv,
-    Tuple{Char, T, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    Tuple{Char, T, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, true, true, true],
 )
 ∇(::typeof(gemv), ::Type{Arg{2}}, p, y, ȳ,
@@ -181,70 +181,70 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = dot(ȳ, y) / α
+) where T<:∇Scalar = dot(ȳ, y) / α
 ∇(::typeof(gemv), ::Type{Arg{3}}, p, y, ȳ,
     tA::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = uppercase(tA) == 'N' ? α * ȳ * x.' : α * x * ȳ.'
+) where T<:∇Scalar = uppercase(tA) == 'N' ? α * ȳ * x.' : α * x * ȳ.'
 ∇(Ā::StridedMatrix{T}, ::typeof(gemv), ::Type{Arg{3}}, _, y, ȳ,
     tA::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = uppercase(tA) == 'N' ? ger!(α, ȳ, x, Ā) : ger!(α, x, ȳ, Ā)
+) where T<:∇Scalar = uppercase(tA) == 'N' ? ger!(α, ȳ, x, Ā) : ger!(α, x, ȳ, Ā)
 ∇(::typeof(gemv), ::Type{Arg{4}}, p, y, ȳ,
     tA::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = gemv(uppercase(tA) == 'N' ? 'T' : 'N', α, A, ȳ)
+) where T<:∇Scalar = gemv(uppercase(tA) == 'N' ? 'T' : 'N', α, A, ȳ)
 ∇(x̄::StridedVector{T}, ::typeof(gemv), ::Type{Arg{4}}, _, y, ȳ,
     tA::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = gemv!(uppercase(tA) == 'N' ? 'T' : 'N', α, A, ȳ, one(T), x̄)
+) where T<:∇Scalar = gemv!(uppercase(tA) == 'N' ? 'T' : 'N', α, A, ȳ, one(T), x̄)
 
 # `gemv` sensitivities implementation with `α = 1`.
 @explicit_intercepts(
     gemv,
-    Tuple{Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    Tuple{Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, true, true],
 )
 ∇(::typeof(gemv), ::Type{Arg{2}}, p, y, ȳ,
     tA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(gemv, Arg{3}, p, y, ȳ, tA, one(T), A, x)
+) where T<:∇Scalar = ∇(gemv, Arg{3}, p, y, ȳ, tA, one(T), A, x)
 ∇(Ā::StridedMatrix{T}, ::typeof(gemv), ::Type{Arg{2}}, p, y, ȳ,
     tA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(Ā, gemv, Arg{3}, p, y, ȳ, tA, one(T), A, x)
+) where T<:∇Scalar = ∇(Ā, gemv, Arg{3}, p, y, ȳ, tA, one(T), A, x)
 ∇(::typeof(gemv), ::Type{Arg{3}}, p, y, ȳ,
     tA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(gemv, Arg{4}, p, y, ȳ, tA, one(T), A, x)
+) where T<:∇Scalar = ∇(gemv, Arg{4}, p, y, ȳ, tA, one(T), A, x)
 ∇(x̄::StridedVector{T}, ::typeof(gemv), ::Type{Arg{3}}, p, y, ȳ,
     tA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(x̄, gemv, Arg{4}, p, y, ȳ, tA, one(T), A, x)
+) where T<:∇Scalar = ∇(x̄, gemv, Arg{4}, p, y, ȳ, tA, one(T), A, x)
 
 # # `syrk` sensitivity implementations.
 # @explicit_intercepts(
 #     syrk,
-#     Tuple{Char, Char, ∇Real, StridedVecOrMat{<:∇Real}},
+#     Tuple{Char, Char, ∇Scalar, StridedVecOrMat{<:∇Scalar}},
 #     [false, false, true, true],
 # )
 # function ∇(::typeof(syrk), ::Type{Arg{3}}, p, Y, Ȳ,
 #     uplo::Char,
 #     trans::Char,
-#     α::∇Real,
-#     A::StridedVecOrMat{<:∇Real},
+#     α::∇Scalar,
+#     A::StridedVecOrMat{<:∇Scalar},
 # )
 #     g! = uppercase(uplo) == 'L' ? tril! : triu!
 #     return sum(g!(Ȳ .* Y)) / α
@@ -252,8 +252,8 @@ const SA = StridedArray
 # function ∇(::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
 #     uplo::Char,
 #     trans::Char,
-#     α::∇Real,
-#     A::StridedVecOrMat{<:∇Real},
+#     α::∇Scalar,
+#     A::StridedVecOrMat{<:∇Scalar},
 # )
 #     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
 #     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
@@ -262,9 +262,9 @@ const SA = StridedArray
 # function ∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
 #     uplo::Char,
 #     trans::Char,
-#     α::∇Real,
+#     α::∇Scalar,
 #     A::StridedVecOrMat{T},
-# ) where T<:∇Real
+# ) where T<:∇Scalar
 #     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
 #     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
 #     return broadcast!((ā, δā)->ā+δā, Ā, Ā, uppercase(trans) == 'N' ? out : out.')
@@ -273,24 +273,24 @@ const SA = StridedArray
 # # `syrk` sensitivity implementations for `α=1`.
 # @explicit_intercepts(
 #     syrk,
-#     Tuple{Char, Char, StridedVecOrMat{<:∇Real}},
+#     Tuple{Char, Char, StridedVecOrMat{<:∇Scalar}},
 #     [false, false, true],
 # )
 # ∇(::typeof(syrk), ::Type{Arg{3}}, p, Y, Ȳ,
 #     uplo::Char,
 #     trans::Char,
-#     A::StridedVecOrMat{<:∇Real},
+#     A::StridedVecOrMat{<:∇Scalar},
 # ) = ∇(syrk, Arg{4}, p, Y, Ȳ, uplo, trans, one(eltype(A)), A)
 # ∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
 #     uplo::Char,
 #     trans::Char,
 #     A::StridedVecOrMat{T},
-# ) where T<:∇Real = ∇(Ā, syrk, Arg{4}, p, Y, Ȳ, uplo, char, one(eltype(A)), A)
+# ) where T<:∇Scalar = ∇(Ā, syrk, Arg{4}, p, Y, Ȳ, uplo, char, one(eltype(A)), A)
 
 # `symm` sensitivity implementations.
 @explicit_intercepts(
     symm,
-    Tuple{Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    Tuple{Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Scalar,
     [false, false, true, true, true],
 )
 ∇(::typeof(symm), ::Type{Arg{3}}, p, Y, Ȳ,
@@ -299,14 +299,14 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = sum(Ȳ .* Y) / α
+) where T<:∇Scalar = sum(Ȳ .* Y) / α
 function ∇(::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
     side::Char,
     ul::Char,
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real
+) where T<:∇Scalar
     tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
     g! = uppercase(ul) == 'L' ? tril! : triu!
     return α * g!(tmp + tmp' - Diagonal(tmp))
@@ -317,7 +317,7 @@ function ∇(Ā::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real
+) where T<:∇Scalar
     tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
     g! = uppercase(ul) == 'L' ? tril! : triu!
     return broadcast!((ā, δā)->ā + δā, Ā, Ā, α * g!(tmp + tmp' - Diagonal(tmp)))
@@ -328,19 +328,19 @@ end
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = symm(side, ul, α, A, Ȳ)
+) where T<:∇Scalar = symm(side, ul, α, A, Ȳ)
 ∇(B̄::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{5}}, p, Y, Ȳ,
     side::Char,
     ul::Char,
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = symm!(side, ul, α, A, Ȳ, 1.0, B̄)
+) where T<:∇Scalar = symm!(side, ul, α, A, Ȳ, 1.0, B̄)
 
 # `symm` sensitivity implementations for `α=1`.
 @explicit_intercepts(
     symm,
-    Tuple{Char, Char, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    Tuple{Char, Char, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Scalar,
     [false, false, true, true],
 )
 ∇(::typeof(symm), ::Type{Arg{3}}, p, Y, Ȳ,
@@ -348,30 +348,30 @@ end
     ul::Char,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = ∇(symm, Arg{4}, p, Y, Ȳ, side, ul, one(T), A, B)
+) where T<:∇Scalar = ∇(symm, Arg{4}, p, Y, Ȳ, side, ul, one(T), A, B)
 ∇(Ā::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{3}}, p, Y, Ȳ,
     side::Char,
     ul::Char,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = ∇(Ā, symm, Arg{4}, p, Y, Ȳ, side, ul, one(T), A, B)
+) where T<:∇Scalar = ∇(Ā, symm, Arg{4}, p, Y, Ȳ, side, ul, one(T), A, B)
 ∇(::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
     side::Char,
     ul::Char,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = ∇(symm, Arg{5}, p, Y, Ȳ, side, ul, one(T), A, B)
+) where T<:∇Scalar = ∇(symm, Arg{5}, p, Y, Ȳ, side, ul, one(T), A, B)
 ∇(B̄::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
     side::Char,
     ul::Char,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = ∇(B̄, symm, Arg{5}, p, Y, Ȳ, side, ul, one(T), A, B)
+) where T<:∇Scalar = ∇(B̄, symm, Arg{5}, p, Y, Ȳ, side, ul, one(T), A, B)
 
 # `symv` sensitivity implementations.
 @explicit_intercepts(
     symv,
-    Tuple{Char, T, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    Tuple{Char, T, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, true, true, true],
 )
 ∇(::typeof(symv), ::Type{Arg{2}}, p, y, ȳ,
@@ -379,63 +379,63 @@ end
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = dot(ȳ, y) / α
+) where T<:∇Scalar = dot(ȳ, y) / α
 ∇(::typeof(symv), ::Type{Arg{3}}, p, y, ȳ,
     ul::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(symm, Arg{4}, p, y, ȳ, 'L', ul, α, A, x)
+) where T<:∇Scalar = ∇(symm, Arg{4}, p, y, ȳ, 'L', ul, α, A, x)
 ∇(Ā::StridedMatrix{T}, ::typeof(symv), ::Type{Arg{3}}, p, y, ȳ,
     ul::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(Ā, symm, Arg{4}, p, y, ȳ, 'L', ul, α, A, x)
+) where T<:∇Scalar = ∇(Ā, symm, Arg{4}, p, y, ȳ, 'L', ul, α, A, x)
 ∇(::typeof(symv), ::Type{Arg{4}}, p, y, ȳ,
     ul::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = symv(ul, α, A, ȳ)
+) where T<:∇Scalar = symv(ul, α, A, ȳ)
 ∇(x̄::StridedVector{T}, ::typeof(symv), ::Type{Arg{4}}, p, y, ȳ,
     ul::Char,
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = symv!(ul, α, A, ȳ, one(T), x̄)
+) where T<:∇Scalar = symv!(ul, α, A, ȳ, one(T), x̄)
 
 # `symv` sensitivity implementations for `α=1`.
 @explicit_intercepts(
     symv,
-    Tuple{Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    Tuple{Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, true, true],
 )
 ∇(::typeof(symv), ::Type{Arg{2}}, p, y, ȳ,
     ul::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(symv, Arg{3}, p, y, ȳ, ul, one(T), A, x)
+) where T<:∇Scalar = ∇(symv, Arg{3}, p, y, ȳ, ul, one(T), A, x)
 ∇(Ā::StridedMatrix{T}, ::typeof(symv), ::Type{Arg{2}}, p, y, ȳ,
     ul::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(Ā, symv, Arg{3}, p, y, ȳ, ul, one(T), A, x)
+) where T<:∇Scalar = ∇(Ā, symv, Arg{3}, p, y, ȳ, ul, one(T), A, x)
 ∇(::typeof(symv), ::Type{Arg{3}}, p, y, ȳ,
     ul::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(symv, Arg{4}, p, y, ȳ, ul, one(T), A, x)
+) where T<:∇Scalar = ∇(symv, Arg{4}, p, y, ȳ, ul, one(T), A, x)
 ∇(B̄::StridedVector{T}, ::typeof(symv), ::Type{Arg{3}}, p, y, ȳ,
     ul::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(B̄, symv, Arg{4}, p, y, ȳ, ul, one(T), A, x)
+) where T<:∇Scalar = ∇(B̄, symv, Arg{4}, p, y, ȳ, ul, one(T), A, x)
 
 # `trmm` sensitivity implementations.
 @explicit_intercepts(
     trmm,
-    Tuple{Char, Char, Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    Tuple{Char, Char, Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Scalar,
     [false, false, false, false, true, true, true],
 )
 ∇(::typeof(trmm), ::Type{Arg{5}}, p, Y, Ȳ,
@@ -443,13 +443,13 @@ end
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real = sum(Ȳ .* Y) / α
+) where T<:∇Scalar = sum(Ȳ .* Y) / α
 function ∇(::typeof(trmm), ::Type{Arg{6}}, p, Y, Ȳ,
     side::Char, ul::Char, ta::Char, dA::Char,
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real
+) where T<:∇Scalar
     Ā_full = uppercase(side) == 'L' ?
         uppercase(ta) == 'N' ?
             gemm('N', 'T', α, Ȳ, B) :
@@ -464,7 +464,7 @@ end
     α::T,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     uppercase(side) == 'L' ?
         uppercase(ta) == 'N' ?
             trmm('L', ul, 'T', dA, α, A, Ȳ) :
@@ -476,25 +476,25 @@ end
 # `trmv` sensitivity implementations.
 @explicit_intercepts(
     trmv,
-    Tuple{Char, Char, Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    Tuple{Char, Char, Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, false, false, true, true],
 )
 ∇(::typeof(trmv), ::Type{Arg{4}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
     b::StridedVector{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     (uppercase(ul) == 'L' ? tril! : triu!)(uppercase(ta) == 'N' ? ȳ * b.' : b * ȳ.')
 ∇(::typeof(trmv), ::Type{Arg{5}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
     b::StridedVector{T},
-) where T<:∇Real = trmv(ul, uppercase(ta) == 'N' ? 'T' : 'N', dA, A, ȳ)
+) where T<:∇Scalar = trmv(ul, uppercase(ta) == 'N' ? 'T' : 'N', dA, A, ȳ)
 
 # `trsm` sensitivity implementations.
 @explicit_intercepts(
     trsm,
-    Tuple{Char, Char, Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Real,
+    Tuple{Char, Char, Char, Char, T, StridedMatrix{T}, StridedMatrix{T}} where T<:∇Scalar,
     [false, false, false, false, true, true, true],
 )
 ∇(::typeof(trsm), ::Type{Arg{5}}, p, Y, Ȳ,
@@ -502,13 +502,13 @@ end
     α::T,
     A::StridedMatrix{T},
     X::StridedMatrix{T},
-) where T<:∇Real = sum(Ȳ .* Y) / α
+) where T<:∇Scalar = sum(Ȳ .* Y) / α
 function ∇(::typeof(trsm), ::Type{Arg{6}}, p, Y, Ȳ,
     side::Char, ul::Char, ta::Char, dA::Char,
     α::T,
     A::StridedMatrix{T},
     X::StridedVecOrMat{T},
-) where T<:∇Real
+) where T<:∇Scalar
     Ā_full = uppercase(side) == 'L' ?
         uppercase(ta) == 'N' ?
             trsm('L', ul, 'T', dA, -1.0, A, Ȳ * Y.') :
@@ -523,7 +523,7 @@ end
     α::T,
     A::StridedMatrix{T},
     X::StridedMatrix{T},
-) where T<:∇Real =
+) where T<:∇Scalar =
     uppercase(side) == 'L' ?
         uppercase(ta) == 'N' ?
             trsm('L', ul, 'T', dA, α, A, Ȳ) :
@@ -535,19 +535,19 @@ end
 # `trsv` sensitivity implementations.
 @explicit_intercepts(
     trsv,
-    Tuple{Char, Char, Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Real,
+    Tuple{Char, Char, Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, false, false, true, true],
 )
 ∇(::typeof(trsv), ::Type{Arg{4}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = ∇(trsm, Arg{6}, p, y, ȳ, 'L', ul, ta, dA, one(T), A, x)
+) where T<:∇Scalar = ∇(trsm, Arg{6}, p, y, ȳ, 'L', ul, ta, dA, one(T), A, x)
 ∇(::typeof(trsv), ::Type{Arg{5}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Real = trsv(ul, uppercase(ta) == 'N' ? 'T' : 'N', dA, A, ȳ)
+) where T<:∇Scalar = trsv(ul, uppercase(ta) == 'N' ? 'T' : 'N', dA, A, ȳ)
 
 # # # TODO: Banded matrix operations.
 # # # gbmv

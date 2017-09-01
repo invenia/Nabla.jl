@@ -121,7 +121,8 @@ function get_body(
         Expr(:tuple, arg_names[1:end-1]..., Expr(Symbol("..."), arg_names[end])) :
         Expr(:tuple, arg_names...)
     sym_arg_tuple = any(isa_vararg.(get_types(get_body(type_tuple)))) ?
-        Expr(:tuple, quot.(arg_names[1:end-1])..., quot(Expr(Symbol("..."), arg_names[end]))) :
+        Expr(:tuple, quot.(arg_names[1:end-1])...,
+                           quot(Expr(Symbol("..."), arg_names[end]))) :
         Expr(:tuple, quot.(arg_names)...)
     quot_arg_names = [quot(arg_name) for arg_name in arg_names]
 

@@ -1,11 +1,9 @@
 # Implementation of reverse-mode sensitivities for `getindex`.
 import Base.getindex
-@explicit_intercepts getindex Tuple{Any, Any} [true, false]
-@explicit_intercepts getindex Tuple{Any, Any, Any} [true, false, false]
-@explicit_intercepts getindex Tuple{Any, Any, Any, Any} [true, false, false, false]
-@explicit_intercepts getindex Tuple{Any, Any, Any, Any, Any} [true, false, false, false, false]
-@explicit_intercepts getindex Tuple{Any, Any, Any, Any, Any, Any} [true, false, false, false, false, false]
-@explicit_intercepts getindex Tuple{Any, Any, Any, Any, Any, Any, Any} [true, false, false, false, false, false, false]
+for i = 1:7
+    T = Expr(:curly, :Tuple, fill(:Any, i)...)
+    @eval @explicit_intercepts getindex $T [[true]; fill(false, $i - 1)]
+end
 
 ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...) = setindex!(Ā, ȳ, inds...)
 function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)

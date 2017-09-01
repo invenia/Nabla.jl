@@ -40,14 +40,14 @@ decode(Vh, Vf, Z) = logistic.(Vf * tanh.(Vh * Z))
 klvae(μ, σ², D) = 0.5 * (sum(σ²) + sum(abs2, μ) - convert(Float64, D) - sum(log.(σ²)))
 
 # Generate and learn in a vanilla vae.
-function demo_vae(itrs::Int, sz::Int, L::Int) 
+function demo_vae(itrs::Int, sz::Int, L::Int)
 
     # Load the data and normalise.
     xtr, ytr_ = traindata()
     xtr ./= 256
 
     # Initialise parameters.
-    dx, dz, dh_enc, dh_dec = size(xtr, 1), 10, 500, 500 
+    dx, dz, dh_enc, dh_dec = size(xtr, 1), 10, 500, 500
     Wh, Wμ, Wσ = 0.1 * randn(dh_enc, dx), 0.1 * randn(dz, dh_enc), 0.1 * randn(dz, dh_enc)
     Vh, Vf = 0.1 * randn(dh_dec, dz), 0.1 * randn(dx, dh_dec)
     λ = 1e-3
@@ -77,7 +77,8 @@ function demo_vae(itrs::Int, sz::Int, L::Int)
         for l in 1:L
             z = μz .+ σz .* randn(dz, sz)
             f = decode(Vh_, Vf_, z)
-            loglik += sum(xtr_batch .* log.(f .+ ϵ) .+ (1 .- xtr_batch) .* log.((1 + ϵ) .- f))
+            loglik += sum(xtr_batch .* log.(f .+ ϵ) .+
+                          (1 .- xtr_batch) .* log.((1 + ϵ) .- f))
         end
         loglik /= convert(Float64, L)
 

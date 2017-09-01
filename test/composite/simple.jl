@@ -24,7 +24,8 @@ let ϵ_abs = 1e-5, ϵ_rel = 1e-4, δ = 1e-6
     end
 
     # 2D Rosenbrock function.
-    let x = randn(25), y = randn(25), f(x, y) = (1.0 .- x) .* (1.0 .- x) .+ 100.0 .* (y .- x .* x) .* (y .- x .* x)
+    let x = randn(25), y = randn(25)
+        f(x, y) = (1.0 .- x) .* (1.0 .- x) .+ 100.0 .* (y .- x .* x) .* (y .- x .* x)
         δ_abs, δ_rel = discrepancy(f, (x, y), δ, [true, true])
         @test all(map(check_abs, δ_abs)) && all(map(check_rel, δ_rel))
     end
