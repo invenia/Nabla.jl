@@ -93,14 +93,17 @@
         @test check_unary_broadcast(eval(current_module(), f), x)
     end
 
-    # Check that `broadcast` returns the correct gradient under each implemented binary function.
+    # Check that `broadcast` returns the correct gradient under each implemented binary
+    # function.
     function check_binary_broadcast(f, x, y)
         tape = Tape()
         x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = broadcast(f, x_, y_)
         ∇s = ∇(s, ones(s.val))
-        ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
-        ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
+        ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
+                       s.val, ones(s.val), x, y)
+        ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
+                       s.val, ones(s.val), x, y)
         @test broadcast(f, x, y) == s.val
         @test ∇s[x_] ≈ ∇x
         @test ∇s[y_] ≈ ∇y
@@ -110,8 +113,10 @@
         x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = broadcast(f, x_, y_)
         ∇s = ∇(s, ones(s.val))
-        ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y))
-        ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
+        ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
+                           s.val, ones(s.val), x, y))
+        ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
+                       s.val, ones(s.val), x, y)
         @test broadcast(f, x, y) == s.val
         @test ∇s[x_] ≈ ∇x
         @test ∇s[y_] ≈ ∇y
@@ -121,8 +126,10 @@
         x_, y_ = Leaf(tape, x), Leaf(tape, y)
         s = broadcast(f, x_, y_)
         ∇s = ∇(s, ones(s.val))
-        ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y)
-        ∇y = sum(broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), s.val, ones(s.val), x, y))
+        ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
+                       s.val, ones(s.val), x, y)
+        ∇y = sum(broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
+                           s.val, ones(s.val), x, y))
         @test broadcast(f, x, y) == s.val
         @test ∇s[x_] ≈ ∇x
         @test ∇s[y_] ≈ ∇y

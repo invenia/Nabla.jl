@@ -70,21 +70,36 @@ compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrSc
     compute_Dv_update(f, ȳ, (x,), (v,))
 
 """
-    check_errs(f, ȳ::∇ArrayOrScalar, x::T, v::T, ϵ_abs::∇Scalar, ϵ_rel::∇Scalar)::Bool where T
+    check_errs(
+        f,
+        ȳ::∇ArrayOrScalar,
+        x::T,
+        v::T,
+        ϵ_abs::∇Scalar,
+        c_rel::∇Scalar
+    )::Bool where T
 
 Check that the difference between finite differencing directional derivative estimation and
 RMAD directional derivative computation for function `f` at `x` in direction `v`, for both
-allocating and in-place modes, has absolute and relative errors of `ϵ_abs` and `ϵ_rel`
+allocating and in-place modes, has absolute and relative errors of `ϵ_abs` and `c_rel`
 respectively, when scaled by reverse-mode sensitivity `ȳ`.
 """
-function check_errs(f, ȳ::∇ArrayOrScalar, x::T, v::T, ϵ_abs::∇Scalar, c_rel::∇Scalar)::Bool where T
+function check_errs(
+    f,
+    ȳ::∇ArrayOrScalar,
+    x::T,
+    v::T,
+    ϵ_abs::∇Scalar,
+    c_rel::∇Scalar
+)::Bool where T
     ∇x_alloc = compute_Dv(f, ȳ, x, v)
     ∇x_inplace = compute_Dv_update(f, ȳ, x, v)
     ∇x_fin_diff = approximate_Dv(f, ȳ, x, v)
 
     checks_pass = check_tol(∇x_alloc, ∇x_fin_diff, ϵ_abs, c_rel) &&
                   check_tol(∇x_inplace, ∇x_fin_diff, ϵ_abs, c_rel)
-    checks_pass || println("f is $f, ∇x_alloc is $∇x_alloc, ∇x_inplace is $∇x_inplace and ∇x_fin_diff is $∇x_fin_diff")
+    checks_pass || println("f is $f, ∇x_alloc is $∇x_alloc, ∇x_inplace is $∇x_inplace " *
+                           "and ∇x_fin_diff is $∇x_fin_diff")
     return checks_pass
 end
 

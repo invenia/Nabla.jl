@@ -84,7 +84,14 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
     end
 end
 
-function print_tol_err(f, ȳ, x::T, v::T, err_abs::∇Scalar, err_rel::∇Scalar) where T<:∇ArrayOrScalar
+function print_tol_err(
+    f,
+    ȳ,
+    x::T,
+    v::T,
+    err_abs::∇Scalar,
+    err_rel::∇Scalar
+) where T<:∇ArrayOrScalar
     println("Large error found in sensitivity for function $f at input")
     println(x)
     println("in direction")

@@ -1,9 +1,9 @@
 import Base: mapreducedim, sum
 
-accepted_wo_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any})
-accepted_w_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any, ∇Scalar})
-@eval @explicit_intercepts mapreducedim $accepted_wo_default [false, false, true, false]
-@eval @explicit_intercepts mapreducedim $accepted_w_default [false, false, true, false, true]
+accept_wo_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any})
+accept_w_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any, ∇Scalar})
+@eval @explicit_intercepts mapreducedim $accept_wo_default [false, false, true, false]
+@eval @explicit_intercepts mapreducedim $accept_w_default [false, false, true, false, true]
 
 function ∇(
     ::typeof(mapreducedim),

@@ -56,10 +56,23 @@ function broadcastsum(f::Function, add::Bool, z::Number, As...)
 end
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇ArrayOrScalar...) where N =
-    method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...}) ?
-        broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N-1}, p, yn, ȳn, xn...), false, A[N-1], y, ȳ, A...) :
-        broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N-1}), false, A[N-1], ȳ, A...)
+function ∇(
+    ::typeof(broadcast),
+    ::Type{Arg{N}},
+    p,
+    y,
+    ȳ,
+    f::Function,
+    A::∇ArrayOrScalar...
+) where N
+    if method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...})
+        return broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N-1}, p, yn, ȳn, xn...),
+                            false, A[N-1], y, ȳ, A...)
+    else
+        return broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N-1}),
+                            false, A[N-1], ȳ, A...)
+    end
+end
 
 # Addition.
 @eval @explicit_intercepts $(Symbol("+")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}

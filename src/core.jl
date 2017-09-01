@@ -179,10 +179,10 @@ end
 # Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),
 # will return a Tuple, the first element of which is the output of the function `f` and then
 # second element of which is (yet another) function `g`. `g` can either be evaluated with no
-# arguments, in which case it will return the gradient of `f` evaluated at`x`. Alternatively,
-# it can be evaluated with arguments of the same type and shape as the output of `f(x)`, in
-# which case it is equivalent to multiplying them 'from the left' by the Jacobian
-# ∂(f(x)) / ∂x.
+# arguments, in which case it will return the gradient of `f` evaluated at `x`.
+# Alternatively, it can be evaluated with arguments of the same type and shape as the output
+# of `f(x)`, in which case it is equivalent to multiplying them 'from the left' by the
+# Jacobian ∂(f(x)) / ∂x.
 # """
 # function ∇(f::Function)
 #     return function(args...)
