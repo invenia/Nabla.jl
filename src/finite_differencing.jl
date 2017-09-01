@@ -5,7 +5,7 @@ export check_Dv, check_Dv_update, check_errs
         f,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
-            v::Tuple{Vararg{∇ArrayOrScalar}},
+        v::Tuple{Vararg{∇ArrayOrScalar}}
     )
     approximate_Dv(f::Function, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar)
 
@@ -16,7 +16,7 @@ function approximate_Dv(
     f,
     ȳ::∇ArrayOrScalar,
     x::Tuple{Vararg{∇ArrayOrScalar}},
-    v::Tuple{Vararg{∇ArrayOrScalar}},
+    v::Tuple{Vararg{∇ArrayOrScalar}}
 )
     y1, y2 = f(map(-, x, v)...), f(map(+, x, v)...)
     length(y1) == length(ȳ) || throw(ArgumentError("length(y1) != length(y)."))
@@ -30,7 +30,7 @@ approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScala
         f::Function,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
-        v::Tuple{Vararg{∇ArrayOrScalar}},
+        v::Tuple{Vararg{∇ArrayOrScalar}}
     )
 
 Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this
@@ -42,7 +42,7 @@ function compute_Dv(
     f,
     ȳ::∇ArrayOrScalar,
     x::Tuple{Vararg{∇ArrayOrScalar}},
-    v::Tuple{Vararg{∇ArrayOrScalar}},
+    v::Tuple{Vararg{∇ArrayOrScalar}}
 )
     x_ = Leaf.(Tape(), x)
     ∇f = ∇(f(x_...), ȳ)
@@ -55,7 +55,7 @@ function compute_Dv_update(
     f,
     ȳ::∇ArrayOrScalar,
     x::Tuple{Vararg{∇ArrayOrScalar}},
-    v::Tuple{Vararg{∇ArrayOrScalar}},
+    v::Tuple{Vararg{∇ArrayOrScalar}}
 )
     x_ = Leaf.(Tape(), x)
     y = f(x_...)
