@@ -18,9 +18,7 @@ function approximate_Dv(
     x::Tuple{Vararg{ArrayOr∇Real}},
     v::Tuple{Vararg{ArrayOr∇Real}},
 )
-    y1, y2 = f(map(-, x, v)...), f(map(+, x, v)...)
-    length(y1) == length(ȳ) || throw(ArgumentError("length(y1) != length(y)."))
-    return sum(ȳ .* (y2 - y1) / 2)
+    return central_5_1(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
 end
 approximate_Dv(f, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) =
     approximate_Dv(f, ȳ, (x,), (v,))
@@ -70,11 +68,11 @@ compute_Dv_update(f, ȳ::ArrayOr∇Real, x::ArrayOr∇Real, v::ArrayOr∇Real) 
     compute_Dv_update(f, ȳ, (x,), (v,))
 
 """
-    check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, ϵ_rel::∇Real)::Bool where T
+    check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, c_rel::∇Real)::Bool where T
 
 Check that the difference between finite differencing directional derivative estimation and
 RMAD directional derivative computation for function `f` at `x` in direction `v`, for both
-allocating and in-place modes, has absolute and relative errors of `ϵ_abs` and `ϵ_rel`
+allocating and in-place modes, has absolute and relative errors of `ϵ_abs` and `c_rel`
 respectively, when scaled by reverse-mode sensitivity `ȳ`.
 """
 function check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, c_rel::∇Real)::Bool where T
@@ -89,7 +87,7 @@ function check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, c_rel::
 end
 
 check_tol(x, y, ϵ_abs, c_rel) =
-    abs.(x - y) .< max(c_rel * eps(c_rel) .* max.(abs.(x), abs.(y)), ϵ_abs)
+    abs.(x - y) .< ϵ_abs + c_rel * eps(c_rel) .* (abs.(x) + abs.(y))
 
 """
     FDMReport
@@ -182,7 +180,7 @@ function fdm(
     acc = ĥ^(-q) * C₁ + ĥ^(p - q) * C₂
 
     # Construct the FDM.
-    method(f::Function, x::Real, h::Real=ĥ) = sum(coefs .* f.(x .+ h .* grid)) / h^q
+    method(f::Function, x::Real=0, h::Real=ĥ) = sum(coefs .* f.(x .+ h .* grid)) / h^q
 
     # If asked for, also return information.
     if report
@@ -212,3 +210,8 @@ function central_fdm(p::Int, args...; kws...)
     return isodd(p) ? fdm(Int(-(p - 1) / 2):Int((p - 1) / 2), args...; kws...) :
                       fdm([Int(-p/2):-1; 1:Int(p/2)], args...; kws...)
 end
+
+# Precompute some FDMs.
+central_3_1 = central_fdm(3, 1)
+central_5_1 = central_fdm(5, 1)
+central_7_1 = central_fdm(7, 1)
