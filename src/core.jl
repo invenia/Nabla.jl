@@ -136,7 +136,7 @@ end
 struct Arg{N} end
 
 """
-    ∇(y::Node{<:∇Real})
+    ∇(y::Node{<:∇Scalar})
     ∇(y::Node{T}, ȳ::T) where T
 
 Return a `Tape` object which can be indexed using `Node`s, each element of which contains
@@ -153,7 +153,7 @@ is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
 ∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
-@inline ∇(y::Node{<:∇Real}) = ∇(y, one(y.val))
+@inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(y.val))
 
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
@@ -179,10 +179,10 @@ end
 # Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),
 # will return a Tuple, the first element of which is the output of the function `f` and then
 # second element of which is (yet another) function `g`. `g` can either be evaluated with no
-# arguments, in which case it will return the gradient of `f` evaluated at`x`. Alternatively,
-# it can be evaluated with arguments of the same type and shape as the output of `f(x)`, in
-# which case it is equivalent to multiplying them 'from the left' by the Jacobian
-# ∂(f(x)) / ∂x.
+# arguments, in which case it will return the gradient of `f` evaluated at `x`.
+# Alternatively, it can be evaluated with arguments of the same type and shape as the output
+# of `f(x)`, in which case it is equivalent to multiplying them 'from the left' by the
+# Jacobian ∂(f(x)) / ∂x.
 # """
 # function ∇(f::Function)
 #     return function(args...)
