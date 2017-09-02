@@ -176,8 +176,16 @@ function fdm(
     report::Bool=false
 )
     p = length(grid)  # Order of the method.
-    q < p || error("Order of the method must be strictly greater than that of the " *
-                   "derivative.")
+    q < p || throw(ArgumentError("Order of the method must be strictly greater than that " *
+                                 "of the derivative."))
+
+    # Check whether the method can be computed.
+    try
+        factorial(p)
+    catch e
+        isa(e, OverflowError) && throw(ArgumentError("Order of the method is too large " *
+                                                     "to be computed."))
+    end
 
     # Compute the coefficients of the FDM.
     C = hcat([grid.^i for i = 0:p - 1]...)'

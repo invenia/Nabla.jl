@@ -110,6 +110,8 @@ end
         @eval @test $f(14, 3)(exp, 1) ≈ exp(1)
     end
 
+    @test_throws ArgumentError central_fdm(100, 1)
+
     # Test that printing an instance of `FDMReport` contains the information that it should
     # contain.
     buffer = IOBuffer()
