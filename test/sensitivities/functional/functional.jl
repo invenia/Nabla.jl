@@ -1,4 +1,4 @@
-@testset "sensitivities/functional/functional" begin
+@testset "Functional" begin
 
     import Nabla.fmad
 

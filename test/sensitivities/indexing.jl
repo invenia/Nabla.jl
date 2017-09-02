@@ -1,4 +1,4 @@
-@testset "sensitivities/indexing" begin
+@testset "Indexing" begin
 
 let
     leaf = Leaf(Tape(), 5 * [1, 1, 1, 1, 1])
