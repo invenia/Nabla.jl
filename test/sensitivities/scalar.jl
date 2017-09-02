@@ -1,6 +1,6 @@
 @testset "sensitivities/scalar" begin
 
-    let ϵ_abs = 1e-5, c_rel = 1e6, v = 1e-6, ȳ = 5.0, z̄ = 4.0
+    let v = 1.0, ȳ = 5.0, z̄ = 4.0
 
         let
             @test ∇(identity, Arg{1}, 5.0, 4.0, 3.0, 2.0) == 3.0
@@ -8,7 +8,7 @@
             @test ∇(identity, Arg{1}, 5.0) == 1.0
         end
 
-        unary_check(f, x) = check_errs(eval(f), ȳ, x, v, ϵ_abs, c_rel)
+        unary_check(f, x) = check_errs(eval(f), ȳ, x, v)
         for (f, x̄, range) in Nabla.unary_sensitivities
             for _ in 1:10
                 @test unary_check(f, rand() * (range[2] - range[1]) + range[1])
@@ -17,7 +17,7 @@
             @test unary_check(f, range[2])
         end
 
-        binary_test(f, x, y) = check_errs(eval(f), z̄, (x, y), (v, v), ϵ_abs, c_rel)
+        binary_test(f, x, y) = check_errs(eval(f), z̄, (x, y), (v, v))
         for (f, x̄, ȳ, range_x, range_y) in Nabla.binary_sensitivities
             for _ in 1:10
                 x = rand() * (range_x[2] - range_x[1]) + range_x[1]

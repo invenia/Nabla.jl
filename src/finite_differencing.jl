@@ -73,13 +73,13 @@ compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrSc
         ȳ::∇ArrayOrScalar,
         x::T,
         v::T,
-        ϵ_abs::∇Scalar,
-        c_rel::∇Scalar
+        ε_abs::∇Scalar=1e-13,
+        ε_rel::∇Scalar=1e-7
     )::Bool where T
 
 Check that the difference between finite differencing directional derivative estimation and
 RMAD directional derivative computation for function `f` at `x` in direction `v`, for both
-allocating and in-place modes, has absolute and relative errors of `ϵ_abs` and `c_rel`
+allocating and in-place modes, has absolute and relative errors of `ε_abs` and `ε_rel`
 respectively, when scaled by reverse-mode sensitivity `ȳ`.
 """
 function check_errs(
@@ -87,22 +87,28 @@ function check_errs(
     ȳ::∇ArrayOrScalar,
     x::T,
     v::T,
-    ϵ_abs::∇Scalar,
-    c_rel::∇Scalar
+    ε_abs::∇Scalar=1e-10,
+    ε_rel::∇Scalar=1e-7
 )::Bool where T
     ∇x_alloc = compute_Dv(f, ȳ, x, v)
     ∇x_inplace = compute_Dv_update(f, ȳ, x, v)
     ∇x_fin_diff = approximate_Dv(f, ȳ, x, v)
-
-    checks_pass = check_tol(∇x_alloc, ∇x_fin_diff, ϵ_abs, c_rel) &&
-                  check_tol(∇x_inplace, ∇x_fin_diff, ϵ_abs, c_rel)
-    checks_pass || println("f is $f, ∇x_alloc is $∇x_alloc, ∇x_inplace is $∇x_inplace " *
-                           "and ∇x_fin_diff is $∇x_fin_diff")
-    return checks_pass
+    return check_tol("<$f> allocated", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
+           check_tol("<$f> in-place", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
 end
 
-check_tol(x, y, ϵ_abs, c_rel) =
-    abs.(x - y) .< ϵ_abs + c_rel * eps(c_rel) .* (abs.(x) + abs.(y))
+function check_tol(desc, x, y, ε_abs, ε_rel)
+    if abs(x - y) >= ε_abs + ε_rel * (abs(x) + abs(y))
+        @printf "For \"%s\", large deviation from finite-difference estimate:\n" desc
+        @printf "  relative error:  %.3e\n" abs(x - y) / (abs(x) + abs(y))
+        @printf "    tolerance:     %.3e\n" ε_rel
+        @printf "  absolute error:  %.3e\n" abs(x - y)
+        @printf "    tolerance:     %.3e\n" ε_abs
+        return false
+    else
+        return true
+    end
+end
 
 """
     FDMReport
@@ -146,8 +152,8 @@ end
     function fdm(
         grid::Vector{<:∇Scalar},
         q::Int;
-        ε::∇Scalar=1e2 * eps(),
-        M::∇Scalar=1,
+        ε::∇Scalar=eps(),
+        M::∇Scalar=1e6,
         report::Bool=false
     )
 
@@ -163,16 +169,16 @@ finite-difference method.
     of the method.
 
 # Keywords
-- `ε::∇Scalar=1e2 * eps()`: Absolute roundoff error of the function evaluations.
-- `M::∇Scalar=1`: Assumed upper bound of `f` and all its derivatives at `x`.
+- `ε::∇Scalar=eps()`: Absolute roundoff error of the function evaluations.
+- `M::∇Scalar=1e6`: Assumed upper bound of `f` and all its derivatives at `x`.
 - `report::Bool=false`: Also return an instance of `FDMReport` containing information
     about the method constructed.
 """
 function fdm(
     grid::Vector{<:∇Scalar},
     q::Int;
-    ε::∇Scalar=1e2 * eps(),
-    M::∇Scalar=1,
+    ε::∇Scalar=eps(),
+    M::∇Scalar=1e6,
     report::Bool=false
 )
     p = length(grid)  # Order of the method.
@@ -234,6 +240,6 @@ function central_fdm(p::Int, args...; kws...)
 end
 
 # Precompute some FDMs.
-central_3_1 = central_fdm(3, 1)
+central_3_1 = backward_fdm(3, 1)
 central_5_1 = central_fdm(5, 1)
 central_7_1 = central_fdm(7, 1)

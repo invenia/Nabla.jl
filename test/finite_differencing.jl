@@ -1,5 +1,5 @@
 import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
-@testset "finite_differencing" begin
+@testset "finite-difference estimates of sensitivities" begin
 
     let
         # Define a dummy test function.
@@ -84,30 +84,14 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
     end
 end
 
-function print_tol_err(
-    f,
-    ȳ,
-    x::T,
-    v::T,
-    err_abs::∇Scalar,
-    err_rel::∇Scalar
-) where T<:∇ArrayOrScalar
-    println("Large error found in sensitivity for function $f at input")
-    println(x)
-    println("in direction")
-    println(v)
-    println("err_abs = $err_abs, err_rel = $err_rel")
-    throw(error("Large error found in sensitivity."))
-end
-
 @testset "finite-difference methods" begin
     for f in [:forward_fdm, :backward_fdm, :central_fdm]
-        @eval @test $f(8, 1)(sin, 1) ≈ cos(1)
-        @eval @test $f(10, 2)(sin, 1) ≈ -sin(1)
-        @eval @test $f(12, 3)(sin, 1) ≈ -cos(1)
-        @eval @test $f(8, 1)(exp, 1) ≈ exp(1)
-        @eval @test $f(10, 2)(exp, 1) ≈ exp(1)
-        @eval @test $f(12, 3)(exp, 1) ≈ exp(1)
+        @eval @test $f(8, 1; M=1)(sin, 1) ≈ cos(1)
+        @eval @test $f(10, 2; M=1)(sin, 1) ≈ -sin(1)
+        @eval @test $f(12, 3; M=1)(sin, 1) ≈ -cos(1)
+        @eval @test $f(8, 1; M=1)(exp, 1) ≈ exp(1)
+        @eval @test $f(10, 2; M=1)(exp, 1) ≈ exp(1)
+        @eval @test $f(12, 3; M=1)(exp, 1) ≈ exp(1)
     end
 
     @test_throws ArgumentError central_fdm(100, 1)

@@ -42,12 +42,12 @@
     end
 
     # Check sensitivities for lower-triangular version.
-    let rng = MersenneTwister(123456), N = 10, ϵ_abs = 1e-6, c_rel = 1e6, δ = 1e-6
+    let rng = MersenneTwister(123456), N = 10
         for _ in 1:10
             B, VB = randn.(rng, [N, N], [N, N])
             A, VA = B.'B + 1e-6I, VB.'VB + 1e-6I
             Ū = UpperTriangular(randn(rng, N, N))
-            @test check_errs(chol, Ū, A, δ .* VA, ϵ_abs, c_rel)
+            @test check_errs(chol, Ū, A, 1e-2 .* VA)
         end
     end
 
