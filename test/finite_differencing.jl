@@ -92,3 +92,14 @@ function print_tol_err(f, ȳ, x::T, v::T, err_abs::∇Real, err_rel::∇Real) w
     println("err_abs = $err_abs, err_rel = $err_rel")
     throw(error("Large error found in sensitivity."))
 end
+
+@testset "finite-difference estimates" begin
+    for f in [:forward_fdm, :backward_fdm, :central_fdm]
+        @eval @test $f(10, 1)(sin, 1) ≈ cos(1)
+        @eval @test $f(12, 2)(sin, 1) ≈ -sin(1)
+        @eval @test $f(14, 3)(sin, 1) ≈ -cos(1)
+        @eval @test $f(10, 1)(exp, 1) ≈ exp(1)
+        @eval @test $f(12, 2)(exp, 1) ≈ exp(1)
+        @eval @test $f(14, 3)(exp, 1) ≈ exp(1)
+    end
+end
