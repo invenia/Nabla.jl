@@ -68,9 +68,6 @@ compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrSc
     compute_Dv_update(f, ȳ, (x,), (v,))
 
 """
-<<<<<<< HEAD
-    check_errs(f, ȳ::ArrayOr∇Real, x::T, v::T, ϵ_abs::∇Real, c_rel::∇Real)::Bool where T
-=======
     check_errs(
         f,
         ȳ::∇ArrayOrScalar,
@@ -79,7 +76,6 @@ compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrSc
         ϵ_abs::∇Scalar,
         c_rel::∇Scalar
     )::Bool where T
->>>>>>> master
 
 Check that the difference between finite differencing directional derivative estimation and
 RMAD directional derivative computation for function `f` at `x` in direction `v`, for both
@@ -117,22 +113,22 @@ Details of a finite-difference method to estimate a derivative. Instances of `FD
 # Fields
 - `p::Int`: Order of the method.
 - `q::Int`: Order of the derivative that is estimated.
-- `grid::Vector{<:Real}`: Relative spacing of samples of `f` that are used by the method.
-- `coefs::Vector{<:Real}`: Weights of the samples of `f`.
-- `ε::Real`: Absolute roundoff error of the function evaluations.
-- `M::Real`: Assumed upper bound of `f` and all its derivatives at `x`.
-- `ĥ::Real`: Step size.
-- `err::Real`: Estimated absolute accuracy.
+- `grid::Vector{<:∇Scalar}`: Relative spacing of samples of `f` that are used by the method.
+- `coefs::Vector{<:∇Scalar}`: Weights of the samples of `f`.
+- `ε::∇Scalar`: Absolute roundoff error of the function evaluations.
+- `M::∇Scalar`: Assumed upper bound of `f` and all its derivatives at `x`.
+- `ĥ::∇Scalar`: Step size.
+- `err::∇Scalar`: Estimated absolute accuracy.
 """
 struct FDMReport
     p::Int
     q::Int
-    grid::Vector{<:Real}
-    coefs::Vector{<:Real}
-    ε::Real
-    M::Real
-    ĥ::Real
-    acc::Real
+    grid::Vector{<:∇Scalar}
+    coefs::Vector{<:∇Scalar}
+    ε::∇Scalar
+    M::∇Scalar
+    ĥ::∇Scalar
+    acc::∇Scalar
 end
 function Base.show(io::IO, x::FDMReport)
     @printf io "FDMReport:\n"
@@ -148,35 +144,35 @@ end
 
 """
     function fdm(
-        grid::Vector{<:Real},
+        grid::Vector{<:∇Scalar},
         q::Int;
-        ε::Real=1e2 * eps(),
-        M::Real=1,
+        ε::∇Scalar=1e2 * eps(),
+        M::∇Scalar=1,
         report::Bool=false
     )
 
-Construct a function `method(f::Function, x::Real, h::Real=ĥ)` that takes in a scalar
+Construct a function `method(f::Function, x::∇Scalar, h::∇Scalar=ĥ)` that takes in a scalar
 function `f`, a point `x` in the domain of `f`, and optionally a step size `h`, and
 estimates the `q`'th order derivative of `f` at `x` with a `length(grid)`'th order
 finite-difference method.
 
 # Arguments
-- `grid::Vector{<:Real}`: Relative spacing of samples of `f` that are used by the method.
+- `grid::Vector{<:∇Scalar}`: Relative spacing of samples of `f` that are used by the method.
     The length of `grid` determines the order of the method.
 - `q::Int`: Order of the derivative to estimate. `q` must be strictly less than the order
     of the method.
 
 # Keywords
-- `ε::Real=1e2 * eps()`: Absolute roundoff error of the function evaluations.
-- `M::Real=1`: Assumed upper bound of `f` and all its derivatives at `x`.
+- `ε::∇Scalar=1e2 * eps()`: Absolute roundoff error of the function evaluations.
+- `M::∇Scalar=1`: Assumed upper bound of `f` and all its derivatives at `x`.
 - `report::Bool=false`: Also return an instance of `FDMReport` containing information
     about the method constructed.
 """
 function fdm(
-    grid::Vector{<:Real},
+    grid::Vector{<:∇Scalar},
     q::Int;
-    ε::Real=1e2 * eps(),
-    M::Real=1,
+    ε::∇Scalar=1e2 * eps(),
+    M::∇Scalar=1,
     report::Bool=false
 )
     p = length(grid)  # Order of the method.
@@ -199,7 +195,7 @@ function fdm(
     acc = ĥ^(-q) * C₁ + ĥ^(p - q) * C₂
 
     # Construct the FDM.
-    method(f::Function, x::Real=0, h::Real=ĥ) = sum(coefs .* f.(x .+ h .* grid)) / h^q
+    method(f::Function, x::∇Scalar=0, h::∇Scalar=ĥ) = sum(coefs .* f.(x .+ h .* grid)) / h^q
 
     # If asked for, also return information.
     if report
