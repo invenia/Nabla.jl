@@ -132,7 +132,8 @@ end
 """
     function fdm(
         grid::Vector{<:Real},
-        q::Int; ε::Real=1e2 * eps(),
+        q::Int;
+        ε::Real=1e2 * eps(),
         M::Real=1,
         report::Bool=false
     )
@@ -156,7 +157,8 @@ finite-difference method.
 """
 function fdm(
     grid::Vector{<:Real},
-    q::Int; ε::Real=1e2 * eps(),
+    q::Int;
+    ε::Real=1e2 * eps(),
     M::Real=1,
     report::Bool=false
 )
