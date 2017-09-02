@@ -178,7 +178,6 @@ function fdm(
     p = length(grid)  # Order of the method.
     q < p || error("Order of the method must be strictly greater than that of the " *
                    "derivative.")
-    p <= 20 || error("Order of the method must be 20 or less.")
 
     # Compute the coefficients of the FDM.
     C = hcat([grid.^i for i = 0:p - 1]...)'
