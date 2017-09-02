@@ -1,4 +1,4 @@
-@testset "sensitivities/linalg/factorization/cholesky" begin
+@testset "Cholesky" begin
 
     import Nabla: level2partition, level3partition
     let rng = MersenneTwister(123456), N = 5

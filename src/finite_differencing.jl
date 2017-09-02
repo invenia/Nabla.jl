@@ -1,4 +1,5 @@
-export check_Dv, check_Dv_update, check_errs, fdm, forward_fdm, central_fdm, backward_fdm
+export check_Dv, check_Dv_update, check_errs, fdm, forward_fdm, central_fdm, backward_fdm,
+       check_approx_equal
 
 """
     approximate_Dv(
@@ -93,21 +94,20 @@ function check_errs(
     ∇x_alloc = compute_Dv(f, ȳ, x, v)
     ∇x_inplace = compute_Dv_update(f, ȳ, x, v)
     ∇x_fin_diff = approximate_Dv(f, ȳ, x, v)
-    return check_tol("<$f> allocated", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
-           check_tol("<$f> in-place", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
+    return check_approx_equal("<$f> allocated", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
+           check_approx_equal("<$f> in-place", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
 end
 
-function check_tol(desc, x, y, ε_abs, ε_rel)
+function check_approx_equal(desc, x, y, ε_abs, ε_rel)
     if abs(x - y) >= ε_abs + ε_rel * (abs(x) + abs(y))
-        @printf "For \"%s\", large deviation from finite-difference estimate:\n" desc
-        @printf "  relative error:  %.3e\n" abs(x - y) / (abs(x) + abs(y))
-        @printf "    tolerance:     %.3e\n" ε_rel
-        @printf "  absolute error:  %.3e\n" abs(x - y)
-        @printf "    tolerance:     %.3e\n" ε_abs
-        return false
-    else
-        return true
+        msg = "\"$desc\": large deviation from reference:\n" *
+              "  relative error:  $(@sprintf "%.3e" abs(x - y) / (abs(x) + abs(y)))\n" *
+              "    tolerance:     $(@sprintf "%.3e" ε_rel)\n" *
+              "  absolute error:  $(@sprintf "%.3e" abs(x - y))\n" *
+              "    tolerance:     $(@sprintf "%.3e" ε_abs)"
+        throw(ErrorException(msg))
     end
+    return true
 end
 
 """
@@ -240,6 +240,6 @@ function central_fdm(p::Int, args...; kws...)
 end
 
 # Precompute some FDMs.
-central_3_1 = backward_fdm(3, 1)
+central_3_1 = central_fdm(3, 1)
 central_5_1 = central_fdm(5, 1)
 central_7_1 = central_fdm(7, 1)

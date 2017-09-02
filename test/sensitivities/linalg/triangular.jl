@@ -1,4 +1,4 @@
-@testset "sensitivities/linalg/triangular" begin
+@testset "Triangular" begin
     let rng = MersenneTwister(123456), N = 10
         for _ in 1:10
             A, VA, L = randn.(rng, [N, N, N], [N, N, N])

@@ -1,4 +1,4 @@
-@testset "sensitivities/linalg/generic" begin
+@testset "Generic" begin
 
     let N = 5, rng = MersenneTwister(123456)
 

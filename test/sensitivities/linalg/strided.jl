@@ -1,4 +1,4 @@
-@testset "sensitivities/linalg/strided" begin
+@testset "Strided" begin
 
     let rng = MersenneTwister(123456), N = 100
 

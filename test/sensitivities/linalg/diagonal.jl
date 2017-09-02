@@ -1,4 +1,4 @@
-@testset "sensitivities/linalg/diagonal" begin
+@testset "Diagonal" begin
     let rng = MersenneTwister(123456), N = 10
         for _ in 1:10
             x, vx = randn.(rng, [N, N])

@@ -1,4 +1,4 @@
-@testset "sensitivities/scalar" begin
+@testset "Scalar" begin
 
     let v = 1.0, ȳ = 5.0, z̄ = 4.0
 

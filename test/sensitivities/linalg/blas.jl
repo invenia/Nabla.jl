@@ -1,4 +1,4 @@
-@testset "sensitivities/linalg/blas" begin
+@testset "BLAS" begin
 
 let
 
