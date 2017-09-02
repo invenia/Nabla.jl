@@ -107,7 +107,7 @@ end
         @eval @test $f(12, 3)(sin, 1) ≈ -cos(1)
         @eval @test $f(8, 1)(exp, 1) ≈ exp(1)
         @eval @test $f(10, 2)(exp, 1) ≈ exp(1)
-        @eval @test $f(14, 3)(exp, 1) ≈ exp(1)
+        @eval @test $f(12, 3)(exp, 1) ≈ exp(1)
     end
 
     @test_throws ArgumentError central_fdm(100, 1)
