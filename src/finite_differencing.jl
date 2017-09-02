@@ -151,7 +151,7 @@ end
         report::Bool=false
     )
 
-Construct a function `method(f::Function, x::∇Scalar, h::∇Scalar=ĥ)` that takes in a scalar
+Construct a function `method(f::Function, x::∇Scalar, h::∇Scalar=ĥ)` that takes in a
 function `f`, a point `x` in the domain of `f`, and optionally a step size `h`, and
 estimates the `q`'th order derivative of `f` at `x` with a `length(grid)`'th order
 finite-difference method.
@@ -185,13 +185,13 @@ function fdm(
     x = [i == q + 1 ? factorial(q) : 0 for i = 1:p]
     coefs = C \ x
 
-    # Set the optimal step size by minimising an upper bound on the total error of the
+    # Set the step size optimally by minimising an upper bound on the total error of the
     # estimate.
     C₁ = ε * sum(abs.(coefs))
     C₂ = M * sum(abs.(coefs .* grid.^p)) / factorial(p)
     ĥ = (q / (p - q) * C₁ / C₂) .^ (1 / p)
 
-    # Compute the expected accuracy.
+    # Compute the accuracy of the method.
     acc = ĥ^(-q) * C₁ + ĥ^(p - q) * C₂
 
     # Construct the FDM.
