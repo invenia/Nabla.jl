@@ -2,7 +2,7 @@
 
 `Nabla.jl` has two interfaces, both of which we expose to the end user. We first provide a minimal working example with the low-level interface, and subsequently show how the high-level interface can be used to achieve similar results. More involved examples can be found [here](https://github.com/invenia/Nabla.jl/tree/master/examples).
 
-## Toy Problem
+## A Toy Problem
 
 Consider the gradient of a vector-quadratic function. The following code snippet constructs such a function, and inputs `x` and `y`.
 ```@example toy
@@ -36,6 +36,19 @@ We may provide an optional argument to also return the value `f(x, y)`:
 (z, (∇x, ∇y)) = ∇(f, true)(x, y)
 ```
 
+If the gradient w.r.t. a single argument is all that is required, or a subset of the arguments for an N-ary function, we recommend closing over the arguments which respect to which you do not wish to take gradients. For example, to take the gradient w.r.t. just `x`, one could do the following:
+```@example toy
+∇(x->f(x, y))(x)
+```
+
+Furthermore, indexable containers such as `Dict`s behave sensibly. For example, the following lambda with a `Dict`:
+```@example toy
+∇(d->f(d[:x], d[:y]))(Dict(:x=>x, :y=>y))
+```
+or a `Vector`
+```@example toy
+∇(v->f(v[1], v[2]))([x, y])
+```
 
 ## Low-Level Interface
 
