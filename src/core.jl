@@ -169,7 +169,7 @@ function ∇(f::Function, get_output::Bool=false)
         y = f(args_...)
         ∇f = ∇(y)
         ∇args = ([∇f[arg_] for arg_ in args_]...)
-        return get_output ? (y, ∇args) : ∇args
+        return get_output ? (y.val, ∇args) : ∇args
     end
 end
 
