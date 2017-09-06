@@ -45,10 +45,24 @@ Furthermore, indexable containers such as `Dict`s behave sensibly. For example, 
 ```@example toy
 ∇(d->f(d[:x], d[:y]))(Dict(:x=>x, :y=>y))
 ```
-or a `Vector`
+or a `Vector`:
 ```@example toy
 ∇(v->f(v[1], v[2]))([x, y])
 ```
+
+The methods considered so far have been completely generically typed. If one wishes to use methods whose argument types are restricted then one must surround the definition of the method in the `@unionise` macro. For example, if only a single definition is required:
+```julia
+@unionise g(x::Real) = ...
+```
+Alternatively, if multiple methods / functions are to be defined, the following format is recommended:
+```julia
+@unionise begin
+g(x::Real) = ...
+g(x::T, y::T) where T<:Real = ...
+foo(x) = ... # This definition is unaffected by `@unionise`.
+end
+```
+`@unionise` simply changes the method signature to allow each argument to accept the union of the types specified and `Nabla.jl`'s internal `Node` type. This will have no impact on the performance of your code when arguments of the types specified in the definition are provided, so you can safely `@unionise` code without worrying about potential performance implications.
 
 ## Low-Level Interface
 
@@ -74,12 +88,7 @@ We can compute the gradients using `∇`, and access them by indexing the output
 (∇x, ∇y) = (∇z[x_], ∇z[y_])
 ```
 
-### Inspecting the forward and reverse tapes
-
-```@example toy
-z_.tape
-```
-
-```@example toy
-∇z
-```
+## Gotchas and Best Practice
+- `Nabla.jl` does not currently have complete coverage of the entire language due to finite resources and competing priorities. Particularly notable omissions are the subtypes of `Factorization` objects and all in-place functions. These are both issues which will be resolved in the future.
+- The usual RMAD gotcha applies: due to the need to record each of the operations performed in the execution of a function for use in efficient gradient computation, the memory requirement of a programme scales approximately linearly in the length of the programme. Although, due to our use of a dynamically constructed computation graph, we support all forms of control flow, long `for` / `while` loops should be performed with care, so as to avoid running out of memory.
+- In a similar vein, develop a (strong) preference higher-order functions and linear algebra over for-loops; `Nabla.jl` has optimisations targetting Julia's higher-order functions (`broadcast`, `mapreduce` and friends), and consequently loop-fusion / "dot-syntax", and linear algebra operations which should be made use of where possible.
