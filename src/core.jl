@@ -76,9 +76,9 @@ function Branch(f, args::Tuple, tape::Tape)
     return branch
 end
 show(io::IO, branch::Branch{T}) where T =
-    print(io, "Branch{$T} $(branch.val), f=$(branch.f)")
+    print(io, "Branch{$T} $(branch.val) f=$(branch.f)")
 show(io::IO, branch::Branch{T}) where T<:AbstractArray =
-    print(io, "Branch{$T} $(size(branch.val)), f=$(branch.f)")
+    print(io, "Branch{$T} $(size(branch.val)) f=$(branch.f)")
 
 """
     pos(x::Node)

@@ -48,6 +48,7 @@ If the gradient w.r.t. a single argument is all that is required, or a subset of
 ```@example toy
 ∇(x->f(x, y))(x)
 ```
+Note that this returns a 1-tuple containing the result, not the result itself!
 
 Furthermore, indexable containers such as `Dict`s behave sensibly. For example, the following lambda with a `Dict`:
 ```@example toy
@@ -85,12 +86,12 @@ which can be achieved more concisely using Julia's broadcasting capabilities:
 x_, y_ = Leaf.(Tape(), (x, y))
 ```
 Note that it is critical that `x_` and `y_` are constructed using the same `Tape` instance. Currently, `Nabla.jl` will fail silently if this is not the case.
-We then simply pass `x_` and `y_` to `f` instead of `x` and `y`, and call `∇` on the result:
+We then simply pass `x_` and `y_` to `f` instead of `x` and `y`:
 ```@example toy
 z_ = f(x_, y_)
 ```
 
-We can compute the gradients using `∇`, and access them by indexing the output with `x_` and `y_`:
+We can compute the gradients of `z_` w.r.t. `x_` and `y_` using `∇`, and access them by indexing the output with `x_` and `y_`:
 ```@example toy
 ∇z = ∇(z_)
 (∇x, ∇y) = (∇z[x_], ∇z[y_])
@@ -99,4 +100,4 @@ We can compute the gradients using `∇`, and access them by indexing the output
 ## Gotchas and Best Practice
 - `Nabla.jl` does not currently have complete coverage of the entire standard library due to finite resources and competing priorities. Particularly notable omissions are the subtypes of `Factorization` objects and all in-place functions. These are both issues which will be resolved in the future.
 - The usual RMAD gotcha applies: due to the need to record each of the operations performed in the execution of a function for use in efficient gradient computation, the memory requirement of a programme scales approximately linearly in the length of the programme. Although, due to our use of a dynamically constructed computation graph, we support all forms of control flow, long `for` / `while` loops should be performed with care, so as to avoid running out of memory.
-- In a similar vein, develop a (strong) preference higher-order functions and linear algebra over for-loops; `Nabla.jl` has optimisations targetting Julia's higher-order functions (`broadcast`, `mapreduce` and friends), and consequently loop-fusion / "dot-syntax", and linear algebra operations which should be made use of where possible.
+- In a similar vein, develop a (strong) preference for higher-order functions and linear algebra over for-loops; `Nabla.jl` has optimisations targetting Julia's higher-order functions (`broadcast`, `mapreduce` and friends), and consequently loop-fusion / "dot-syntax", and linear algebra operations which should be made use of where possible.
