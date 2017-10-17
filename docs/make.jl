@@ -6,7 +6,6 @@ makedocs(
     pages=[
         "Home" => "index.md",
         "API" => "pages/api.md",
-        "Getting Started" => "pages/guide.md",
         "Custom Sensitivities" => "pages/custom.md"
     ],
     sitename="Nabla.jl",
