@@ -1,8 +1,2 @@
 # Custom Sensitivities
-
-
-```@example
-a = 1
-b = 2
-a + b
-```
+Coming soon... (you can already add your own sensitivities easily, we just haven't written the documentation yet).
