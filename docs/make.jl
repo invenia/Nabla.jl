@@ -5,7 +5,8 @@ makedocs(
     format=:html,
     pages=[
         "Home" => "index.md",
-        "API" => "pages/api.md"
+        "API" => "pages/api.md",
+        "Custom Sensitivities" => "pages/custom.md"
     ],
     sitename="Nabla.jl",
     authors="Invenia Labs",
