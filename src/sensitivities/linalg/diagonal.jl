@@ -3,7 +3,7 @@ export diagm, Diagonal
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
 
-@explicit_intercepts diagm Tuple{∇AbstractVector}
+@explicit_intercepts diagm Tuple{∇AbstractVector} 
 function ∇(
     ::typeof(diagm),
     ::Type{Arg{1}},
@@ -24,6 +24,31 @@ function ∇(
     x::∇AbstractVector,
 )
     return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ)))
+end
+
+@explicit_intercepts diagm Tuple{∇AbstractVector, Integer} [true, false]
+function ∇(
+    ::typeof(diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+    k::Integer,
+)
+    return copy!(similar(x), view(Ȳ, diagind(Ȳ, k)))
+end
+function ∇(
+    x̄::∇AbstractVector,
+    ::typeof(diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+    k::Integer,
+)
+    return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ, k)))
 end
 
 @explicit_intercepts diagm Tuple{∇Scalar}
