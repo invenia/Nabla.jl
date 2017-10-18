@@ -3,6 +3,8 @@
         for _ in 1:10
             x, vx = randn.(rng, [N, N])
             @test check_errs(diagm, diagm(randn(rng, N)), x, vx)
+            x, vx = randn(rng), randn(rng)
+            @test check_errs(diagm, diagm(randn(rng)), x, vx)
         end
     end
     let rng = MersenneTwister(123456), N = 10
