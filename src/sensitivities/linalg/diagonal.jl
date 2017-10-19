@@ -3,14 +3,14 @@ export diagm, Diagonal
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
 
-@explicit_intercepts diagm Tuple{∇AbstractVector}
+@explicit_intercepts diagm Tuple{∇AbstractVector} 
 function ∇(
     ::typeof(diagm),
     ::Type{Arg{1}},
     p,
     Y::∇AbstractMatrix,
     Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector
+    x::∇AbstractVector,
 )
     return copy!(similar(x), view(Ȳ, diagind(Ȳ)))
 end
@@ -21,9 +21,47 @@ function ∇(
     p,
     Y::∇AbstractMatrix,
     Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector
+    x::∇AbstractVector,
 )
     return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ)))
+end
+
+@explicit_intercepts diagm Tuple{∇AbstractVector, Integer} [true, false]
+function ∇(
+    ::typeof(diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+    k::Integer,
+)
+    return copy!(similar(x), view(Ȳ, diagind(Ȳ, k)))
+end
+function ∇(
+    x̄::∇AbstractVector,
+    ::typeof(diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+    k::Integer,
+)
+    return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ, k)))
+end
+
+@explicit_intercepts diagm Tuple{∇Scalar}
+function ∇(
+    ::typeof(diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇Scalar,
+)
+    length(Ȳ) != 1 && throw(error("Ȳ isn't a 1x1 matrix."))
+    return Ȳ[1]
 end
 
 @explicit_intercepts Diagonal Tuple{∇AbstractVector}
@@ -33,7 +71,7 @@ function ∇(
     p,
     Y::∇ScalarDiag,
     Ȳ::∇ScalarDiag,
-    x::∇AbstractVector
+    x::∇AbstractVector,
 )
     return copy!(similar(x), Ȳ.diag)
 end
@@ -44,7 +82,7 @@ function ∇(
     p,
     Y::∇ScalarDiag,
     Ȳ::∇ScalarDiag,
-    x::∇AbstractVector
+    x::∇AbstractVector,
 )
     return broadcast!(+, x̄, x̄, Ȳ.diag)
 end
@@ -56,7 +94,7 @@ function ∇(
     p,
     Y::∇ScalarDiag,
     Ȳ::∇ScalarDiag,
-    X::∇AbstractMatrix
+    X::∇AbstractMatrix,
 )
     X̄ = zeros(X)
     copy!(view(X̄, diagind(X)), Ȳ.diag)
@@ -69,7 +107,7 @@ function ∇(
     p,
     Y::∇ScalarDiag,
     Ȳ::∇ScalarDiag,
-    X::∇AbstractMatrix
+    X::∇AbstractMatrix,
 )
     X̄_diag = view(X̄, diagind(X̄))
     broadcast!(+, X̄_diag, X̄_diag, Ȳ.diag)
@@ -86,7 +124,7 @@ function ∇(
     p,
     y::∇Scalar,
     ȳ::∇Scalar,
-    X::∇ScalarDiag
+    X::∇ScalarDiag,
 )
     broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * y / x, X̄.diag, X̄.diag, X.diag, y, ȳ)
     return X̄
