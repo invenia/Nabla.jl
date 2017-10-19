@@ -1,9 +1,63 @@
-import Base: det, logdet, diagm, Diagonal
-export diagm, Diagonal
+import Base: det, logdet, diagm, Diagonal, diag
+export diag, diagm, Diagonal
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
 
-@explicit_intercepts diagm Tuple{∇AbstractVector} 
+@explicit_intercepts diag Tuple{∇AbstractMatrix}
+function ∇(
+    ::typeof(diag),
+    ::Type{Arg{1}},
+    p,
+    y::∇AbstractVector,
+    ȳ::∇AbstractVector,
+    x::∇AbstractMatrix,
+)
+    x̄ = zeros(x)
+    x̄[diagind(x̄)] = ȳ
+    return x̄
+end
+function ∇(
+    x̄::∇AbstractVector,
+    ::typeof(diag),
+    ::Type{Arg{1}},
+    p,
+    y::∇AbstractVector,
+    ȳ::∇AbstractVector,
+    x::∇AbstractMatrix,
+)
+    x̄_diag = view(x̄, diagind(x̄))
+    return broadcast!(+, x̄_diag, x̄_diag, ȳ)
+end
+
+@explicit_intercepts diag Tuple{∇AbstractMatrix, Integer} [true, false]
+function ∇(
+    ::typeof(diag),
+    ::Type{Arg{1}},
+    p,
+    y::∇AbstractVector,
+    ȳ::∇AbstractVector,
+    x::∇AbstractMatrix,
+    k::Integer,
+)
+    x̄ = zeros(x)
+    x̄[diagind(x̄, k)] = ȳ
+    return x̄
+end
+function ∇(
+    x̄::∇AbstractVector,
+    ::typeof(diag),
+    ::Type{Arg{1}},
+    p,
+    y::∇AbstractVector,
+    ȳ::∇AbstractVector,
+    x::∇AbstractMatrix,
+    k::Integer,
+)
+    x̄_diag = view(x̄, diagind(x̄, k))
+    return broadcast!(+, x̄_diag, x̄_diag, ȳ)
+end
+
+@explicit_intercepts diagm Tuple{∇AbstractVector}
 function ∇(
     ::typeof(diagm),
     ::Type{Arg{1}},
