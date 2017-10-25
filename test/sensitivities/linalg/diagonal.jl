@@ -26,7 +26,7 @@
         for _ in 1:10
             A = randn(rng, N, N)
             VA = randn(rng, N, N)
-            @test check_errs(diag, randn(rng, N), A, VA)
+            @test check_errs(x -> diag(x), randn(rng, N), A, VA)
 
             # Check various diagonals.
             for k = -3:3

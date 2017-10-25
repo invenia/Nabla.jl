@@ -17,7 +17,7 @@ function ∇(
     return x̄
 end
 function ∇(
-    x̄::∇AbstractVector,
+    x̄::∇AbstractMatrix,
     ::typeof(diag),
     ::Type{Arg{1}},
     p,
@@ -26,7 +26,8 @@ function ∇(
     x::∇AbstractMatrix,
 )
     x̄_diag = view(x̄, diagind(x̄))
-    return broadcast!(+, x̄_diag, x̄_diag, ȳ)
+    x̄_diag .+= ȳ
+    return x̄
 end
 
 @explicit_intercepts diag Tuple{∇AbstractMatrix, Integer} [true, false]
@@ -44,7 +45,7 @@ function ∇(
     return x̄
 end
 function ∇(
-    x̄::∇AbstractVector,
+    x̄::∇AbstractMatrix,
     ::typeof(diag),
     ::Type{Arg{1}},
     p,
@@ -54,7 +55,8 @@ function ∇(
     k::Integer,
 )
     x̄_diag = view(x̄, diagind(x̄, k))
-    return broadcast!(+, x̄_diag, x̄_diag, ȳ)
+    x̄_diag .+= ȳ
+    return x̄
 end
 
 @explicit_intercepts diagm Tuple{∇AbstractVector}
