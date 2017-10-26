@@ -1,3 +1,5 @@
+using SpecialFunctions
+
 # Hand code the identity because it's really fundamental. It doesn't need to generate a new
 # node on the computational graph since it does nothing, but it is useful to have it's
 # gradient implemented for use in higher-order functions.
@@ -63,7 +65,8 @@ unary_sensitivities = (
     (:deg2rad, :(1 * (π / 180)),              (lb, ub),                  false),
     (:rad2deg, :(1 / (π / 180)),              (lb, ub),                  false),
     # (:significand, :(0.5^exponent(x)),        (lb, ub),                  false),
-    (:abs2, :(2x),                            (lb, ub),                  false),
+    (:abs2,  :(2x),                            (lb, ub),                 false),
+    (:gamma, :(gamma(x) * digamma(x)),         (_ϵ, ub),                 false),
 )
 
 # Create implementations for each scalar function such that they can be used in the
