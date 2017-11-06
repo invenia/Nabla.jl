@@ -13,6 +13,8 @@ using DiffRules
                                 (minimum(points), maximum(points)))
     @test get(domain2((^))) == ((minimum(points[points .> 0]), maximum(points)),
                                 (minimum(points), maximum(points)))
+    @test get(domain2(beta)) == ((minimum(points[points .> 0]), maximum(points)),
+                                 (minimum(points[points .> 0]), maximum(points)))
 end
 
 @testset "Scalar" begin
