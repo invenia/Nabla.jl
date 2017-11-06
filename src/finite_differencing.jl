@@ -1,5 +1,5 @@
 export check_Dv, check_Dv_update, check_errs, fdm, forward_fdm, central_fdm, backward_fdm,
-       check_approx_equal
+       check_approx_equal, domain1, domain2, points, in_domain
 
 """
     approximate_Dv(
@@ -74,7 +74,7 @@ compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrSc
         ȳ::∇ArrayOrScalar,
         x::T,
         v::T,
-        ε_abs::∇Scalar=1e-13,
+        ε_abs::∇Scalar=1e-10,
         ε_rel::∇Scalar=1e-7
     )::Bool where T
 
@@ -243,3 +243,98 @@ end
 central_3_1 = central_fdm(3, 1)
 central_5_1 = central_fdm(5, 1)
 central_7_1 = central_fdm(7, 1)
+
+"""
+    in_domain(f::Function, x::Float64)
+
+Check whether an input `x` is in a scalar, real function `f`'s domain.
+"""
+function in_domain(f::Function, x::Float64)
+    try
+        return issubtype(typeof(f(x)), Real)
+    catch err
+        return isa(err, DomainError) ? false : throw(err)
+    end
+end
+
+# Test points that are used to determine functions's domains.
+points = [-2π + .1, -π + .1, -.5π + .1, -.9, -.1, .1, .9, .5π - .1, π - .1, 2π - .1]
+
+"""
+    domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
+    domain1(f::Function)
+
+Attempt to find a domain for a unary, scalar function `f`.
+
+# Arguments
+- `in_domain::Function`: Function that takes a single argument `x` and returns whether `x`
+    argument is in `f`'s domain.
+- `measure::Function`: Function that measures the size of a set of points for `f`.
+- `points::Vector{T}`: Ordered set of test points to construct the domain from.
+"""
+function domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
+   # Find the connected sets of points that are in f's domain.
+   connected_sets, set = Vector{Vector{T}}(), Vector{T}()
+   for x in points
+       if in_domain(x)
+           push!(set, x)
+       else
+           if length(set) > 0
+               push!(connected_sets, set)
+               set = Vector{T}()
+           end
+       end
+   end
+
+   # Add the possibly yet unadded set.
+   length(set) > 0 && push!(connected_sets, set)
+
+   # Return null if no domain could be found.
+   length(connected_sets) == 0 && return Nullable{Vector{T}}()
+
+   # Pick the largest domain.
+   return Nullable(connected_sets[indmax(measure.(connected_sets))])
+end
+
+function domain1(f::Function)
+    set = domain1(x -> in_domain(f, x), x -> maximum(x) - minimum(x), points)
+    isnull(set) && return Nullable{NTuple{2, Float64}}()
+    return Nullable((minimum(get(set)), maximum(get(set))))
+end
+
+"""
+    Slice2
+
+Slice of a Float64 x Float64 domain.
+"""
+type Slice2
+    x::Float64
+    y_range::Nullable{Tuple{Float64, Float64}}
+end
+
+"""
+    domain2(f::Function)
+
+Attempt to find a rectangular domain for a binary, scalar function `f`.
+"""
+function domain2(f::Function)
+    # Construct slices for all x in points.
+    slices = Slice2.(points, [domain1(y -> f(x, y)) for x in points])
+
+    # Extract a set of in-domain slices.
+    measure = x -> maximum(getfield.(x, :x)) - minimum(getfield.(x, :x))
+    in_domain_slices = domain1(x -> !isnull(x.y_range), measure, slices)
+    isnull(in_domain_slices) && return Nullable{NTuple{2, NTuple{2, Float64}}}()
+
+    # Extract the x range of the domain.
+    xs = getfield.(get(in_domain_slices), :x)
+    x_range = (minimum(xs), maximum(xs))
+
+    # Extract the y range of the domain.
+    y_ranges = get.(getfield.(get(in_domain_slices), :y_range))
+    y_lower, y_upper = maximum(getindex.(y_ranges, 1)), minimum(getindex.(y_ranges, 2))
+    y_lower >= y_upper && return Nullable{NTuple{2, NTuple{2, Float64}}}()
+    y_range = (y_lower, y_upper)
+
+    return Nullable((x_range, y_range))
+end
