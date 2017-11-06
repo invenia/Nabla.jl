@@ -8,11 +8,13 @@
         for functional in (mapreduce, mapfoldl, mapfoldr)
 
             # Sensitivities implemented in Base.
-            for (f_, _, bounds, _) in Nabla.unary_sensitivities
+            for (package, f) in Nabla.unary_sensitivities
 
                 # Generate some data and get the function to be mapped.
-                x = rand(Uniform(bounds[1], bounds[2]), N)
-                f = eval(f_)
+                f = eval(f)
+                domain = domain1(f)
+                isnull(domain) && error("Could not determine domain for $f.")
+                x = rand(Uniform(get(domain)...), N)
 
                 # Test +.
                 x_ = Leaf(Tape(), x)
@@ -85,11 +87,13 @@
     # and some composite functions which use FMAD.
     let N = 5
         # Sensitivities implemented in Base.
-        for (f_, _, bounds, _) in Nabla.unary_sensitivities
+        for (package, f) in Nabla.unary_sensitivities
 
             # Generate some data and get the function to be mapped.
-            x = rand(Uniform(bounds[1], bounds[2]), N)
-            f = eval(Nabla, f_)
+            f = eval(f)
+            domain = domain1(f)
+            isnull(domain) && error("Could not determine domain for $f.")
+            x = rand(Uniform(get(domain)...), N)
 
             # Test +.
             x_ = Leaf(Tape(), x)
