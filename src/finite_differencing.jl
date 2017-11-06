@@ -153,7 +153,7 @@ end
         grid::Vector{<:∇Scalar},
         q::Int;
         ε::∇Scalar=eps(),
-        M::∇Scalar=1e6,
+        M::∇Scalar=1e7,
         report::Bool=false
     )
 
@@ -170,7 +170,7 @@ finite-difference method.
 
 # Keywords
 - `ε::∇Scalar=eps()`: Absolute roundoff error of the function evaluations.
-- `M::∇Scalar=1e6`: Assumed upper bound of `f` and all its derivatives at `x`.
+- `M::∇Scalar=1e7`: Assumed upper bound of `f` and all its derivatives at `x`.
 - `report::Bool=false`: Also return an instance of `FDMReport` containing information
     about the method constructed.
 """
@@ -178,7 +178,7 @@ function fdm(
     grid::Vector{<:∇Scalar},
     q::Int;
     ε::∇Scalar=eps(),
-    M::∇Scalar=1e6,
+    M::∇Scalar=1e7,
     report::Bool=false
 )
     p = length(grid)  # Order of the method.
@@ -245,20 +245,23 @@ central_5_1 = central_fdm(5, 1)
 central_7_1 = central_fdm(7, 1)
 
 """
-    in_domain(f::Function, x::Float64)
+    in_domain(f::Function, x::Float64...)
 
 Check whether an input `x` is in a scalar, real function `f`'s domain.
 """
-function in_domain(f::Function, x::Float64)
+function in_domain(f::Function, x::Float64...)
     try
-        return issubtype(typeof(f(x)), Real)
+        y = f(x...)
+        return issubtype(typeof(y), Real) && !isnan(y)
     catch err
         return isa(err, DomainError) ? false : throw(err)
     end
 end
 
+
+
 # Test points that are used to determine functions's domains.
-points = [-2π + .1, -π + .1, -.5π + .1, -.9, -.1, .1, .9, .5π - .1, π - .1, 2π - .1]
+points = [-π + .1, -.5π + .1, -.9, -.1, .1, .9, .5π - .1, π - .1]
 
 """
     domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
@@ -338,3 +341,8 @@ function domain2(f::Function)
 
     return Nullable((x_range, y_range))
 end
+
+# `beta`s domain cannot be determined correctly, since `beta(-.2, -.2)` doesn't throw an
+# error, strangely enough.
+domain2(::typeof(beta)) = Nullable(((minimum(points[points .> 0]), maximum(points)),
+                                    (minimum(points[points .> 0]), maximum(points))))
