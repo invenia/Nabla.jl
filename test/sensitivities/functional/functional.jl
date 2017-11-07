@@ -1,4 +1,5 @@
-using SpecialFunctions, DiffRules
+using SpecialFunctions
+using DiffRules: diffrule
 
 @testset "Functional" begin
 
@@ -72,7 +73,7 @@ using SpecialFunctions, DiffRules
     for (package, f) in Nabla.binary_sensitivities
         # TODO: More care needs to be taken to test the following.
         f in [:atan2, :mod, :rem] && continue
-        ∂f∂x, ∂f∂y = DiffRules.diffrule(package, f, :x, :y)
+        ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
         # TODO: Implement the edge cases for functions differentiable in only either
         # argument.
         (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
@@ -187,7 +188,7 @@ using SpecialFunctions, DiffRules
     for (package, f) in Nabla.binary_sensitivities
         # TODO: More care needs to be taken to test the following.
         f in [:atan2, :mod, :rem] && continue
-        ∂f∂x, ∂f∂y = DiffRules.diffrule(package, f, :x, :y)
+        ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
         # TODO: Implement the edge cases for functions differentiable in only either
         # argument.
         (∂f∂x == :NaN || ∂f∂y == :NaN) && continue

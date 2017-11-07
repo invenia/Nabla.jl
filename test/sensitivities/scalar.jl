@@ -1,4 +1,4 @@
-using DiffRules
+using DiffRules: diffrule
 
 @testset "Scalar domains" begin
     @test in_domain(sin, 10.)
@@ -38,7 +38,7 @@ end
         end
 
         for (package, f) in Nabla.binary_sensitivities
-            ∂f∂x, ∂f∂y = DiffRules.diffrule(package, f, :x, :y)
+            ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
 
             if ∂f∂x == :NaN && ∂f∂y != :NaN
                 # Assume that the first argument is integer-valued.
