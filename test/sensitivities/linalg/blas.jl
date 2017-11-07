@@ -1,7 +1,4 @@
 @testset "BLAS" begin
-
-let
-
     import Base.BLAS.dot
     let rng = MersenneTwister(123456)
         for _ in 1:10
@@ -42,12 +39,6 @@ let
         end
     end
 
-    # # Testing for scal.
-    # let x = randn(10)
-    #     δ_abs, δ_rel = discrepancy(BLAS.scal, (5, 2.5, x, 2), δ, [false, true, true, false])
-    #     @test all(δ_abs[1] .< ϵ_abs) && all(δ_rel[1] .< ϵ_rel)
-    # end
-
     # Test each of the four permutations of `gemm`.
     import Base.BLAS.gemm
     let rng = MersenneTwister(123456), N = 100
@@ -76,25 +67,6 @@ let
             end
         end
     end
-
-    # # Test all four permutations of `syrk`.
-    # import Base.BLAS.syrk
-    # let rng = MersenneTwister(123456), N = 100
-    #     lmask, umask = full(LowerTriangular(ones(N, N))), full(UpperTriangular(ones(N, N)))
-    #     for uplo in ['L', 'U'], trans in ['N', 'T']
-    #         λ = (α, A)->(uplo == 'L' ? lmask : umask) .* syrk(uplo, trans, α, A)
-    #         γ = A->(uplo == 'L' ? lmask : umask) .* syrk(uplo, trans, A)
-    #         for _ in 1:10
-    #             α, vα = randn.([rng, rng]) + [5.0, 0.0]
-    #             α, vα = 1.0, randn(rng)
-    #             A, VA = randn.(rng, [N, N], [N, N])
-    #             δ_abs_λ, δ_rel_λ = check_Dv(λ, λ(α, A), (α, A), (vα, VA))
-    #             @test δ_abs_λ < ϵ_abs && δ_rel_λ < ϵ_rel
-    #             δ_abs_γ, δ_rel_γ = check_Dv(γ, γ(A), A, VA)
-    #             @test δ_abs_γ < ϵ_abs && δ_rel_γ < ϵ_rel
-    #         end
-    #     end
-    # end
 
     # Test all four permutations of `symm`.
     import Base.BLAS.symm
@@ -175,7 +147,4 @@ let
             end
         end
     end
-
-end # let
-
-end # testset
+end

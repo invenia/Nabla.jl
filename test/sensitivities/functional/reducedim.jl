@@ -1,6 +1,5 @@
 @testset "Reduce dim" begin
-
-    let
+    let rng = MersenneTwister(123456)
         # mapreducedim on a single-dimensional array should be consistent with mapreduce.
         x = Leaf(Tape(), [1.0, 2.0, 3.0, 4.0, 5.0])
         s = 5.0 * mapreducedim(abs2, +, x, 1)[1]
@@ -14,7 +13,6 @@
         @test ∇(s, ones(s.val))[x2] ≈ 2.0 * x2_
 
         # mapreducedim under `exp` should trigger the first conditional in the ∇ impl.
-        rng = MersenneTwister(123456)
         x3_ = randn(rng, 5, 4)
         x3 = Leaf(Tape(), x3_)
         s = mapreducedim(exp, +, x3, 1)

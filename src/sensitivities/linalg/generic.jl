@@ -1,4 +1,5 @@
 # Implementation of sensitivities for unary linalg optimisations.
+_ϵ, lb, ub = 3e-2, -3.0, 3.0
 unary_linalg_optimisations = [
     (:-,          ∇Array,  ∇Array,  :(map(-, Ȳ)),                        (lb, ub)),
     (:trace,      ∇Array,  ∇Scalar, :(Diagonal(fill!(similar(X), Ȳ))),   (lb, ub)),

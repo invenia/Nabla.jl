@@ -8,7 +8,6 @@ using Base.Test, Nabla, Distributions
 end
 
 @testset "Sensitivities" begin
-
     include("finite_differencing.jl")
 
     # Test sensitivities for the basics.

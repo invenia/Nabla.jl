@@ -14,9 +14,7 @@ function ∇(
     region,
     v0=nothing,
 )
-    if needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, ∇Scalar, Any})
-        return broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An, f(An)), A, ȳ)
-    elseif !needs_output(f) && method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, ∇Scalar})
+    if method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, ∇Scalar})
         return broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An), A, ȳ)
     else
         return broadcast((An, ȳn)->ȳn * fmad(f, (An,), Val{1}), A, ȳ)
