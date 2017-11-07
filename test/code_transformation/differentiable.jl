@@ -72,41 +72,4 @@
     @test unionise(:(eval(DiffBase, :foo))) == unionise_eval(:(eval(DiffBase, :foo)))
     @test unionise(:(@eval foo)) == unionise_macro_eval(:(@eval foo))
     @test unionise(:(@eval DiffBase foo)) == unionise_macro_eval(:(@eval DiffBase foo))
-
-    # println(make_accept_nodes(quote
-
-    #     function(x)
-    #         return 5x
-    #     end
-    #     function(x, y)
-    #         return x + y
-    #     end
-    #     function(x::Real)
-    #         return 10x
-    #     end
-    #     function(x::Real, y::Float64)
-    #         return 10x + 5y
-    #     end
-
-    #     x->x
-    #     (x)->x
-    #     (x,)->x
-    #     (x::Real)->x
-
-    #     function foo(x)
-    #         return x
-    #     end
-    #     function foo(x::Real)
-    #         return x
-    #     end
-    #     function foo(x::Real, y::Real, z::Float64)
-    #         return x + y * z
-    #     end
-
-    #     foo(x) = x
-    #     foo(x::Real) = 5x
-    #     foo(x::Real, y) = 5x + 10y
-    #     foo(g::Float64, d::Real) = 5g * d
-
-    # end))
 end

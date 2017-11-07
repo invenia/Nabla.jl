@@ -18,7 +18,7 @@ using DiffRules: diffrule
 end
 
 @testset "Scalar" begin
-    let v = 1.0, ȳ = 5.0, z̄ = 4.0
+    let v = 1.0, ȳ = 5.0, z̄ = 4.0, rng = MersenneTwister(123456)
         let
             @test ∇(identity, Arg{1}, 5.0, 4.0, 3.0, 2.0) == 3.0
             @test ∇(identity, Arg{1}, 5) == 1
@@ -30,7 +30,7 @@ end
             domain = domain1(eval(f))
             isnull(domain) && error("Could not determine domain for $f.")
             lb, ub = get(domain)
-            randx = () -> rand() * (ub - lb) + lb
+            randx = () -> rand(rng) * (ub - lb) + lb
 
             for _ in 1:10
                 @test unary_check(f, randx())
@@ -45,8 +45,8 @@ end
                 domain = domain1(y -> eval(f)(0, y))
                 isnull(domain) && error("Could not determine domain for $f.")
                 lb, ub = get(domain)
-                randx = () -> rand(0:5)
-                randy = () -> rand() * (ub - lb) + lb
+                randx = () -> rand(rng, 0:5)
+                randy = () -> rand(rng) * (ub - lb) + lb
 
                 for _ in 1:10
                     x = randx()
@@ -57,8 +57,8 @@ end
                 domain = domain1(x -> eval(f)(x, 0))
                 isnull(domain) && error("Could not determine domain for $f.")
                 lb, ub = get(domain)
-                randx = () -> rand() * (ub - lb) + lb
-                randy = () -> rand(0:5)
+                randx = () -> rand(rng) * (ub - lb) + lb
+                randy = () -> rand(rng, 0:5)
 
                 for _ in 1:10
                     y = randy()
@@ -68,8 +68,8 @@ end
                 domain = domain2(eval(f))
                 isnull(domain) && error("Could not determine domain for $f.")
                 (x_lb, x_ub), (y_lb, y_ub) = get(domain)
-                randx = () -> rand() * (x_ub - x_lb) + x_lb
-                randy = () -> rand() * (y_ub - y_lb) + y_lb
+                randx = () -> rand(rng) * (x_ub - x_lb) + x_lb
+                randy = () -> rand(rng) * (y_ub - y_lb) + y_lb
 
                 for _ in 1:10
                     @test check_errs(eval(f), z̄, (randx(), randy()), (v, v))

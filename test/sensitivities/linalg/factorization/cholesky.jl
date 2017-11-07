@@ -50,14 +50,4 @@
             @test check_errs(chol, Ū, A, 1e-2 .* VA)
         end
     end
-
-    # let rng = MersenneTwister(123456), N = 1000
-    #     B, B̄ = randn(rng, N, N), randn(rng, N, N)
-    #     A, Ā = B.'B + 1e-6I, B̄.'B̄ + 1e-6I
-    #     display(@benchmark chol($A))
-    #     display(@benchmark Nabla.chol_unblocked_rev($Ā, $A, 'U'))
-    #     display(@benchmark Nabla.chol_blocked_rev($Ā, $A, 15, 'U'))
-    #     display(@benchmark Nabla.chol_blocked_rev($Ā, $A, 25, 'U'))
-    #     display(@benchmark Nabla.chol_blocked_rev($Ā, $A, 35, 'U'))
-    # end
 end

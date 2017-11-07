@@ -153,7 +153,7 @@ end
         grid::Vector{<:∇Scalar},
         q::Int;
         ε::∇Scalar=eps(),
-        M::∇Scalar=1e8,
+        M::∇Scalar=5e8,
         report::Bool=false
     )
 
@@ -170,7 +170,7 @@ finite-difference method.
 
 # Keywords
 - `ε::∇Scalar=eps()`: Absolute roundoff error of the function evaluations.
-- `M::∇Scalar=1e8`: Assumed upper bound of `f` and all its derivatives at `x`.
+- `M::∇Scalar=5e8`: Assumed upper bound of `f` and all its derivatives at `x`.
 - `report::Bool=false`: Also return an instance of `FDMReport` containing information
     about the method constructed.
 """
@@ -178,7 +178,7 @@ function fdm(
     grid::Vector{<:∇Scalar},
     q::Int;
     ε::∇Scalar=eps(),
-    M::∇Scalar=1e8,
+    M::∇Scalar=5e8,
     report::Bool=false
 )
     p = length(grid)  # Order of the method.
