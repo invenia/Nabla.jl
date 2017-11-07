@@ -190,12 +190,3 @@ implementations should add methods specific to their use case. The output is pas
 in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
 """
 @inline preprocess(::Any, args...) = ()
-
-"""
-    needs_output(::Function)
-
-Returns a bool determining whether the particular function in question requires access to
-its output to compute it's gradient. Defaults to true. Useful for making efficient
-implementations of `mapreduce` and `mapreducedim`.
-"""
-@inline needs_output(::Function) = true
