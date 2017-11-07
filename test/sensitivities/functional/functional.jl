@@ -18,9 +18,7 @@ using DiffRules: diffrule
     function check_unary_broadcast(f, x)
         x_ = Leaf(Tape(), x)
         s = broadcast(f, x_)
-        return Nabla.needs_output(f) ?
-            ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x, Base.map(f, x)) :
-            ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
+        return ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
     end
     for (package, f) in Nabla.unary_sensitivities
         domain = domain1(eval(f))

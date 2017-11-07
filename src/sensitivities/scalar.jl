@@ -29,7 +29,6 @@ for (package, f, arity) in diffrules()
         @eval @explicit_intercepts $f Tuple{∇Scalar}
         @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
         @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $∂f∂x
-        @eval needs_output(::typeof($f)) = false
     elseif arity == 2
         push!(binary_sensitivities, (package, f))
         ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)

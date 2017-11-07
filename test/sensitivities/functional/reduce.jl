@@ -19,19 +19,7 @@
                 # Test +.
                 x_ = Leaf(Tape(), x)
                 s = functional(f, +, x_)
-                if Nabla.needs_output(f)
-                    @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x, Base.map(f, x))
-                else
-                    @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
-                end
-
-                # # Test *.
-                # x_ = Leaf(Tape(), x)
-                # s = functional(f, +, x_)
-                # @test s.val == functional(f, +, x)
-                # @test Nabla.needs_output(f) ?
-                #     ∇(s)[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
-                #     ∇(s)[x_] == ∇.(f, Arg{1}, x)
+                @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
             end
 
             # Some composite sensitivities.
@@ -46,14 +34,6 @@
                 s = functional(f, +, x_)
                 @test s.val == functional(f, +, x)
                 @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
-
-                # # Test *.
-                # x_ = Leaf(Tape(), x)
-                # s = functional(f, +, x_)
-                # @test s.val == functional(f, +, x)
-                # @test Nabla.needs_output(f) ?
-                #     ∇(s)[x_] == ∇.(f, Arg{1}, x, Base.map(f, x)) :
-                #     ∇(s)[x_] == ∇.(f, Arg{1}, x)
             end
         end
     end
@@ -99,9 +79,7 @@
             x_ = Leaf(Tape(), x)
             s = sum(f, x_)
             @test s.val == sum(f, x)
-            @test Nabla.needs_output(f) ?
-                ∇(s)[x_] ≈ ∇.(f, Arg{1}, x, map(f, x)) :
-                ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+            @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
         end
 
         # Some composite functions.
