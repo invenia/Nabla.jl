@@ -43,9 +43,8 @@ end
 
 Allocating version of broadcastsum! specialised for Arrays.
 """
-function broadcastsum(f::Function, add::Bool, z::AbstractArray, As...)
-    return broadcastsum!(f, add, similar(z), As...)
-end
+broadcastsum(f::Function, add::Bool, z::AbstractArray, As...) =
+    broadcastsum!(f, add, similar(z), As...)
 
 """
     broadcastsum(f::Function, add::Bool, z::Number, As...)
@@ -54,20 +53,12 @@ Specialisation of broadcastsum to Number-sized outputs.
 """
 function broadcastsum(f::Function, add::Bool, z::Number, As...)
     tmp = Array{eltype(z)}(broadcast_shape(map(size, As)...))
-    return Base.sum(Base.broadcast!((x...)->f(x...), tmp, As...)) + (add ? z : zero(z))
+    return sum(Base.broadcast!((x...)->f(x...), tmp, As...)) + (add ? z : zero(z))
 end
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
 ∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇ArrayOrScalar...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
-#     if method_exists(∇, Tuple{typeof(f), Type{Arg{N-1}}, Any, Any, Any, map(eltype, A)...})
-#         return broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N-1}, p, yn, ȳn, xn...),
-#                             false, A[N-1], y, ȳ, A...)
-#     else
-#         return broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N-1}),
-#                             false, A[N-1], ȳ, A...)
-#     end
-# end
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     method_exists(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
         broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N}, p, yn, ȳn, xn...), false, A[N], y, ȳ, A...) :

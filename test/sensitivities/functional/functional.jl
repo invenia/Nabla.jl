@@ -207,4 +207,16 @@ using DiffRules: diffrule
             check_binary_dot(eval(f), rand(rng, x_distr), rand(rng, y_distr))
         end
     end
+
+    # Check that the number of allocations which happen in the reverse pass of `map` and
+    # `broadcast` is invariant of the size of the data structure of which we are
+    # mapping / broadcasting.
+    for f in [:map, :broadcast]
+        let
+            @eval foo_small() = sum($f(tanh, Leaf(Tape(), randn(10, 10))))
+            @eval foo_large() = sum($f(tanh, Leaf(Tape(), randn(10, 100))))
+            @test allocs(@benchmark foo_small()) == allocs(@benchmark foo_large())
+            @test allocs(@benchmark ∇(foo_small())) == allocs(@benchmark ∇(foo_large()))
+        end
+    end
 end
