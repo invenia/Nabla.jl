@@ -1,5 +1,5 @@
 using SpecialFunctions
-using DiffRules: @define_diffrule, diffrule, diffrules
+using DiffRules: @define_diffrule, diffrule, diffrules, DiffRule
 
 # Hand code the identity because it's really fundamental. It doesn't need to generate a new
 # node on the computational graph since it does nothing, but it is useful to have it's
