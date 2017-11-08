@@ -102,7 +102,7 @@ unbox(x) = x
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch{T}, rvs_tape::Tape) where T
     tape = rvs_tape.tape
-    ȳ, f = tape[y.pos]::T, y.f
+    ȳ, f = tape[y.pos], y.f
     xs, xids = map(unbox, y.args), map(pos, y.args)
     p = preprocess(f, y.val, ȳ, xs...)
     for j in eachindex(xs)
@@ -217,7 +217,7 @@ end
 function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
     dual_call = Expr(:call, :f)
     for m in 1:Base.length(x.parameters)
-        push!(dual_call.args, :(Dual(x[$m], $(Base.isequal(n, m) ? 1 : 0))))
+        push!(dual_call.args, n == m ? :(Dual(x[$m], 1)) : :(x[$m]))
     end
     return :(dualpart($dual_call))
 end

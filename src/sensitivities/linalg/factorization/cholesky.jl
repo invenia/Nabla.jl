@@ -13,7 +13,7 @@ Julia.
 const AM = AbstractMatrix
 const UT = UpperTriangular
 @explicit_intercepts chol Tuple{AbstractMatrix{<:∇Scalar}}
-∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::UT{T}, Σ::AM{T}) where T<:∇Scalar =
+∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::AM{T}, Σ::AM{T}) where T<:∇Scalar =
     chol_blocked_rev(full(Ū), full(U), 25, true)
 
 """
