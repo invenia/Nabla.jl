@@ -53,7 +53,7 @@ Specialisation of broadcastsum to Number-sized outputs.
 """
 function broadcastsum(f::Function, add::Bool, z::Number, As...)
     tmp = Array{eltype(z)}(broadcast_shape(map(size, As)...))
-    return sum(Base.broadcast!((x...)->f(x...), tmp, As...)) + (add ? z : zero(z))
+    return sum(broadcast!(f, tmp, As...)) + (add ? z : zero(z))
 end
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
