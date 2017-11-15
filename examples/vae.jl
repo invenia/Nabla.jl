@@ -29,8 +29,7 @@ function iterate!(θ::AbstractArray{Float64}, ∇θ::AbstractArray{Float64}, opt
     opt.β2_acc *= β2
 end
 
-@inline softplus(x) = log1p.(exp.(x))
-@inline logistic(x) = 1 ./ (1 .+ exp.(-x))
+@inline logistic(x) = 1 / (1 + exp(-x))
 
 function encode(Wh, Wμ, Wσ, X)
     h_enc = tanh.(Wh * X)
