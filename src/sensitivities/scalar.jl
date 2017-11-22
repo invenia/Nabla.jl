@@ -9,9 +9,10 @@ import Base.identity
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
 
-# The derivative for Base.(\) is missing from DiffRules.
+# Some derivatives are missing from DiffRules.
 # TODO: Make a PR for DiffRules.
 @define_diffrule Base.:\(x, y) = :(-$y / $x^2), :(1 / $x)
+@define_diffrule Base.:transpose(x) = :(1)
 
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.
