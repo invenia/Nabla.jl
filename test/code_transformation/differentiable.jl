@@ -57,6 +57,12 @@
         :(struct Foo{$(unionise_subtype(:(T<:Real)))} end)
     @test unionise_struct(:(struct Foo{T<:V, Q<:U} end)) ==
         :(struct Foo{$(unionise_subtype(:(T<:V))), $(unionise_subtype(:(Q<:U)))} end)
+    @test unionise_struct(:(struct Foo <: Bar end)) == :(struct Foo <: Bar end)
+    @test unionise_struct(:(struct Foo{T} <: Bar end)) == :(struct Foo{T} <: Bar end)
+    @test unionise_struct(:(struct Foo{T<:V} <: Bar end)) ==
+        :(struct Foo{$(unionise_subtype(:(T<:V)))} <: Bar end)
+    @test unionise_struct(:(struct Foo{T<:V, Q<:U} <: Bar end)) ==
+        :(struct Foo{$(unionise_subtype(:(T<:V))), $(unionise_subtype(:(Q<:U)))} <: Bar end)
 
     # Test Nabla.make_accept_nodes. Heavily depends upon Nabla.unionise_sig, so we
     # express tests in terms of this function.

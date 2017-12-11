@@ -88,10 +88,20 @@ changed if it is parametric. That is, if you wish to be able to differentiate th
 user-defined type, it must contain only `Any`s and parametric types.
 """
 function unionise_struct(code::Expr)
-    name = code.args[2]
+    tmp = code.args[2]
+    name = tmp isa Expr && tmp.head == Symbol("<:") ? code.args[2].args[1] : code.args[2]
     if name isa Expr && name.head == :curly
         curly = Expr(:curly, name.args[1], unionise_subtype.(name.args[2:end])...)
-        return Expr(:type, code.args[1], curly, code.args[3])
+        if tmp isa Expr && tmp.head == Symbol("<:")
+            return Expr(
+                :type,
+                code.args[1],
+                Expr(Symbol("<:"), curly, tmp.args[2]),
+                code.args[3],
+            )
+        else
+            return Expr(:type, code.args[1], curly, code.args[3])
+        end
     else
         return code
     end
