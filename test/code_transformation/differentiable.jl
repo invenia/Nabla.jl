@@ -1,7 +1,7 @@
 @testset "code_transformation/differentiable" begin
 
-    import Nabla.Nabla: unionise_type, unionise_arg, unionise_eval, unionise_macro_eval,
-        unionise_sig, unionise
+    import Nabla.Nabla: unionise_type, unionise_arg, unionise_subtype, unionise_eval,
+        unionise_macro_eval, unionise_sig, unionise, unionise_struct
 
     # Test Nabla.unionise_arg. This depends upon Nabla.unionise_type, so we express
     # our tests in terms of this.
@@ -20,6 +20,10 @@
         @test unionise_arg(Expr(dots, :x)) == Expr(dots, :x)
         @test unionise_arg(Expr(dots, :(x::T))) == Expr(dots, unionise_arg(:(x::T)))
     end
+
+    # Test unionise_subtype.
+    @test unionise_subtype(:T) == :T
+    @test unionise_subtype(:(T<:V)) == :(T<:$(unionise_type(:V)))
 
     # Test Nabla.unionise_eval.
     @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
@@ -44,6 +48,15 @@
     @test unionise_sig(:((x::T,))) == :(($(unionise_arg(:(x::T))),))
     @test unionise_sig(:(foo(x::T))) == :(foo($(unionise_arg(:(x::T)))))
     @test unionise_sig(:(foo(x::T) where T)) == :(foo($(unionise_arg(:(x::T)))) where T)
+
+    # Test Nabla.unionise_struct. Written in terms of Nabla.unionise_arg.
+    @test unionise_struct(:(struct Foo end)) == :(struct Foo end)
+    @test unionise_struct(:(struct Foo{T} end)) ==
+        :(struct Foo{$(unionise_subtype(:T))} end)
+    @test unionise_struct(:(struct Foo{T<:Real} end)) ==
+        :(struct Foo{$(unionise_subtype(:(T<:Real)))} end)
+    @test unionise_struct(:(struct Foo{T<:V, Q<:U} end)) ==
+        :(struct Foo{$(unionise_subtype(:(T<:V))), $(unionise_subtype(:(Q<:U)))} end)
 
     # Test Nabla.make_accept_nodes. Heavily depends upon Nabla.unionise_sig, so we
     # express tests in terms of this function.
@@ -78,4 +91,5 @@
     @test unionise(:(eval(DiffBase, :foo))) == unionise_eval(:(eval(DiffBase, :foo)))
     @test unionise(:(@eval foo)) == unionise_macro_eval(:(@eval foo))
     @test unionise(:(@eval DiffBase foo)) == unionise_macro_eval(:(@eval DiffBase foo))
+    @test unionise(:(struct Foo{T<:V} end)) == unionise_struct(:(struct Foo{T<:V} end))
 end
