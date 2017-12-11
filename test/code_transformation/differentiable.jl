@@ -15,6 +15,12 @@
     @test unionise_arg(:(::T{V} where V<:Q)) == :(::$(unionise_type(:(T{V} where V<:Q))))
     @test unionise_arg(:(x::T{V} where V<:Q)) == :(x::$(unionise_type(:(T{V} where V<:Q))))
 
+    # Test unionise_arg for varargs case.
+    let dots = Symbol("...")
+        @test unionise_arg(Expr(dots, :x)) == Expr(dots, :x)
+        @test unionise_arg(Expr(dots, :(x::T))) == Expr(dots, unionise_arg(:(x::T)))
+    end
+
     # Test Nabla.unionise_eval.
     @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
     @test unionise_eval(:(eval(DiffBase, :foo))) == :(eval(DiffBase, :(@unionise foo)))

@@ -1,3 +1,5 @@
+__precompile__()
+
 module Nabla
 
     # Some aliases used repeatedly throughout the package.

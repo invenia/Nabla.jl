@@ -8,8 +8,13 @@ whos type admits `Node`s.
 """
 unionise_arg(arg::Symbol) = arg
 function unionise_arg(arg::Expr)
-    arg.head != Symbol("::") && throw(error("Unrecognised argument."))
-    return Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end]))
+    # arg.head != Symbol("::") && throw(error("Unrecognised argument in arg ($arg)."))
+    # return Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end]))
+    return arg.head == Symbol("::") ?
+        Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
+        arg.head == Symbol("...") ?
+            Expr(Symbol("..."), unionise_arg(arg.args[1])) :
+            throw(error("Unrecognised argument in arg ($arg)."))
 end
 
 """
