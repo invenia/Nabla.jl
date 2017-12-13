@@ -13,6 +13,8 @@ import Base.identity
 # TODO: Make a PR for DiffRules.
 @define_diffrule Base.:\(x, y) = :(-$y / $x^2), :(1 / $x)
 @define_diffrule Base.:transpose(x) = :(1)
+@define_diffrule Base.:abs(x) = :($x > 0 ? 1.0 : -1.0)
+@define_diffrule Base.:min(x, y) = :($x > $y ? 0.0 : 1.0), :($x > $y ? 1.0 : 0.0)
 
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.

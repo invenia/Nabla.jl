@@ -26,7 +26,7 @@ approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScala
 
 """
     compute_Dv(
-        f::Function,
+        f,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
         v::Tuple{Vararg{∇ArrayOrScalar}}

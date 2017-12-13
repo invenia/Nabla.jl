@@ -158,15 +158,16 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
 """
-    ∇(f::Function)
+    ∇(f; get_output::Bool=false)
 
 Returns a function which, when evaluated with arguments that are accepted by `f`, will
 return the gradient w.r.t. each of the arguments.
 """
-function ∇(f::Function, get_output::Bool=false)
+function ∇(f, get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
+        y isa Node || throw(error("f is not a function of its arguments."))
         ∇f = ∇(y)
         ∇args = ([∇f[arg_] for arg_ in args_]...)
         return get_output ? (y, ∇args) : ∇args
