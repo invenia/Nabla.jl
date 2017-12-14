@@ -1,5 +1,5 @@
 using Base.Test, Nabla
-# using Distributions, BenchmarkTools
+using Distributions, BenchmarkTools
 
 @testset "Core" begin
     include("core.jl")
