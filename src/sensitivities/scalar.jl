@@ -1,5 +1,5 @@
 using SpecialFunctions
-using DiffRules: @define_diffrule, diffrule, diffrules, DiffRule
+using DiffRules: @define_diffrule, diffrule, diffrules, hasdiffrule
 
 # Hand code the identity because it's really fundamental. It doesn't need to generate a new
 # node on the computational graph since it does nothing, but it is useful to have it's
@@ -20,14 +20,35 @@ DualNumbers.epsilon(::Real) = 0.0
 
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.
-ignored_fs = [:hankelh1, :hankelh2]
+ignored_fs = [(:SpecialFunctions, :hankelh1),
+              (:SpecialFunctions, :hankelh2),
+              (:(Base.Math.JuliaLibm), :log1p),
+              (:Base, :rem2pi),
+              (:Base, :mod),
+              (:Base, :atan2),
+              (:Base, :rem)]
 
 unary_sensitivities, binary_sensitivities = [], []
 
-for (package, f, arity) in diffrules()
-    (package == :NaNMath || f in ignored_fs) && continue
+# Code due to Curtis Vogt.
+function importable(ex::Expr)
+    ex.head === :. || error("Expression is not valid as an import: $ex")
+    result = importable_expr(ex.args[1])
+    push!(result, ex.args[2].args[1])
+    return result
+end
+function importable_expr(ex::Expr)
+    ex.head === :. || error("Expression is not valid as an import: $ex")
+    result = importable_expr(ex.args[1])
+    push!(result, ex.args[2].value)
+    return result
+end
+importable_expr(sym::Symbol) = Any[sym]
 
-    @eval import $package.$f
+for (package, f, arity) in diffrules()
+    (package == :NaNMath || (package, f) in ignored_fs) && continue
+
+    eval(Expr(:import, importable(:($package.$f))...))
     if arity == 1
         push!(unary_sensitivities, (package, f))
         ∂f∂x = diffrule(package, f, :x)

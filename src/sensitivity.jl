@@ -64,7 +64,7 @@ end
 
 """
     boxed_method(
-        f::Symbol,
+        f::SymOrExpr,
         type_tuple::Expr,
         is_node::Vector{Bool},
         arg_names::Vector{Symbol},
@@ -96,7 +96,7 @@ end
 boxed_method(f, t, n) = boxed_method(f, t, n, [gensym() for _ in n])
 
 """
-    get_sig(f::Symbol, arg_names::Vector{Symbol}, types::Vector)
+    get_sig(f::SymOrExpr, arg_names::Vector{Symbol}, types::Vector)
 
 Generate a function signature for `f` in which the arguments, whose names are `arg_names`,
 specified by the `true` entires of `is_node` have type `Node`. The other arguments have
