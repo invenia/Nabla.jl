@@ -44,7 +44,7 @@ end
 Allocating version of broadcastsum! specialised for Arrays.
 """
 broadcastsum(f::Function, add::Bool, z::AbstractArray, As...) =
-    broadcastsum!(f, add, similar(z), As...)
+    broadcastsum!(f, add, Array{eltype(z)}(size(z)), As...)
 
 """
     broadcastsum(f::Function, add::Bool, z::Number, As...)
