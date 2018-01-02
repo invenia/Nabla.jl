@@ -104,7 +104,8 @@ function check_approx_equal(desc, x, y, ε_abs, ε_rel)
               "  relative error:  $(@sprintf "%.3e" abs(x - y) / (abs(x) + abs(y)))\n" *
               "    tolerance:     $(@sprintf "%.3e" ε_rel)\n" *
               "  absolute error:  $(@sprintf "%.3e" abs(x - y))\n" *
-              "    tolerance:     $(@sprintf "%.3e" ε_abs)"
+              "    tolerance:     $(@sprintf "%.3e" ε_abs)\n" *
+              "  input:           $(@sprintf "%.3e" x)"
         throw(ErrorException(msg))
     end
     return true
