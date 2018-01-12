@@ -26,21 +26,6 @@ ignored_fs = [(:SpecialFunctions, :hankelh1),
 
 unary_sensitivities, binary_sensitivities = [], []
 
-# Code due to Curtis Vogt.
-function importable(ex::Expr)
-    ex.head === :. || error("Expression is not valid as an import: $ex")
-    result = importable_expr(ex.args[1])
-    push!(result, ex.args[2].args[1])
-    return result
-end
-function importable_expr(ex::Expr)
-    ex.head === :. || error("Expression is not valid as an import: $ex")
-    result = importable_expr(ex.args[1])
-    push!(result, ex.args[2].value)
-    return result
-end
-importable_expr(sym::Symbol) = Any[sym]
-
 for (package, f, arity) in diffrules()
     (package == :NaNMath || (package, f) in ignored_fs) && continue
 
