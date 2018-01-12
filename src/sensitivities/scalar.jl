@@ -29,7 +29,6 @@ unary_sensitivities, binary_sensitivities = [], []
 for (package, f, arity) in diffrules()
     (package == :NaNMath || (package, f) in ignored_fs) && continue
 
-    eval(:import $package.$f)
     @eval import $package.$f
     if arity == 1
         push!(unary_sensitivities, (package, f))
