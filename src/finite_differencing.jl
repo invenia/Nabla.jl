@@ -94,8 +94,8 @@ function check_errs(
     ∇x_alloc = compute_Dv(f, ȳ, x, v)
     ∇x_inplace = compute_Dv_update(f, ȳ, x, v)
     ∇x_fin_diff = approximate_Dv(f, ȳ, x, v)
-    return check_approx_equal("<$f> allocated", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
-           check_approx_equal("<$f> in-place", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
+    return check_approx_equal("<$f> allocated at $x", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
+           check_approx_equal("<$f> in-place at $x", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
 end
 
 function check_approx_equal(desc, x, y, ε_abs, ε_rel)
