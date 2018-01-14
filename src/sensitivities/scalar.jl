@@ -10,9 +10,6 @@ import Base.identity
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
 
 # Some derivatives are missing from DiffRules.
-# TODO: Make a PR for DiffRules.
-@define_diffrule Base.:\(x, y) = :(-$y / $x^2), :(1 / $x)
-@define_diffrule Base.:transpose(x) = :(one(x))
 @define_diffrule Base.:abs(x) = :($x > 0 ? one($x) : -one($x))
 @define_diffrule Base.:min(x, y) = :($x > $y ? zero($x) : one($x)), :($x > $y ? one($y) : zero($y))
 

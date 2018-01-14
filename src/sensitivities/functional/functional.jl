@@ -65,6 +65,7 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
         broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N}), false, A[N], ȳ, A...)
 
 # Addition.
+import Base: +
 @eval @explicit_intercepts $(Symbol("+")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
 @inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, +, x, y)
@@ -72,6 +73,7 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     ∇(broadcast, Arg{3}, p, z, z̄, +, x, y)
 
 # Multiplication.
+import Base: *
 @eval @explicit_intercepts $(Symbol("*")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
 @inline ∇(::typeof(*), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, *, x, y)
@@ -79,6 +81,7 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     ∇(broadcast, Arg{3}, p, z, z̄, *, x, y)
 
 # Subtraction.
+import Base: -
 @eval @explicit_intercepts $(Symbol("-")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
 @inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, -, x, y)
@@ -86,6 +89,7 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     ∇(broadcast, Arg{3}, p, z, z̄, -, x, y)
 
 # Division from the right by a scalar.
+import Base: /
 @eval @explicit_intercepts $(Symbol("/")) Tuple{∇Array, ∇Scalar}
 @inline ∇(::typeof(/), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, /, x, y)
@@ -93,6 +97,7 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     ∇(broadcast, Arg{3}, p, z, z̄, /, x, y)
 
 # Division from the left by a scalar.
+import Base: \
 @eval @explicit_intercepts $(Symbol("\\")) Tuple{∇Scalar, ∇Array}
 @inline ∇(::typeof(\), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, \, x, y)
