@@ -1,4 +1,4 @@
-using DiffRules: diffrule
+using DiffRules: diffrule, hasdiffrule
 
 @testset "Scalar domains" begin
     @test in_domain(sin, 10.)
@@ -38,7 +38,16 @@ end
         end
 
         for (package, f) in Nabla.binary_sensitivities
-            ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
+
+            # This is a hack. Sensitivities added in Nabla don't persist upon reloading the
+            # package, so we can't query them here. It happens to be the case that all such
+            # sensitivities are differentiable in both arguments, so we can just set them
+            # to "not-NaN" in such cases.
+            if hasdiffrule(package, f, 2)
+                ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
+            else
+                ∂f∂x, ∂f∂y = :∂f∂x, :∂f∂y
+            end
 
             if ∂f∂x == :NaN && ∂f∂y != :NaN
                 # Assume that the first argument is integer-valued.

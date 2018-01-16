@@ -104,7 +104,7 @@ function check_approx_equal(desc, x, y, ε_abs, ε_rel)
               "  relative error:  $(@sprintf "%.3e" abs(x - y) / (abs(x) + abs(y)))\n" *
               "    tolerance:     $(@sprintf "%.3e" ε_rel)\n" *
               "  absolute error:  $(@sprintf "%.3e" abs(x - y))\n" *
-              "    tolerance:     $(@sprintf "%.3e" ε_abs)"
+              "    tolerance:     $(@sprintf "%.3e" ε_abs)\n"
         throw(ErrorException(msg))
     end
     return true
@@ -346,3 +346,4 @@ end
 # error, strangely enough.
 domain2(::typeof(beta)) = Nullable(((minimum(points[points .> 0]), maximum(points)),
                                     (minimum(points[points .> 0]), maximum(points))))
+domain1(::typeof(gamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))

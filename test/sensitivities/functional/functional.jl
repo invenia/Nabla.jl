@@ -1,5 +1,5 @@
 using SpecialFunctions
-using DiffRules: diffrule
+using DiffRules: diffrule, hasdiffrule
 
 @testset "Functional" begin
     # Apparently Distributions.jl doesn't implement the following, so we'll have to do it.
@@ -74,9 +74,14 @@ using DiffRules: diffrule
             @test ∇s[y_] ≈ ∇y
         end
         for (package, f) in Nabla.binary_sensitivities
+
             # TODO: More care needs to be taken to test the following.
-            f in [:atan2, :mod, :rem] && continue
-            ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
+            if hasdiffrule(package, f, 2)
+                ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
+            else
+                ∂f∂x, ∂f∂y = :∂f∂x, :∂f∂y
+            end
+
             # TODO: Implement the edge cases for functions differentiable in only either
             # argument.
             (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
@@ -190,7 +195,11 @@ using DiffRules: diffrule
         for (package, f) in Nabla.binary_sensitivities
             # TODO: More care needs to be taken to test the following.
             f in [:atan2, :mod, :rem] && continue
-            ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
+            if hasdiffrule(package, f, 2)
+                ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
+            else
+                ∂f∂x, ∂f∂y = :∂f∂x, :∂f∂y
+            end
             # TODO: Implement the edge cases for functions differentiable in only either
             # argument.
             (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
