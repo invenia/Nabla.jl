@@ -5,7 +5,6 @@ for i = 1:7
     @eval @explicit_intercepts getindex $T [[true]; fill(false, $i - 1)]
 end
 
-# ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...) = setindex!(Ā, ȳ, inds...)
 function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
     Ā[inds...] .+= ȳ
     return Ā

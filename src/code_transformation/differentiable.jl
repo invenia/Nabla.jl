@@ -12,7 +12,7 @@ unionise_arg(arg::Expr) =
         Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
         arg.head == Symbol("...") ?
             Expr(Symbol("..."), unionise_arg(arg.args[1])) :
-            throw(error("Unrecognised argument in arg ($arg)."))
+            throw(error("Unrecognised argument in Symbol ($arg)."))
 
 """
     unionise_subtype(arg::Union{Symbol, Expr})
@@ -89,10 +89,11 @@ user-defined type, it must contain only `Any`s and parametric types.
 """
 function unionise_struct(code::Expr)
     tmp = code.args[2]
-    name = tmp isa Expr && tmp.head == Symbol("<:") ? code.args[2].args[1] : code.args[2]
+    is_subtype_expr = tmp isa Expr && tmp.head == Symbol("<:")
+    name = is_subtype_expr ? code.args[2].args[1] : code.args[2]
     if name isa Expr && name.head == :curly
         curly = Expr(:curly, name.args[1], unionise_subtype.(name.args[2:end])...)
-        if tmp isa Expr && tmp.head == Symbol("<:")
+        if is_subtype_expr
             return Expr(
                 :type,
                 code.args[1],

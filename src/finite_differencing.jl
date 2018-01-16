@@ -347,8 +347,8 @@ end
 domain2(::typeof(beta)) = Nullable(((minimum(points[points .> 0]), maximum(points)),
                                     (minimum(points[points .> 0]), maximum(points))))
 
-# Both of these functions are technically defined on the entire real line, but the negative
+# Both of these functions are technically defined on the entire real line, but the left
 # half is troublesome due to the large number of points at which it isn't defined. As such
-# we restrict unit testing to the left-half line.
+# we restrict unit testing to the right-half.
 domain1(::typeof(gamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
 domain1(::typeof(trigamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
