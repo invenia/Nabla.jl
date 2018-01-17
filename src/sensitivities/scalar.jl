@@ -1,5 +1,5 @@
 using SpecialFunctions
-using DiffRules: @define_diffrule, diffrule, diffrules, DiffRule
+using DiffRules: @define_diffrule, diffrule, diffrules, hasdiffrule
 
 # Hand code the identity because it's really fundamental. It doesn't need to generate a new
 # node on the computational graph since it does nothing, but it is useful to have it's
@@ -16,12 +16,18 @@ import Base.identity
 
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.
-ignored_fs = [:hankelh1, :hankelh2]
+ignored_fs = [(:SpecialFunctions, :hankelh1),
+              (:SpecialFunctions, :hankelh2),
+              (:(Base.Math.JuliaLibm), :log1p),
+              (:Base, :rem2pi),
+              (:Base, :mod),
+              (:Base, :atan2),
+              (:Base, :rem)]
 
 unary_sensitivities, binary_sensitivities = [], []
 
 for (package, f, arity) in diffrules()
-    (package == :NaNMath || f in ignored_fs) && continue
+    (package == :NaNMath || (package, f) in ignored_fs) && continue
 
     @eval import $package.$f
     if arity == 1

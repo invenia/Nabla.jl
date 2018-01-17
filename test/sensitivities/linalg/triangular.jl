@@ -39,4 +39,15 @@
             @test check_errs(logdet, 10.0, A, VA)
         end
     end
+
+    # Check that the optimisations occur correctly and produce the required types when
+    # everything is Diagonal.
+    let rng = MersenneTwister(123456)
+        A = UpperTriangular(exp.(randn(rng, 10, 10)))
+
+        @test ∇(det)(A)[1] isa Diagonal
+        @test ∇(A->det(A) + det(A))(A)[1] isa Diagonal
+        @test ∇(logdet)(A)[1] isa Diagonal
+        @test ∇(A->logdet(A) + det(A))(A)[1] isa Diagonal
+    end
 end
