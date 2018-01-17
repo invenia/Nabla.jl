@@ -25,6 +25,7 @@ end
     # Test sensitivities for linear algebra optimisations.
     @testset "Linear algebra" begin
         include("sensitivities/linalg/generic.jl")
+        include("sensitivities/linalg/symmetric.jl")
         include("sensitivities/linalg/uniformscaling.jl")
         include("sensitivities/linalg/diagonal.jl")
         include("sensitivities/linalg/triangular.jl")
