@@ -126,7 +126,7 @@ end
 
 
 """ Initialise a Tape appropriately for being used as a reverse-tape. """
-function reverse_tape(y::Node, ȳ)
+function reverse_tape(y::Node{T}, ȳ::T) where T
     tape = Tape(y.pos)
     tape[end] = ȳ
     return tape
@@ -152,7 +152,7 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
-∇(y::Node, ȳ) = propagate(y.tape, reverse_tape(y, ȳ))
+∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(y.val))
 
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
