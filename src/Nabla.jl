@@ -1,5 +1,8 @@
 module Nabla
 
+    using DiffLinearAlgebra
+    import DiffLinearAlgebra: ∇
+
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
     const ∇Scalar = Real
@@ -8,7 +11,6 @@ module Nabla
     const ∇AbstractMatrix = AbstractMatrix{<:∇Scalar}
     const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
     const SymOrExpr = Union{Symbol, Expr}
-
 
     # Meta-programming utilities specific to Nabla.
     include("code_transformation/util.jl")
@@ -34,13 +36,7 @@ module Nabla
     include("sensitivities/functional/reduce.jl")
     include("sensitivities/functional/reducedim.jl")
 
-    # Linear algebra optimisations.
-    include("sensitivities/linalg/generic.jl")
-    include("sensitivities/linalg/symmetric.jl")
-    include("sensitivities/linalg/strided.jl")
-    include("sensitivities/linalg/blas.jl")
-    include("sensitivities/linalg/diagonal.jl")
-    include("sensitivities/linalg/triangular.jl")
-    include("sensitivities/linalg/factorization/cholesky.jl")
+    # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
+    include("sensitivities/linear_algebra.jl")
 
 end # module Nabla

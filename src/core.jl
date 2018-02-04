@@ -133,7 +133,7 @@ function reverse_tape(y::Node, ȳ)
 end
 
 """ Used to flag which argument is being specified in x̄. """
-struct Arg{N} end
+const Arg{N} = Val{N}
 
 """
     ∇(y::Node{<:∇Scalar})
