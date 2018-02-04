@@ -79,11 +79,6 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
         compute_Dv(foo, Z̄, (X, Y), (VX, VY))
     @test compute_Dv(foo, Z̄, (X, Y), (VX, VY)) ≈
         compute_Dv_update(foo, Z̄, (X, Y), (VX, VY))
-
-    @test_throws ErrorException check_approx_equal("test", 1, 1 + 1e-5, 1e-10, 1e-6)
-    @test check_approx_equal("test", 1, 1 + 1e-7, 1e-10, 1e-6)
-    @test_throws ErrorException check_approx_equal("test", 0, 1e-9, 1e-10, 1e-6)
-    @test check_approx_equal("test", 0, 1e-11, 1e-10, 1e-6)
 end
 
 @testset "Finite-difference methods" begin

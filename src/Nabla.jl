@@ -1,6 +1,6 @@
 module Nabla
 
-    using DiffLinearAlgebra
+    using DiffLinearAlgebra, FDM
     import DiffLinearAlgebra: ∇
 
     # Some aliases used repeatedly throughout the package.
