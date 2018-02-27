@@ -195,10 +195,16 @@ end
 
 # A collection of methods for initialising nested indexable containers to zero.
 for (f_name, scalar_init, array_init) in
-    zip((:zerod_container, :oned_container), (:zero, :one), (:zeros, :ones))
+    zip((:zerod_container, :oned_container, :randned_container),
+        (:zero, :one, Nullable()),
+        (:zeros, :ones, Nullable()))
+    if !isnull(scalar_init)
+        @eval @inline $f_name(x::Number) = $scalar_init(x)
+    end
+    if !isnull(array_init)
+        @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
+    end
     eval(quote
-        @inline $f_name(x::Number) = $scalar_init(x)
-        @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
         @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...)
         @inline function $f_name(x)
             y = Base.copy(x)
@@ -209,6 +215,8 @@ for (f_name, scalar_init, array_init) in
         end
     end)
 end
+@inline randned_container(x::Number) = randn(typeof(x))
+@inline randned_container(x::AbstractArray{<:Real}) = randn(eltype(x), size(x)...)
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
 # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
