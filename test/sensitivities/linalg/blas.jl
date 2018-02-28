@@ -3,7 +3,7 @@
     let rng = MersenneTwister(123456)
         for _ in 1:10
             x, y, vx, vy = randn.(rng, [5, 5, 5, 5])
-            @test check_errs(dot, dot(x ,y), (x, y), (vx, vy))
+            @test check_errs(dot, dot(x, y), (x, y), (vx, vy))
         end
     end
     let rng = MersenneTwister(123456)
