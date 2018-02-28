@@ -217,6 +217,9 @@ for (f_name, scalar_init, array_init) in
 end
 @inline randned_container(x::Number) = randn(typeof(x))
 @inline randned_container(x::AbstractArray{<:Real}) = randn(eltype(x), size(x)...)
+for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
+    @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
+end
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
 # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
