@@ -101,21 +101,27 @@ for (f, T_A, T_B, T_Y, Ā, B̄) in binary_linalg_optimisations
     @eval ∇(::typeof($f), ::Type{Arg{2}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $B̄
 end
 
+# Sensitivity for the Kronecker product:
 import Base.kron
 @explicit_intercepts kron Tuple{A, A}
-function ∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
-    Ā = zeros(A)
-    (M, N), (K, L) = size(A), size(B)
+
+# The allocating versions simply allocate and then call the in-place versions.
+∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A) =
+    ∇(zeros(A), kron, Arg{1}, p, Y, Ȳ, A, B)
+∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A) =
+    ∇(zeros(B), kron, Arg{2}, p, Y, Ȳ, A, B)
+
+function ∇(Ā::A, ::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
+    (K, L), (M, N) = size(A), size(B)
     for k = 1:K, l = 1:L, m = 1:M, n = 1:N
-        Ā[m, n] += B[k, l] * Ȳ[(m - 1) * K + k, (n - 1) * L + l]
+        Ā[k, l] += B[m, n] * Ȳ[(k - 1) * K + m, (l - 1) * L + n]
     end
     return Ā
 end
-function ∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A)
-    B̄ = zeros(B)
-    (M, N), (K, L) = size(A), size(B)
+function ∇(B̄::A, ::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A)
+    (K, L), (M, N) = size(A), size(B)
     for k = 1:K, l = 1:L, m = 1:M, n = 1:N
-        B̄[k, l] += A[m, n] * Ȳ[(m - 1) * K + k, (n - 1) * L + l]
+        B̄[m, n] += A[k, l] * Ȳ[(k - 1) * K + m, (l - 1) * L + n]
     end
     return B̄
 end
