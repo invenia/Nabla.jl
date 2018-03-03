@@ -101,7 +101,7 @@ for (f, T_A, T_B, T_Y, Ā, B̄) in binary_linalg_optimisations
     @eval ∇(::typeof($f), ::Type{Arg{2}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $B̄
 end
 
-# Sensitivity for the Kronecker product:
+# Sensitivities for the Kronecker product:
 import Base.kron
 @explicit_intercepts kron Tuple{A, A}
 
