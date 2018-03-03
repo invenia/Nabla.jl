@@ -26,7 +26,7 @@ approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScala
 
 """
     compute_Dv(
-        f::Function,
+        f,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
         v::Tuple{Vararg{∇ArrayOrScalar}}
@@ -110,8 +110,8 @@ function check_errs(
     ∇x_alloc = compute_Dv(f, ȳ, x, v)
     ∇x_inplace = compute_Dv_update(f, ȳ, x, v)
     ∇x_fin_diff = approximate_Dv(f, ȳ, x, v)
-    return check_approx_equal("<$f> allocated", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
-           check_approx_equal("<$f> in-place", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
+    return check_approx_equal("<$f> allocated at $x", ∇x_alloc, ∇x_fin_diff, ε_abs, ε_rel) &
+           check_approx_equal("<$f> in-place at $x", ∇x_inplace, ∇x_fin_diff, ε_abs, ε_rel)
 end
 
 function check_approx_equal(desc, x, y, ε_abs, ε_rel)
@@ -362,4 +362,9 @@ end
 # error, strangely enough.
 domain2(::typeof(beta)) = Nullable(((minimum(points[points .> 0]), maximum(points)),
                                     (minimum(points[points .> 0]), maximum(points))))
+
+# Both of these functions are technically defined on the entire real line, but the left
+# half is troublesome due to the large number of points at which it isn't defined. As such
+# we restrict unit testing to the right-half.
 domain1(::typeof(gamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
+domain1(::typeof(trigamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
