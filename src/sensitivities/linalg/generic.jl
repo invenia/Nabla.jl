@@ -114,14 +114,14 @@ import Base.kron
 function ∇(Ā::A, ::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
     (K, L), (M, N) = size(A), size(B)
     for k = 1:K, l = 1:L, m = 1:M, n = 1:N
-        Ā[k, l] += B[m, n] * Ȳ[(k - 1) * K + m, (l - 1) * L + n]
+        Ā[k, l] += B[m, n] * Ȳ[(k - 1) * M + m, (l - 1) * N + n]
     end
     return Ā
 end
 function ∇(B̄::A, ::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A)
     (K, L), (M, N) = size(A), size(B)
     for k = 1:K, l = 1:L, m = 1:M, n = 1:N
-        B̄[m, n] += A[k, l] * Ȳ[(k - 1) * K + m, (l - 1) * L + n]
+        B̄[m, n] += A[k, l] * Ȳ[(k - 1) * M + m, (l - 1) * N + n]
     end
     return B̄
 end
