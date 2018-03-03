@@ -9,10 +9,6 @@ import Base.identity
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
 
-# Some derivatives are missing from DiffRules.
-@define_diffrule Base.:abs(x) = :($x > 0 ? one($x) : -one($x))
-@define_diffrule Base.:min(x, y) = :($x > $y ? zero($x) : one($x)), :($x > $y ? one($y) : zero($y))
-
 DualNumbers.epsilon(::Real) = 0.0
 
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
