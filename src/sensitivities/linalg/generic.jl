@@ -100,3 +100,22 @@ for (f, T_A, T_B, T_Y, Ā, B̄) in binary_linalg_optimisations
     @eval ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $Ā
     @eval ∇(::typeof($f), ::Type{Arg{2}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $B̄
 end
+
+import Base.kron
+@explicit_intercepts kron Tuple{A, A}
+function ∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
+    Ā = zeros(A)
+    (M, N), (K, L) = size(A), size(B)
+    for k = 1:K, l = 1:L, m = 1:M, n = 1:N
+        Ā[m, n] += B[k, l] * Ȳ[(m - 1) * K + k, (n - 1) * L + l]
+    end
+    return Ā
+end
+function ∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A)
+    B̄ = zeros(B)
+    (M, N), (K, L) = size(A), size(B)
+    for k = 1:K, l = 1:L, m = 1:M, n = 1:N
+        B̄[k, l] += A[m, n] * Ȳ[(m - 1) * K + k, (n - 1) * L + l]
+    end
+    return B̄
+end
