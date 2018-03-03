@@ -112,16 +112,25 @@ import Base.kron
     ∇(zeros(B), kron, Arg{2}, p, Y, Ȳ, A, B)
 
 function ∇(Ā::A, ::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
-    (K, L), (M, N) = size(A), size(B)
-    for k = 1:K, l = 1:L, m = 1:M, n = 1:N
-        Ā[k, l] += B[m, n] * Ȳ[(k - 1) * M + m, (l - 1) * N + n]
+    (I, J), (K, L), m = size(A), size(B), length(Y)
+    for j = reverse(1:J), l = reverse(1:L), i = reverse(1:I)
+        aij, āij = A[i, j], Ā[i, j]
+        for k = reverse(1:K)
+            āij += Ȳ[m] * B[k, l]
+            m -= 1
+        end
+        Ā[i, j] = āij
     end
     return Ā
 end
 function ∇(B̄::A, ::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A)
-    (K, L), (M, N) = size(A), size(B)
-    for k = 1:K, l = 1:L, m = 1:M, n = 1:N
-        B̄[m, n] += A[k, l] * Ȳ[(k - 1) * M + m, (l - 1) * N + n]
+    (I, J), (K, L), m = size(A), size(B), length(Y)
+    for j = reverse(1:J), l = reverse(1:L), i = reverse(1:I)
+        aij = A[i, j]
+        for k = reverse(1:K)
+            B̄[k, l] += Ȳ[m] * aij
+            m -= 1
+        end
     end
     return B̄
 end
