@@ -9,6 +9,10 @@ function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
     Ā[inds...] .+= ȳ
     return Ā
 end
+function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y::AbstractArray, ȳ::AbstractArray, A, inds...)
+    Ā[inds...] .+= reshape(ȳ, size(y)...)
+    return Ā
+end
 function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
     return ∇(zerod_container(A), getindex, Arg{1}, p, y, ȳ, A, inds...)
 end
