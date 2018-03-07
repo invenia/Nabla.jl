@@ -107,9 +107,9 @@ import Base.kron
 
 # The allocating versions simply allocate and then call the in-place versions.
 ∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A) =
-    ∇(zeros(full(A)), kron, Arg{1}, p, Y, Ȳ, A, B)
+    ∇(zeros(eltype(A), size(A)), kron, Arg{1}, p, Y, Ȳ, A, B)
 ∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A) =
-    ∇(zeros(full(B)), kron, Arg{2}, p, Y, Ȳ, A, B)
+    ∇(zeros(eltype(B), size(B)), kron, Arg{2}, p, Y, Ȳ, A, B)
 
 function ∇(Ā::A, ::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
     (I, J), (K, L), m = size(A), size(B), length(Y)
