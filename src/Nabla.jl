@@ -4,7 +4,7 @@ module Nabla
 
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
-    const ∇Scalar = Real
+    const ∇Scalar = Number
     const ∇Array = AbstractArray{<:∇Scalar}
     const ∇AbstractVector = AbstractVector{<:∇Scalar}
     const ∇AbstractMatrix = AbstractMatrix{<:∇Scalar}
