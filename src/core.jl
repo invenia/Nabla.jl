@@ -7,7 +7,7 @@ export Leaf, Tape, Node, Branch, ∇
 abstract type Node{T} end
 
 """ A topologically ordered collection of Nodes. """
-immutable Tape
+struct Tape
     tape::Vector{Any}
     Tape() = new(Vector{Any}())
     Tape(N::Int) = new(Vector{Any}(N))
@@ -62,7 +62,7 @@ args - Values indicating which elements in the tape will require updating by thi
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
 """
-immutable Branch{T} <: Node{T}
+struct Branch{T} <: Node{T}
     val::T
     f
     args::Tuple
@@ -169,7 +169,7 @@ function ∇(f, get_output::Bool=false)
         y = f(args_...)
         y isa Node || throw(error("f is not a function of its arguments."))
         ∇f = ∇(y)
-        ∇args = ([∇f[arg_] for arg_ in args_]...)
+        ∇args = ([∇f[arg_] for arg_ in args_]...,)
         return get_output ? (y, ∇args) : ∇args
     end
 end
@@ -206,7 +206,7 @@ for (f_name, scalar_init, array_init) in
         @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
     end
     eval(quote
-        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...)
+        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...,)
         @inline function $f_name(x)
             y = Base.copy(x)
             for n in eachindex(y)
