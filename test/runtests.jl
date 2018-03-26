@@ -37,7 +37,4 @@ end
             include("sensitivities/linalg/factorization/cholesky.jl")
         end
     end
-
-    # Test finite differencing functionality.
-    include("fd/fd.jl")
 end
