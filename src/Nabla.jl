@@ -14,9 +14,9 @@ module Nabla
     const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
     const SymOrExpr = Union{Symbol, Expr}
 
-
     # Functionality for constructing computational graphs.
     include("core.jl")
+    include("sensitivity.jl")
 
     # # Finite differencing functionality - only used in tests. Would be good to move this
     # # into a separate module at some point.
@@ -24,7 +24,7 @@ module Nabla
 
     # # Sensitivities for the basics.
     # include("sensitivities/indexing.jl")
-    include("sensitivities/scalar.jl")
+    # include("sensitivities/scalar.jl")
     # include("sensitivities/array.jl")
 
     # Sensitivities for functionals.

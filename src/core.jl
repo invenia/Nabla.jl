@@ -96,6 +96,16 @@ Get `.val` if `x` is a Node, otherwise is equivalent to `identity`.
 unbox(x::Node) = x.val
 unbox(x) = x
 
+"""
+    propagate_forward(f, args...)
+
+Continue execution as usual if no `Node`s are encountered. Otherwise track execution.
+"""
+@generated function propagate_forward(f, args...)
+    tape_arg = findfirst(arg->arg<:Node, args)
+    return tape_arg === nothing ? :(f(args...)) : :(Branch(f, args, args[$tape_arg].tape))
+end
+
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
@@ -201,6 +211,15 @@ end
 for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
+
+"""
+    preprocess(::Function, args...)
+
+Default implementation of preprocess returns an empty Tuple. Individual sensitivity
+implementations should add methods specific to their use case. The output is passed
+in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
+"""
+@inline preprocess(::Any, args...) = ()
 
 # # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
 # # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
