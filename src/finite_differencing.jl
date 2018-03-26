@@ -1,3 +1,5 @@
+using FDM
+
 export check_Dv, check_Dv_update, check_errs, fdm, forward_fdm, central_fdm, backward_fdm,
        assert_approx_equal, domain1, domain2, points, in_domain
 
@@ -21,8 +23,10 @@ function approximate_Dv(
 )
     return central_5_1(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
 end
+central_5_1 = central_fdm(5, 1; M=5e8)
 approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
     approximate_Dv(f, ȳ, (x,), (v,))
+
 
 """
     compute_Dv(

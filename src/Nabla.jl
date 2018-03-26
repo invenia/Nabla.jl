@@ -45,7 +45,4 @@ module Nabla
     include("sensitivities/linalg/triangular.jl")
     include("sensitivities/linalg/factorization/cholesky.jl")
 
-    # Include finite differencing functionality.
-    include("fd/fd.jl")
-
 end # module Nabla
