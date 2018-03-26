@@ -1,6 +1,4 @@
-using DualNumbers
-
-import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned
+import Base: push!, length, show, getindex, setindex!, lastindex, eachindex, isassigned
 export Leaf, Tape, Node, Branch, ∇
 
 """ Basic unit on the computational graph."""
@@ -10,7 +8,7 @@ abstract type Node{T} end
 struct Tape
     tape::Vector{Any}
     Tape() = new(Vector{Any}())
-    Tape(N::Int) = new(Vector{Any}(N))
+    Tape(N::Int) = new(Vector{Any}(undef, N))
 end
 function show(io::IO, tape::Tape)
     if length(tape) == 0
@@ -23,7 +21,7 @@ function show(io::IO, tape::Tape)
 end
 @inline getindex(tape::Tape, n::Int) = Base.getindex(tape.tape, n)
 @inline getindex(tape::Tape, node::Node) = Base.getindex(tape, node.pos)
-@inline endof(tape::Tape) = length(tape)
+@inline lastindex(tape::Tape) = length(tape)
 @inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
 @inline eachindex(tape::Tape) = eachindex(tape.tape)
 @inline length(tape::Tape) = length(tape.tape)
@@ -174,31 +172,13 @@ function ∇(f, get_output::Bool=false)
     end
 end
 
-# """
-#     ∇(f::Function)
-
-# Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),
-# will return a Tuple, the first element of which is the output of the function `f` and then
-# second element of which is (yet another) function `g`. `g` can either be evaluated with no
-# arguments, in which case it will return the gradient of `f` evaluated at `x`.
-# Alternatively, it can be evaluated with arguments of the same type and shape as the output
-# of `f(x)`, in which case it is equivalent to multiplying them 'from the left' by the
-# Jacobian ∂(f(x)) / ∂x.
-# """
-# function ∇(f::Function)
-#     return function(args...)
-#         args_ = Leaf.(Tape(), args)
-#         y = f(args_...)
-#         ∇fx = (ȳ)->∇
-
-#     end
-# end
+__ones(x) = fill(one(eltype(x)), size(x))
 
 # A collection of methods for initialising nested indexable containers to zero.
 for (f_name, scalar_init, array_init) in
     zip((:zerod_container, :oned_container, :randned_container),
         (:zero, :one, Nullable()),
-        (:zeros, :ones, Nullable()))
+        (:zero, :__ones, Nullable()))
     if !isnull(scalar_init)
         @eval @inline $f_name(x::Number) = $scalar_init(x)
     end
@@ -222,23 +202,23 @@ for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
-# Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
-# a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
-# The coefficient of this scaling could be improved by implementing a version of DualNumbers
-# which computes from multiple seeds at the same time.
-function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
-    dual_call = Expr(:call, :f)
-    for m in 1:Base.length(x.parameters)
-        push!(dual_call.args, n == m ? :(Dual(x[$m], 1)) : :(x[$m]))
-    end
-    return :(dualpart($dual_call))
-end
-@generated fmad(f, x, n) = dual_call_expr(f, x, n)
-function fmad_expr(f, x::Type{<:Tuple})
-    body = Expr(:tuple)
-    for n in 1:Base.length(x.parameters)
-        push!(body.args, dual_call_expr(f, x, Type{Val{n}}))
-    end
-    return body
-end
-@generated fmad(f, x) = fmad_expr(f, x)
+# # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
+# # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
+# # The coefficient of this scaling could be improved by implementing a version of DualNumbers
+# # which computes from multiple seeds at the same time.
+# function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
+#     dual_call = Expr(:call, :f)
+#     for m in 1:Base.length(x.parameters)
+#         push!(dual_call.args, n == m ? :(Dual(x[$m], 1)) : :(x[$m]))
+#     end
+#     return :(dualpart($dual_call))
+# end
+# @generated fmad(f, x, n) = dual_call_expr(f, x, n)
+# function fmad_expr(f, x::Type{<:Tuple})
+#     body = Expr(:tuple)
+#     for n in 1:Base.length(x.parameters)
+#         push!(body.args, dual_call_expr(f, x, Type{Val{n}}))
+#     end
+#     return body
+# end
+# @generated fmad(f, x) = fmad_expr(f, x)

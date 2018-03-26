@@ -26,7 +26,13 @@
     @test unionise_subtype(:(T<:V)) == :(T<:$(unionise_type(:V)))
 
     # Test Nabla.unionise_eval.
-    @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
+    # @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
+    dump(unionise_eval(:(eval(:foo))))
+    dump(:(eval(:(@unionise foo))))
+    @show @__LINE__
+    @show LineNumberNode(@__LINE__)
+    test_expr = Expr(:macrocall, )
+    @test unionise_eval(:(eval(:foo))) == :(eval(Expr(:macrocall, Symbol("@unionise"), :foo)))
     @test unionise_eval(:(eval(DiffBase, :foo))) == :(eval(DiffBase, :(@unionise foo)))
     @test unionise_eval(:(eval(:(println("foo"))))) == :(eval(:(@unionise println("foo"))))
     @test unionise_eval(:(eval(DiffBase, :(println("foo"))))) ==

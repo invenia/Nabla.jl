@@ -2,7 +2,7 @@ __precompile__()
 
 module Nabla
 
-    using DiffLinearAlgebra, FDM
+    using DiffLinearAlgebra, FDM, Leibniz, Nullables
     import DiffLinearAlgebra: ∇
 
     # Some aliases used repeatedly throughout the package.
@@ -18,27 +18,27 @@ module Nabla
     include("code_transformation/util.jl")
     include("code_transformation/differentiable.jl")
 
-    # # Functionality for constructing computational graphs.
+    # Functionality for constructing computational graphs.
     include("core.jl")
 
     # Functionality for defining new sensitivities.
     include("sensitivity.jl")
 
-    # Finite differencing functionality - only used in tests. Would be good to move this
-    # into a separate module at some point.
-    include("finite_differencing.jl")
+    # # Finite differencing functionality - only used in tests. Would be good to move this
+    # # into a separate module at some point.
+    # include("finite_differencing.jl")
 
-    # Sensitivities for the basics.
-    include("sensitivities/indexing.jl")
+    # # Sensitivities for the basics.
+    # include("sensitivities/indexing.jl")
     include("sensitivities/scalar.jl")
-    include("sensitivities/array.jl")
+    # include("sensitivities/array.jl")
 
     # Sensitivities for functionals.
-    include("sensitivities/functional/functional.jl")
-    include("sensitivities/functional/reduce.jl")
-    include("sensitivities/functional/reducedim.jl")
+    # include("sensitivities/functional/functional.jl")
+    # include("sensitivities/functional/reduce.jl")
+    # include("sensitivities/functional/reducedim.jl")
 
-    # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
-    include("sensitivities/linear_algebra.jl")
+    # # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
+    # include("sensitivities/linear_algebra.jl")
 
 end # module Nabla
