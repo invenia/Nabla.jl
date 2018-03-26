@@ -9,8 +9,6 @@ import Base.identity
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
 @inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
 
-DualNumbers.epsilon(::Real) = 0.0
-
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.
 ignored_fs = [(:SpecialFunctions, :hankelh1),
