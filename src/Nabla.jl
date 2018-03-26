@@ -1,4 +1,4 @@
-__precompile__()
+__precompile__(true)
 
 module Nabla
 
@@ -11,16 +11,11 @@ module Nabla
     const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
     const SymOrExpr = Union{Symbol, Expr}
 
-
-    # Meta-programming utilities specific to Nabla.
-    include("code_transformation/util.jl")
-    include("code_transformation/differentiable.jl")
-
-    # # Functionality for constructing computational graphs.
+    # Functionality for constructing computational graphs.
     include("core.jl")
 
-    # # Functionality for defining new sensitivities.
-    # include("sensitivity.jl")
+    # Functionality for defining new sensitivities.
+    include("sensitivity.jl")
 
     # # Finite differencing functionality - only used in tests. Would be good to move this
     # # into a separate module at some point.
