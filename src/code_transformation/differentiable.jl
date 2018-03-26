@@ -7,10 +7,23 @@ Return an expression in which the argument expression `arg` is replaced with an 
 whos type admits `Node`s.
 """
 unionise_arg(arg::Symbol) = arg
-function unionise_arg(arg::Expr)
-    arg.head != Symbol("::") && throw(error("Unrecognised argument."))
-    return Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end]))
-end
+unionise_arg(arg::Expr) =
+    arg.head == Symbol("::") ?
+        Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
+        arg.head == Symbol("...") ?
+            Expr(Symbol("..."), unionise_arg(arg.args[1])) :
+            throw(error("Unrecognised argument in Symbol ($arg)."))
+
+"""
+    unionise_subtype(arg::Union{Symbol, Expr})
+
+Equivalent to `unionise_arg`, but replacing `::` with `<:`.
+"""
+unionise_subtype(arg::Symbol) = arg
+unionise_subtype(arg::Expr) =
+    arg.head == Symbol("<:") ?
+        Expr(Symbol("<:"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
+        throw(error("Unrecognised argument in arg ($arg)."))
 
 """
     get_quote_body(code)
@@ -68,6 +81,34 @@ function unionise_sig(code::Expr)
 end
 
 """
+    unionise_struct(code)
+
+`code` should be an `Expr` containing the definition of a type. The type will only be
+changed if it is parametric. That is, if you wish to be able to differentiate through a
+user-defined type, it must contain only `Any`s and parametric types.
+"""
+function unionise_struct(code::Expr)
+    tmp = code.args[2]
+    is_subtype_expr = tmp isa Expr && tmp.head == Symbol("<:")
+    name = is_subtype_expr ? code.args[2].args[1] : code.args[2]
+    if name isa Expr && name.head == :curly
+        curly = Expr(:curly, name.args[1], unionise_subtype.(name.args[2:end])...)
+        if is_subtype_expr
+            return Expr(
+                :type,
+                code.args[1],
+                Expr(Symbol("<:"), curly, tmp.args[2]),
+                code.args[3],
+            )
+        else
+            return Expr(:type, code.args[1], curly, code.args[3])
+        end
+    else
+        return code
+    end
+end
+
+"""
     unionise(code)
 
 Return transformed code in which all function definitions are guaranteed to accept nodes as
@@ -90,6 +131,8 @@ function unionise(code::Expr)
         return unionise_eval(code)
     elseif code.head == :macrocall && code.args[1] == Symbol("@eval")
         return unionise_macro_eval(code)
+    elseif code.head == :type
+        return unionise_struct(code)
     else
         return Expr(code.head, [unionise(arg) for arg in code.args]...)
     end

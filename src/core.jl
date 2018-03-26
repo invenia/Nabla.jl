@@ -7,7 +7,7 @@ export Leaf, Tape, Node, Branch, ∇
 abstract type Node{T} end
 
 """ A topologically ordered collection of Nodes. """
-immutable Tape
+struct Tape
     tape::Vector{Any}
     Tape() = new(Vector{Any}())
     Tape(N::Int) = new(Vector{Any}(N))
@@ -62,7 +62,7 @@ args - Values indicating which elements in the tape will require updating by thi
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
 """
-immutable Branch{T} <: Node{T}
+struct Branch{T} <: Node{T}
     val::T
     f
     args::Tuple
@@ -158,17 +158,18 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
 """
-    ∇(f::Function)
+    ∇(f; get_output::Bool=false)
 
 Returns a function which, when evaluated with arguments that are accepted by `f`, will
 return the gradient w.r.t. each of the arguments.
 """
-function ∇(f::Function, get_output::Bool=false)
+function ∇(f, get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
+        y isa Node || throw(error("f is not a function of its arguments."))
         ∇f = ∇(y)
-        ∇args = ([∇f[arg_] for arg_ in args_]...)
+        ∇args = ([∇f[arg_] for arg_ in args_]...,)
         return get_output ? (y, ∇args) : ∇args
     end
 end
@@ -195,11 +196,17 @@ end
 
 # A collection of methods for initialising nested indexable containers to zero.
 for (f_name, scalar_init, array_init) in
-    zip((:zerod_container, :oned_container), (:zero, :one), (:zeros, :ones))
+    zip((:zerod_container, :oned_container, :randned_container),
+        (:zero, :one, Nullable()),
+        (:zeros, :ones, Nullable()))
+    if !isnull(scalar_init)
+        @eval @inline $f_name(x::Number) = $scalar_init(x)
+    end
+    if !isnull(array_init)
+        @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
+    end
     eval(quote
-        @inline $f_name(x::Number) = $scalar_init(x)
-        @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
-        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...)
+        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...,)
         @inline function $f_name(x)
             y = Base.copy(x)
             for n in eachindex(y)
@@ -208,6 +215,11 @@ for (f_name, scalar_init, array_init) in
             return y
         end
     end)
+end
+@inline randned_container(x::Number) = randn(typeof(x))
+@inline randned_container(x::AbstractArray{<:Real}) = randn(eltype(x), size(x)...)
+for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
+    @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns

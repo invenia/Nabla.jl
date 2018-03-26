@@ -1,3 +1,5 @@
+__precompile__()
+
 module Nabla
 
     using DiffLinearAlgebra, FDM
@@ -5,7 +7,7 @@ module Nabla
 
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
-    const ∇Scalar = Real
+    const ∇Scalar = Number
     const ∇Array = AbstractArray{<:∇Scalar}
     const ∇AbstractVector = AbstractVector{<:∇Scalar}
     const ∇AbstractMatrix = AbstractMatrix{<:∇Scalar}
@@ -16,7 +18,7 @@ module Nabla
     include("code_transformation/util.jl")
     include("code_transformation/differentiable.jl")
 
-    # Functionality for constructing computational graphs.
+    # # Functionality for constructing computational graphs.
     include("core.jl")
 
     # Functionality for defining new sensitivities.
