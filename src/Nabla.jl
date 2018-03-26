@@ -1,8 +1,10 @@
+__precompile__()
+
 module Nabla
 
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
-    const ∇Scalar = Real
+    const ∇Scalar = Number
     const ∇Array = AbstractArray{<:∇Scalar}
     const ∇AbstractVector = AbstractVector{<:∇Scalar}
     const ∇AbstractMatrix = AbstractMatrix{<:∇Scalar}
@@ -36,6 +38,7 @@ module Nabla
 
     # Linear algebra optimisations.
     include("sensitivities/linalg/generic.jl")
+    include("sensitivities/linalg/symmetric.jl")
     include("sensitivities/linalg/strided.jl")
     include("sensitivities/linalg/blas.jl")
     include("sensitivities/linalg/diagonal.jl")

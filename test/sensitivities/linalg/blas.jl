@@ -3,7 +3,7 @@
     let rng = MersenneTwister(123456)
         for _ in 1:10
             x, y, vx, vy = randn.(rng, [5, 5, 5, 5])
-            @test check_errs(dot, dot(x ,y), (x, y), (vx, vy))
+            @test check_errs(dot, dot(x, y), (x, y), (vx, vy))
         end
     end
     let rng = MersenneTwister(123456)
@@ -99,7 +99,7 @@
 
     import Base.BLAS.trmm
     let rng = MersenneTwister(123456), N = 10
-        for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+        for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['U', 'N']
             λ = (α, A, B)->trmm(side, ul, tA, dA, α, A, B)
             for _ in 1:10
                 α, vα = randn.([rng, rng])
@@ -111,7 +111,7 @@
 
     import Base.BLAS.trmv
     let rng = MersenneTwister(123456), N = 10
-        for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+        for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['U', 'N']
             λ = (A, b)->trmv(ul, tA, dA, A, b)
             for _ in 1:10
                 A, VA = randn.(rng, [N, N], [N, N])
@@ -123,7 +123,7 @@
 
     import Base.BLAS.trsm
     let rng = MersenneTwister(123456), N = 10
-        for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+        for side in ['L', 'R'], ul in ['L', 'U'], tA in ['N', 'T'], dA in ['U', 'N']
             λ = (α, A, X)->trsm(side, ul, tA, dA, α, A, X)
             for _ in 1:10
                 α, vα = randn.([rng, rng])
@@ -136,7 +136,7 @@
 
     import Base.BLAS.trsv
     let rng = MersenneTwister(123456), N = 10
-        for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['N']
+        for ul in ['L', 'U'], tA in ['N', 'T'], dA in ['U', 'N']
             λ = (A, x)->trsv(ul, tA, dA, A, x)
             for _ in 1:10
                 A = randn(rng, N, N) + UniformScaling(1)

@@ -1,4 +1,5 @@
-using Base.Test, Nabla, Distributions, BenchmarkTools
+using Base.Test, Nabla
+using Distributions, BenchmarkTools
 
 @testset "Core" begin
     include("core.jl")
@@ -25,6 +26,7 @@ end
     # Test sensitivities for linear algebra optimisations.
     @testset "Linear algebra" begin
         include("sensitivities/linalg/generic.jl")
+        include("sensitivities/linalg/symmetric.jl")
         include("sensitivities/linalg/uniformscaling.jl")
         include("sensitivities/linalg/diagonal.jl")
         include("sensitivities/linalg/triangular.jl")

@@ -100,7 +100,7 @@ unbox(x) = x
 
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
-function propagate(y::Branch{T}, rvs_tape::Tape) where T
+function propagate(y::Branch, rvs_tape::Tape)
     tape = rvs_tape.tape
     ȳ, f = tape[y.pos], y.f
     xs, xids = map(unbox, y.args), map(pos, y.args)
@@ -126,7 +126,7 @@ end
 
 
 """ Initialise a Tape appropriately for being used as a reverse-tape. """
-function reverse_tape(y::Node{T}, ȳ::T) where T
+function reverse_tape(y::Node, ȳ)
     tape = Tape(y.pos)
     tape[end] = ȳ
     return tape
@@ -152,21 +152,22 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
-∇(y::Node{T}, ȳ::T) where T = propagate(y.tape, reverse_tape(y, ȳ))
+∇(y::Node, ȳ) = propagate(y.tape, reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(y.val))
 
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
 """
-    ∇(f::Function)
+    ∇(f; get_output::Bool=false)
 
 Returns a function which, when evaluated with arguments that are accepted by `f`, will
 return the gradient w.r.t. each of the arguments.
 """
-function ∇(f::Function, get_output::Bool=false)
+function ∇(f, get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
+        y isa Node || throw(error("f is not a function of its arguments."))
         ∇f = ∇(y)
         ∇args = ([∇f[arg_] for arg_ in args_]...)
         return get_output ? (y, ∇args) : ∇args
@@ -195,10 +196,16 @@ end
 
 # A collection of methods for initialising nested indexable containers to zero.
 for (f_name, scalar_init, array_init) in
-    zip((:zerod_container, :oned_container), (:zero, :one), (:zeros, :ones))
+    zip((:zerod_container, :oned_container, :randned_container),
+        (:zero, :one, Nullable()),
+        (:zeros, :ones, Nullable()))
+    if !isnull(scalar_init)
+        @eval @inline $f_name(x::Number) = $scalar_init(x)
+    end
+    if !isnull(array_init)
+        @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
+    end
     eval(quote
-        @inline $f_name(x::Number) = $scalar_init(x)
-        @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
         @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...)
         @inline function $f_name(x)
             y = Base.copy(x)
@@ -208,6 +215,11 @@ for (f_name, scalar_init, array_init) in
             return y
         end
     end)
+end
+@inline randned_container(x::Number) = randn(typeof(x))
+@inline randned_container(x::AbstractArray{<:Real}) = randn(eltype(x), size(x)...)
+for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
+    @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns

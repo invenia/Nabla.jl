@@ -26,7 +26,7 @@ approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScala
 
 """
     compute_Dv(
-        f::Function,
+        f,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
         v::Tuple{Vararg{∇ArrayOrScalar}}
@@ -59,14 +59,30 @@ function compute_Dv_update(
     x_ = Leaf.(Tape(), x)
     y = f(x_...)
     rtape = reverse_tape(y, ȳ)
-    for n in 1:length(rtape) - 1
-        rtape[n] = zerod_container(y.tape[n].val)
+
+    # Randomly initialise `Leaf`s.
+    inits = Vector(length(rtape))
+    for i = 1:length(rtape)
+        if isleaf(y.tape[i])
+            inits[i] = randned_container(y.tape[i].val)
+            rtape[i] = copy(inits[i])
+        end
     end
+
+    # Perform the reverse pass.
     ∇f = propagate(y.tape, rtape)
+
+    # Substract the random initialisations.
+    for i = 1:length(rtape)
+        isleaf(y.tape[i]) && (∇f[i] -= inits[i])
+    end
+
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
 compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
     compute_Dv_update(f, ȳ, (x,), (v,))
+isleaf(::Leaf) = true
+isleaf(::Any) = false
 
 """
     check_errs(
@@ -199,4 +215,9 @@ end
 # error, strangely enough.
 domain2(::typeof(beta)) = Nullable(((minimum(points[points .> 0]), maximum(points)),
                                     (minimum(points[points .> 0]), maximum(points))))
+
+# Both of these functions are technically defined on the entire real line, but the left
+# half is troublesome due to the large number of points at which it isn't defined. As such
+# we restrict unit testing to the right-half.
 domain1(::typeof(gamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
+domain1(::typeof(trigamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))

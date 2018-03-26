@@ -91,4 +91,7 @@ end
         # Test whether the exponentiation amibiguity is resolved.
         @test ∇(x -> x^2)(1) == (2.0,)
     end
+
+    # Miscellaneous test for addition to DualNumbers.
+    @test DualNumbers.epsilon(5.0) == 0.0
 end

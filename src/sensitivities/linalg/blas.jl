@@ -8,7 +8,7 @@ const SA = StridedArray
 ∇(::typeof(dot), ::Type{Arg{1}}, p, z, z̄, x::SA, y::SA) = z̄ .* y
 ∇(::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = z̄ .* x
 ∇(x̄, ::typeof(dot), ::Type{Arg{1}}, p, z, z̄, x::SA, y::SA) = (x̄ .= x̄ .+ z̄ .* y)
-∇(ȳ, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = (ȳ .+ ȳ .+ z̄ .* x)
+∇(ȳ, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = (ȳ .= ȳ .+ z̄ .* x)
 
 # Long-form `dot`.
 @explicit_intercepts(
@@ -457,6 +457,7 @@ function ∇(::typeof(trmm), ::Type{Arg{6}}, p, Y, Ȳ,
         uppercase(ta) == 'N' ?
             gemm('T', 'N', α, B, Ȳ) :
             gemm('T', 'N', α, Ȳ, B)
+    dA == 'U' && fill!(view(Ā_full, diagind(Ā_full)), zero(T))
     return (uppercase(ul) == 'L' ? tril! : triu!)(Ā_full)
 end
 ∇(::typeof(trmm), ::Type{Arg{7}}, p, Y, Ȳ,
@@ -479,12 +480,15 @@ end
     Tuple{Char, Char, Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, false, false, true, true],
 )
-∇(::typeof(trmv), ::Type{Arg{4}}, p, y, ȳ,
+function ∇(::typeof(trmv), ::Type{Arg{4}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
     b::StridedVector{T},
-) where T<:∇Scalar =
-    (uppercase(ul) == 'L' ? tril! : triu!)(uppercase(ta) == 'N' ? ȳ * b.' : b * ȳ.')
+) where T<:∇Scalar
+    Ā = (uppercase(ul) == 'L' ? tril! : triu!)(uppercase(ta) == 'N' ? ȳ * b.' : b * ȳ.')
+    dA == 'U' && fill!(view(Ā, diagind(Ā)), zero(T))
+    return Ā
+end
 ∇(::typeof(trmv), ::Type{Arg{5}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
@@ -516,6 +520,7 @@ function ∇(::typeof(trsm), ::Type{Arg{6}}, p, Y, Ȳ,
         uppercase(ta) == 'N' ?
             trsm('R', ul, 'T', dA, -1.0, A, Y.'Ȳ) :
             trsm('L', ul, 'T', dA, -1.0, A, Ȳ.'Y)
+    dA == 'U' && fill!(view(Ā_full, diagind(Ā_full)), zero(T))
     return (uppercase(ul) == 'L' ? tril! : triu!)(Ā_full)
 end
 ∇(::typeof(trsm), ::Type{Arg{7}}, p, Y, Ȳ,
@@ -538,11 +543,15 @@ end
     Tuple{Char, Char, Char, StridedMatrix{T}, StridedVector{T}} where T<:∇Scalar,
     [false, false, false, true, true],
 )
-∇(::typeof(trsv), ::Type{Arg{4}}, p, y, ȳ,
+function ∇(::typeof(trsv), ::Type{Arg{4}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Scalar = ∇(trsm, Arg{6}, p, y, ȳ, 'L', ul, ta, dA, one(T), A, x)
+) where T<:∇Scalar
+    Ā = ∇(trsm, Arg{6}, p, y, ȳ, 'L', ul, ta, dA, one(T), A, x)
+    dA == 'U' && fill!(view(Ā, diagind(Ā)), zero(T))
+    return Ā
+end
 ∇(::typeof(trsv), ::Type{Arg{5}}, p, y, ȳ,
     ul::Char, ta::Char, dA::Char,
     A::StridedMatrix{T},
