@@ -2,8 +2,7 @@ import Base: mapreducedim, sum
 
 accept_wo_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any})
 accept_w_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any, ∇Scalar})
-@eval @explicit_intercepts mapreducedim $accept_wo_default [false, false, true, false]
-@eval @explicit_intercepts mapreducedim $accept_w_default [false, false, true, false, true]
+@primtive mapreducedim(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(mapreducedim, x...)
 
 ∇(::typeof(mapreducedim),
     ::Type{Arg{3}},

@@ -7,21 +7,18 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
     foo(x::Matrix{<:∇Scalar}, y::Matrix{<:∇Scalar}) = 15x + 16y
 
     # Create sensitivity intercepts.
-    @explicit_intercepts foo Tuple{∇Scalar}
-    @explicit_intercepts foo Tuple{∇Scalar, ∇Scalar}
-    @explicit_intercepts foo Tuple{Vector{<:∇Scalar}, Vector{<:∇Scalar}}
-    @explicit_intercepts foo Tuple{Matrix{<:∇Scalar}, Matrix{<:∇Scalar}}
+    Cassette.@primitive foo(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(foo, x...)
 
     # Define sensitivity implementations.
-    const _Vec = Vector{<:∇Scalar}
-    const _Mat = Matrix{<:∇Scalar}
-    Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar) = 5z̄
-    Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 5z̄
-    Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::_Vec, y::_Vec) = 10z̄
-    Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::_Mat, y::_Mat) = 15z̄
-    Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 6z̄
-    Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::_Vec, y::_Vec) = 11z̄
-    Nabla.∇(::typeof(foo), ::Type{Arg{2}}, p, z, z̄, x::_Mat, y::_Mat) = 16z̄
+    _Vec = Vector{<:∇Scalar}
+    _Mat = Matrix{<:∇Scalar}
+    Nabla.∇(::typeof(foo), ::Type{Val{1}}, p, z, z̄, x::∇Scalar) = 5z̄
+    Nabla.∇(::typeof(foo), ::Type{Val{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 5z̄
+    Nabla.∇(::typeof(foo), ::Type{Val{1}}, p, z, z̄, x::_Vec, y::_Vec) = 10z̄
+    Nabla.∇(::typeof(foo), ::Type{Val{1}}, p, z, z̄, x::_Mat, y::_Mat) = 15z̄
+    Nabla.∇(::typeof(foo), ::Type{Val{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 6z̄
+    Nabla.∇(::typeof(foo), ::Type{Val{2}}, p, z, z̄, x::_Vec, y::_Vec) = 11z̄
+    Nabla.∇(::typeof(foo), ::Type{Val{2}}, p, z, z̄, x::_Mat, y::_Mat) = 16z̄
 
     # Check that Nabla and finite differencing yield the correct results for scalars.
     @test compute_Dv(foo, 1.0, 1.0, 1.0) ≈ 5

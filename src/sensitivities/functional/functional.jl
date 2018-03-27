@@ -3,8 +3,7 @@ import Base.Broadcast.broadcast_shape
 
 # Implementation of sensitivities w.r.t. `map`.
 import Base.map
-@explicit_intercepts map Tuple{Any, ∇Array} [false, true]
-@union_intercepts map Tuple{Any, Vararg{∇Array}} Tuple{Any, Vararg}
+@primitive map(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(map, x...)
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
 ∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
@@ -16,9 +15,7 @@ _∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) w
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 import Base.broadcast
-@union_intercepts broadcast Tuple{Any, Vararg{∇Scalar}} Tuple{Any, Vararg{Number}}
-@explicit_intercepts broadcast Tuple{Any, Any} [false, true]
-@union_intercepts broadcast Tuple{Any, Vararg{∇ArrayOrScalar}} Tuple{Any, Any, Vararg}
+@primitive broadcast(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(broadcast, x...)
 
 """
     broadcastsum!(f::Function, add::Bool, z, As...)
@@ -66,7 +63,7 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
 
 # Addition.
 import Base: +
-@eval @explicit_intercepts $(Symbol("+")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
+@primitive +(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(+, x...)
 @inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, +, x, y)
 @inline ∇(::typeof(+), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
@@ -74,7 +71,7 @@ import Base: +
 
 # Multiplication.
 import Base: *
-@eval @explicit_intercepts $(Symbol("*")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
+@primitive *(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(*, x...)
 @inline ∇(::typeof(*), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, *, x, y)
 @inline ∇(::typeof(*), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
@@ -82,7 +79,7 @@ import Base: *
 
 # Subtraction.
 import Base: -
-@eval @explicit_intercepts $(Symbol("-")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
+@primitive -(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(-, x...)
 @inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, -, x, y)
 @inline ∇(::typeof(-), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
@@ -90,7 +87,7 @@ import Base: -
 
 # Division from the right by a scalar.
 import Base: /
-@eval @explicit_intercepts $(Symbol("/")) Tuple{∇Array, ∇Scalar}
+@primitive /(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(/, x...)
 @inline ∇(::typeof(/), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, /, x, y)
 @inline ∇(::typeof(/), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
@@ -98,7 +95,7 @@ import Base: /
 
 # Division from the left by a scalar.
 import Base: \
-@eval @explicit_intercepts $(Symbol("\\")) Tuple{∇Scalar, ∇Array}
+@primitive \(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(\, x...)
 @inline ∇(::typeof(\), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
     ∇(broadcast, Arg{2}, p, z, z̄, \, x, y)
 @inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =

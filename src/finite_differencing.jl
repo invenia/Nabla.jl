@@ -48,7 +48,7 @@ function compute_Dv(
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
     x_ = Leaf.(Tape(), x)
-    ∇f = ∇(f(x_...), ȳ)
+    ∇f = ∇(overdub(∇Ctx, f)(x_...), ȳ)
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
 compute_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
@@ -61,11 +61,11 @@ function compute_Dv_update(
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
     x_ = Leaf.(Tape(), x)
-    y = f(x_...)
+    y = overdub(∇Ctx, f)(x_...)
     rtape = reverse_tape(y, ȳ)
 
     # Randomly initialise `Leaf`s.
-    inits = Vector(length(rtape))
+    inits = Vector(undef, length(rtape))
     for i = 1:length(rtape)
         if isleaf(y.tape[i])
             inits[i] = randned_container(y.tape[i].val)
@@ -169,7 +169,7 @@ function domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
    length(connected_sets) == 0 && return Nullable{Vector{T}}()
 
    # Pick the largest domain.
-   return Nullable(connected_sets[indmax(measure.(connected_sets))])
+   return Nullable(connected_sets[argmax(measure.(connected_sets))])
 end
 
 function domain1(f::Function)
@@ -183,7 +183,7 @@ end
 
 Slice of a Float64 x Float64 domain.
 """
-type Slice2
+mutable struct Slice2
     x::Float64
     y_range::Nullable{Tuple{Float64, Float64}}
 end

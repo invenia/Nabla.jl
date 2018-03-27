@@ -21,7 +21,7 @@ using DiffRules: diffrule, hasdiffrule
         # Check that `broadcast` returns the correct gradient under the defined unary functions.
         function check_unary_broadcast(f, x)
             x_ = Leaf(Tape(), x)
-            s = broadcast(f, x_)
+            s = overdub(∇Ctx, x->broadcast(f, x_))(x_)
             return ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
         end
         for (package, f) in Nabla.unary_sensitivities
@@ -37,7 +37,7 @@ using DiffRules: diffrule, hasdiffrule
         function check_binary_broadcast(f, x, y)
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
-            s = broadcast(f, x_, y_)
+            s = overdub(∇Ctx, (x_, y_)->broadcast(f, x_, y_))(x_, y_)
             ∇s = ∇(s, ones(s.val))
             ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
                            s.val, ones(s.val), x, y)
@@ -50,7 +50,7 @@ using DiffRules: diffrule, hasdiffrule
         function check_binary_broadcast(f, x::Real, y)
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
-            s = broadcast(f, x_, y_)
+            s = overdub(∇Ctx, (x_, y_)->broadcast(f, x_, y_))(x_, y_)
             ∇s = ∇(s, ones(s.val))
             ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
                                s.val, ones(s.val), x, y))
@@ -63,7 +63,7 @@ using DiffRules: diffrule, hasdiffrule
         function check_binary_broadcast(f, x, y::Real)
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
-            s = broadcast(f, x_, y_)
+            s = overdub(∇Ctx, (x_, y_)->broadcast(f, x_, y_))(x_, y_)
             ∇s = ∇(s, ones(s.val))
             ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
                            s.val, ones(s.val), x, y)

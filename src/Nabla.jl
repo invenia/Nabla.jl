@@ -1,9 +1,10 @@
-__precompile__(true)
+__precompile__(false)
 
 module Nabla
 
-    using DiffLinearAlgebra, FDM, Leibniz, Nullables
+    using DiffLinearAlgebra, FDM, Leibniz, Nullables, Cassette
     import DiffLinearAlgebra: ∇
+    using Cassette: @context, @primitive, overdub
 
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
@@ -14,18 +15,16 @@ module Nabla
     const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
     const SymOrExpr = Union{Symbol, Expr}
 
+    # Set up context for Cassette.
+    @context ∇Ctx
+
     # Functionality for constructing computational graphs.
     include("core.jl")
-    include("sensitivity.jl")
 
-    # # Finite differencing functionality - only used in tests. Would be good to move this
-    # # into a separate module at some point.
-    # include("finite_differencing.jl")
-
-    # # Sensitivities for the basics.
-    # include("sensitivities/indexing.jl")
-    # include("sensitivities/scalar.jl")
-    # include("sensitivities/array.jl")
+    # Sensitivities for the basics.
+    include("sensitivities/indexing.jl")
+    include("sensitivities/scalar.jl")
+    include("sensitivities/array.jl")
 
     # Sensitivities for functionals.
     # include("sensitivities/functional/functional.jl")
@@ -34,5 +33,9 @@ module Nabla
 
     # # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
     # include("sensitivities/linear_algebra.jl")
+
+    # Finite differencing functionality - only used in tests. Would be good to move this
+    # into a separate module at some point.
+    include("finite_differencing.jl")
 
 end # module Nabla

@@ -1,5 +1,5 @@
 import Base: push!, length, show, getindex, setindex!, lastindex, eachindex, isassigned
-export Leaf, Tape, Node, Branch, ∇
+export Leaf, Tape, Node, Branch, ∇, ∇Ctx, propagate_forward
 
 """ Basic unit on the computational graph."""
 abstract type Node{T} end
@@ -171,11 +171,12 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 Returns a function which, when evaluated with arguments that are accepted by `f`, will
 return the gradient w.r.t. each of the arguments.
 """
-function ∇(f, get_output::Bool=false)
+function ∇(f; get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
-        y = f(args_...)
+        y = overdub(∇Ctx, f)(args_...)
         y isa Node || throw(error("f is not a function of its arguments."))
+        typeof(y.val) <: ∇Scalar || throw(error("output is not scalar."))
         ∇f = ∇(y)
         ∇args = ([∇f[arg_] for arg_ in args_]...,)
         return get_output ? (y, ∇args) : ∇args

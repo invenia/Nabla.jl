@@ -107,11 +107,11 @@ end # let
 let
     f(x, y) = 2x + y
     ∇f = ∇(f)
-    ∇f_out = ∇(f, true)
+    ∇f_out = ∇(f; get_output=true)
 
-    @test_throws MethodError ∇f(randn(5), randn(5))
+    @test_throws ErrorException ∇f(randn(5), randn(5))
     x, y = randn(), randn()
-    ∇z = ∇(f(Leaf.(Tape(), (x, y))...))
+    ∇z = ∇(overdub(∇Ctx, f)(Leaf.(Tape(), (x, y))...))
     @test ∇f(x, y) == (∇z[1], ∇z[2])
     z, (∇x, ∇y) = ∇f_out(x, y)
     @test z.val == f(x, y)
