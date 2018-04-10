@@ -167,10 +167,11 @@ function ∇(f, get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
-        y isa Node || throw(error("f is not a function of its arguments."))
+        y isa Node || return zero.(args)
         ∇f = ∇(y)
-        ∇args = ([∇f[arg_] for arg_ in args_]...)
-        return get_output ? (y, ∇args) : ∇args
+        ∇args = ([isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
+		for (arg_, arg) in zip(args_, args)]...)
+	return get_output ? (y, ∇args) : ∇args
     end
 end
 
