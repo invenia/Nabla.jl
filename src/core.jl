@@ -169,8 +169,9 @@ function ∇(f, get_output::Bool=false)
         y = f(args_...)
         y isa Node || throw(error("f is not a function of its arguments."))
         ∇f = ∇(y)
-        ∇args = ([∇f[arg_] for arg_ in args_]...)
-        return get_output ? (y, ∇args) : ∇args
+        ∇args = ([isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
+		for (arg_, arg) in zip(args_, args)]...)
+	return get_output ? (y, ∇args) : ∇args
     end
 end
 
