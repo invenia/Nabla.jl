@@ -107,9 +107,12 @@ end # let
 let 
     f(a,b,c,d) = a*c
     ∇f = ∇(f)
+    g(a,b) = 12
+    ∇g = ∇(g)
 
     @test ∇f(1,2,3,4) == (3, 0, 1, 0)
     @test ∇f(1,[2.0],3,4.0) == (3, [0.0], 1, 0.0)
+    @test ∇g(1,2) == (0,0)
 end 
 
 # Check that the convenience implementation of ∇ works as intended.
