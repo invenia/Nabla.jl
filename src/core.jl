@@ -173,7 +173,7 @@ return the gradient w.r.t. each of the arguments.
 """
 function ∇(f; get_output::Bool=false)
     return function(args...)
-        args_ = Leaf.(Tape(), args)
+        args_ = Leaf.(Ref(Tape()), args)
         y = overdub(∇Ctx, f)(args_...)
         y isa Node || throw(error("f is not a function of its arguments."))
         typeof(y.val) <: ∇Scalar || throw(error("output is not scalar."))
@@ -221,24 +221,3 @@ implementations should add methods specific to their use case. The output is pas
 in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
 """
 @inline preprocess(::Any, args...) = ()
-
-# # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
-# # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
-# # The coefficient of this scaling could be improved by implementing a version of DualNumbers
-# # which computes from multiple seeds at the same time.
-# function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
-#     dual_call = Expr(:call, :f)
-#     for m in 1:Base.length(x.parameters)
-#         push!(dual_call.args, n == m ? :(Dual(x[$m], 1)) : :(x[$m]))
-#     end
-#     return :(dualpart($dual_call))
-# end
-# @generated fmad(f, x, n) = dual_call_expr(f, x, n)
-# function fmad_expr(f, x::Type{<:Tuple})
-#     body = Expr(:tuple)
-#     for n in 1:Base.length(x.parameters)
-#         push!(body.args, dual_call_expr(f, x, Type{Val{n}}))
-#     end
-#     return body
-# end
-# @generated fmad(f, x) = fmad_expr(f, x)

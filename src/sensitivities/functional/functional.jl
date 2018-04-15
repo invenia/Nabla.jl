@@ -49,7 +49,7 @@ broadcastsum(f::Function, add::Bool, z::AbstractArray, As...) =
 Specialisation of broadcastsum to Number-sized outputs.
 """
 function broadcastsum(f::Function, add::Bool, z::Number, As...)
-    tmp = Array{eltype(z)}(broadcast_shape(map(size, As)...))
+    tmp = Array{eltype(z)}(undef, broadcast_shape(map(size, As)...))
     return sum(broadcast!(f, tmp, As...)) + (add ? z : zero(z))
 end
 
@@ -57,46 +57,6 @@ end
 ∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇ArrayOrScalar...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
-    method_exists(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
+    hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
         broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N}, p, yn, ȳn, xn...), false, A[N], y, ȳ, A...) :
         broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N}), false, A[N], ȳ, A...)
-
-# Addition.
-import Base: +
-@primitive +(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(+, x...)
-@inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{2}, p, z, z̄, +, x, y)
-@inline ∇(::typeof(+), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{3}, p, z, z̄, +, x, y)
-
-# Multiplication.
-import Base: *
-@primitive *(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(*, x...)
-@inline ∇(::typeof(*), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{2}, p, z, z̄, *, x, y)
-@inline ∇(::typeof(*), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{3}, p, z, z̄, *, x, y)
-
-# Subtraction.
-import Base: -
-@primitive -(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(-, x...)
-@inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{2}, p, z, z̄, -, x, y)
-@inline ∇(::typeof(-), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{3}, p, z, z̄, -, x, y)
-
-# Division from the right by a scalar.
-import Base: /
-@primitive /(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(/, x...)
-@inline ∇(::typeof(/), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{2}, p, z, z̄, /, x, y)
-@inline ∇(::typeof(/), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{3}, p, z, z̄, /, x, y)
-
-# Division from the left by a scalar.
-import Base: \
-@primitive \(x...) where __CONTEXT__ <: ∇Ctx = propagate_forward(\, x...)
-@inline ∇(::typeof(\), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{2}, p, z, z̄, \, x, y)
-@inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
-    ∇(broadcast, Arg{3}, p, z, z̄, \, x, y)

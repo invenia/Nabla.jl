@@ -111,7 +111,7 @@ let
 
     @test_throws ErrorException ∇f(randn(5), randn(5))
     x, y = randn(), randn()
-    ∇z = ∇(overdub(∇Ctx, f)(Leaf.(Tape(), (x, y))...))
+    ∇z = ∇(overdub(∇Ctx, f)(Leaf.(Ref(Tape()), (x, y))...))
     @test ∇f(x, y) == (∇z[1], ∇z[2])
     z, (∇x, ∇y) = ∇f_out(x, y)
     @test z.val == f(x, y)

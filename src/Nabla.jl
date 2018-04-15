@@ -1,8 +1,8 @@
-__precompile__(false)
+# __precompile__(false)
 
 module Nabla
 
-    using DiffLinearAlgebra, FDM, Leibniz, Nullables, Cassette
+    using DiffLinearAlgebra, FDM, Leibniz, Nullables, Cassette, LinearAlgebra
     import DiffLinearAlgebra: ∇
     using Cassette: @context, @primitive, overdub
 
@@ -27,15 +27,14 @@ module Nabla
     include("sensitivities/array.jl")
 
     # Sensitivities for functionals.
-    # include("sensitivities/functional/functional.jl")
-    # include("sensitivities/functional/reduce.jl")
+    include("sensitivities/functional/functional.jl")
+    include("sensitivities/functional/reduce.jl")
     # include("sensitivities/functional/reducedim.jl")
 
-    # # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
-    # include("sensitivities/linear_algebra.jl")
+    # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
+    include("sensitivities/linear_algebra.jl")
 
-    # Finite differencing functionality - only used in tests. Would be good to move this
-    # into a separate module at some point.
+    # Finite differencing functionality - only used in tests.
     include("finite_differencing.jl")
 
 end # module Nabla
