@@ -6,4 +6,4 @@ Base.length(x::Node) = length(x.val)
 
 # Sensitivity for the first argument of `reshape`.
 @primitive reshape(args...) where {__CONTEXT__ <: ∇Ctx} = propagate_forward(reshape, args...)
-∇(::typeof(reshape), ::Type{Arg{1}}, _, y, ȳ, A::∇Array, args...) = reshape(ȳ, size(A)...)
+∇(::typeof(reshape), ::Type{Val{1}}, _, y, ȳ, A::∇Array, args...) = reshape(ȳ, size(A)...)

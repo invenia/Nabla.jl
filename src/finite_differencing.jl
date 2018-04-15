@@ -47,7 +47,7 @@ function compute_Dv(
     x::Tuple{Vararg{∇ArrayOrScalar}},
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
-    x_ = Leaf.(Tape(), x)
+    x_ = Leaf.(Ref(Tape()), x)
     ∇f = ∇(overdub(∇Ctx, f)(x_...), ȳ)
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
@@ -60,7 +60,7 @@ function compute_Dv_update(
     x::Tuple{Vararg{∇ArrayOrScalar}},
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
-    x_ = Leaf.(Tape(), x)
+    x_ = Leaf.(Ref(Tape()), x)
     y = overdub(∇Ctx, f)(x_...)
     rtape = reverse_tape(y, ȳ)
 
@@ -127,7 +127,7 @@ Check whether an input `x` is in a scalar, real function `f`'s domain.
 function in_domain(f::Function, x::Float64...)
     try
         y = f(x...)
-        return issubtype(typeof(y), Real) && !isnan(y)
+        return typeof(y) <: Real && !isnan(y)
     catch err
         return isa(err, DomainError) ? false : throw(err)
     end
@@ -148,7 +148,7 @@ Attempt to find a domain for a unary, scalar function `f`.
 - `measure::Function`: Function that measures the size of a set of points for `f`.
 - `points::Vector{T}`: Ordered set of test points to construct the domain from.
 """
-function domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
+function domain1(in_domain::Function, measure::Function, points::Vector{T}) where T
    # Find the connected sets of points that are in f's domain.
    connected_sets, set = Vector{Vector{T}}(), Vector{T}()
    for x in points

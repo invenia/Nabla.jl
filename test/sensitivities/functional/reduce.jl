@@ -15,12 +15,12 @@
                     domain = domain1(f)
                     isnull(domain) && error("Could not determine domain for $f.")
                     lb, ub = get(domain)
-                    x = rand(rng, N) * (ub - lb) + lb
+                    x = rand(rng, N) .* (ub - lb) .+ lb
 
                     # Test +.
                     x_ = Leaf(Tape(), x)
-                    s = functional(f, +, x_)
-                    @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+                    s = overdub(∇Ctx, x_->functional(f, +, x_))(x_)
+                    @test ∇(s)[x_] ≈ ∇.(f, Val{1}, x)
                 end
 
                 # Some composite sensitivities.
@@ -32,16 +32,11 @@
 
                     # Test +.
                     x_ = Leaf(Tape(), x)
-                    s = functional(f, +, x_)
+                    s = overdub(∇Ctx, x->functional(f, +, x))(x_)
                     @test s.val == functional(f, +, x)
                     @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
                 end
             end
-        end
-
-        # Check that something sensible (if rather slow) happens for some arbitrary `op`s.
-        let
-
         end
 
         # Check that `reduce`, `foldl` and `foldr` work as expected for `+` and `*`.
@@ -51,7 +46,7 @@
                 # Test `+`.
                 x = randn(rng, 100)
                 x_ = Leaf(Tape(), x)
-                s = functional(+, x_)
+                s = overdub(∇Ctx, x->functional(+, x))(x_)
                 @test s.val == functional(+, x)
                 @test ∇(s)[x_] ≈ ones(x)
             end
@@ -68,13 +63,13 @@
                 domain = domain1(f)
                 isnull(domain) && error("Could not determine domain for $f.")
                 lb, ub = get(domain)
-                x = rand(rng, N) * (ub - lb) + lb
+                x = rand(rng, N) .* (ub - lb) .+ lb
 
                 # Test +.
                 x_ = Leaf(Tape(), x)
-                s = sum(f, x_)
+                s = overdub(∇Ctx, x->sum(f, x))(x_)
                 @test s.val == sum(f, x)
-                @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+                @test ∇(s)[x_] ≈ ∇.(f, Val{1}, x)
             end
 
             # Some composite functions.
@@ -86,7 +81,7 @@
 
                 # Test +.
                 x_ = Leaf(Tape(), x)
-                s = sum(f, x_)
+                s = overdub(∇Ctx, x->sum(f, x))(x_)
                 @test s.val == sum(f, x)
                 @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
             end
