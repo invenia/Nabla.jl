@@ -49,7 +49,7 @@ function compute_Dv(
 )
     y = forward(f, x...)
     p = preprocess(forward, y, init_rvs_tape(y, ȳ), f, x...)
-    x̄ = ∇(forward, p, y, nothing, f, x...)[2:end]
+    x̄ = ∇all(forward, p, y, p, f, x...)[2:end]
     return sum(map(n->sum(x̄[n] .* v[n]), eachindex(x̄)))
 end
 compute_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
@@ -73,7 +73,7 @@ function compute_Dv_update(
 
     # Perform reverse-pass.
     p = preprocess(forward, y, ȳ, f, x...)
-    x̄ = ∇(forward, p, y, ȳ, f, x...)[2:end]
+    x̄ = ∇all(forward, p, y, ȳ, f, x...)[2:end]
 
     # Subtract the random initialisations and compute directional derviative.
     x̄ = [x̄[n] -= inits[n] for n in eachindex(x̄)]

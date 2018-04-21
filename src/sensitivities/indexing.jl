@@ -1,4 +1,5 @@
 @∇primitive Base.getindex
+has∇definition(::typeof(getindex), args...) = true
 function ∇(Ā, ::typeof(getindex), ::Type{Val{1}}, p, y, ȳ, A, inds...)
     Ā[inds...] .+= ȳ
     return Ā

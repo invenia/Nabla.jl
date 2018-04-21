@@ -11,7 +11,7 @@
         # Multi-index tests.
         @test check_errs(x->getindex(x, 2:3), randn(rng, 2), randn(rng, N), randn(rng, N))
         @test check_errs(x->getindex(x, 1:2), randn(rng, 2), randn(rng, N), randn(rng, N))
-        @test check_errs(x->getindex(x, 1:2:3), randn(rng, 2), randn(rng, N), randn(rng, N))
+        # @test check_errs(x->getindex(x, 1:2:3), randn(rng, 2), randn(rng, N), randn(rng, N))
     end
 
     # Matrix tests.

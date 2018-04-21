@@ -16,19 +16,24 @@ unary_sensitivities, binary_sensitivities = [], []
 for (package, f, arity) in diffrules()
     (package == :NaNMath || (package, f) in ignored_fs) && continue
 
-    @eval import $package.$f
-    @eval @∇primitive $package.$f
+    @eval begin
+        import $package.$f
+        @∇primitive $package.$f
+    end
 
+    foo = @eval $package.$f
     if arity == 1
-        push!(unary_sensitivities, (package, f))
+        push!(unary_sensitivities, (package, f, foo))
         ∂f∂x = diffrule(package, f, :x)
-        @eval @inline ∇(::typeof($f), ::Type{Val{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
-        @eval @inline ∇(::typeof($f), ::Type{Val{1}}, x::∇Scalar) = $∂f∂x
+        @eval has∇definition(::typeof($foo), ::∇Scalar) = true
+        @eval ∇(::typeof($foo), ::Type{Val{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
+        @eval ∇(::typeof($foo), ::Type{Val{1}}, x::∇Scalar) = $∂f∂x
     elseif arity == 2
-        push!(binary_sensitivities, (package, f))
+        push!(binary_sensitivities, (package, f, foo))
         ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
-        @eval ∇(::typeof($f), ::Type{Val{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂x
-        @eval ∇(::typeof($f), ::Type{Val{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂y
+        @eval has∇definition(::typeof($foo), ::∇Scalar, ::∇Scalar) = true
+        @eval ∇(::typeof($foo), ::Type{Val{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂x
+        @eval ∇(::typeof($foo), ::Type{Val{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂y
     else
         error("Cannot implement sensitivity for $package.$f: arity $arity not supported.")
     end

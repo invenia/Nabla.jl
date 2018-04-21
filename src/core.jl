@@ -1,5 +1,4 @@
 import Base: push!, length, show, getindex, setindex!, lastindex, eachindex, isassigned
-export ∇, ∇Ctx, forward
 
 # Cassette-stuff. This will presumably need to change as Cassette changes...
 using Cassette: Box, unbox, meta, overdub, Context
@@ -17,16 +16,23 @@ const Tape = Vector{Box{<:∇Ctx}}
 show(io::IO, box::Box{<:∇Ctx}) =
     print(io, "Box{<:∇Ctx}: $(box.meta.data[1]), $(box.value), $(box.meta.data[2])")
 
-# If there are any boxed arguments, trace execution, otherwise proceed as usual.
-@generated propagate(ctx::∇Ctx, tape::Tape, f, args...) =
-    any(map(x->x<:Box, args)) ? :(_propagate(ctx, tape, f, args...)) : :(f(args...))
+# Determine whether a primitive exists with the provided arguments. Default is `false`.
+function has∇definition(f, args...)
+    @show f, args
+    return false
+end
 
-# Execute the function `f` with unboxed `args`, keeping track of `f`, `args` and `f(args)`.
-function _propagate(ctx::∇Ctx, tape::Tape, f, args...)
-    val = f(map(arg->unbox(ctx, arg), args)...)
-    args = map(x->x isa Box{<:∇Ctx} ? TapeIdx(x.meta.data[1]) : x, (f, args...))
-    push!(tape, Box(ctx, val, (length(tape) + 1, args)))
-    return tape[end]
+# If there are any boxed arguments, trace execution, otherwise proceed as usual.
+function propagate(ctx::∇Ctx, tape::Tape, f, args...)
+    unboxed_args = map(arg->unbox(ctx, arg), args)
+    if has∇definition(f, unboxed_args...)
+        val = f(unboxed_args...)
+        args = map(x->x isa Box{<:∇Ctx} ? TapeIdx(x.meta.data[1]) : x, (f, args...))
+        push!(tape, Box(ctx, val, (length(tape) + 1, args)))
+        return tape[end]
+    else
+        return f(args...)
+    end
 end
 
 """
@@ -89,9 +95,7 @@ function init_rvs_tape(y::Tape)
 end
 
 # Convenience function to collect derivative w.r.t. all args at once.
-@inline ∇(f, p, y, ȳ, x...) = map(n->∇(f, Val{n}, p, y, ȳ, x...), eachindex(x))
-∇(::typeof(forward), p::Nothing, y::Tape, ȳ::Vector{Any}, f, x...) =
-    ∇(forward, preprocess(forward, y, ȳ, f, x...), y, ȳ, f, x...)
+@inline ∇all(f, p, y, ȳ, x...) = map(n->∇(f, Val{n}, p, y, ȳ, x...), eachindex(x))
 
 """
     ∇(f)
@@ -100,7 +104,8 @@ Return a function which accepts the same arguments as `f`, but returns the gradi
 """
 ∇(f) = function(x...)
     y = forward(f, x...)
-    return ∇(forward, nothing, y, init_rvs_tape(y), f, x...)[2:end]
+    p = preprocess(forward, y, init_rvs_tape(y), f, x...)
+    return ∇all(forward, p, y, p, f, x...)[2:end]
 end
 
 @inline ∇(x̄, f, ::Type{Val{N}}, args...) where N = x̄ + ∇(f, Val{N}, args...)
@@ -122,8 +127,11 @@ the stuff necessary to make it possible to correctly intercept `Base.abs2`. Does
 the sensitivities though.
 """
 macro ∇primitive(f)
-    return esc(:(@primitive $f(args...) where __CONTEXT__<:∇Ctx =
-        propagate(__trace__.context, __trace__.metadata, $f, args...)))
+    return esc(quote
+        import Cassette: @primitive
+        Cassette.@primitive $f(args...) where __CONTEXT__<:Nabla.∇Ctx =
+            Nabla.propagate(__trace__.context, __trace__.metadata, $f, args...)
+    end)
 end
 
 ########################## Initialisers for containers ################################

@@ -6,4 +6,5 @@ Base.length(x::Box{<:∇Ctx}) = length(x.value)
 
 # Sensitivity for the first argument of `reshape`.
 @∇primitive Base.reshape
+has∇definition(::typeof(reshape), ::∇Array, args...) = true
 ∇(::typeof(reshape), ::Type{Val{1}}, _, y, ȳ, A::∇Array, args...) = reshape(ȳ, size(A)...)

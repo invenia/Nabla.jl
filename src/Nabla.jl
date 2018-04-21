@@ -2,31 +2,24 @@
 
 module Nabla
 
-    using DiffLinearAlgebra, FDM, Leibniz, Nullables, Cassette, LinearAlgebra
+    using DiffLinearAlgebra, Leibniz, Nullables, Cassette, LinearAlgebra
     import DiffLinearAlgebra: ∇
     using Cassette: @context, @primitive, overdub
 
     # Some aliases used repeatedly throughout the package.
-    export ∇Scalar, ∇Array, ∇ArrayOrScalar
+    export ∇Scalar, ∇Array, ∇ArrayOrScalar, @∇primitive, ∇, ∇all, forward
     const ∇Scalar = Number
     const ∇Array = AbstractArray{<:∇Scalar}
-    const ∇AbstractVector = AbstractVector{<:∇Scalar}
-    const ∇AbstractMatrix = AbstractMatrix{<:∇Scalar}
     const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
 
-    # Functionality for constructing computational graphs.
+    # Code to schedule computations.
     include("core.jl")
 
-    # Sensitivities for the basics.
+    # Lists of definitions of derivatives.
     include("sensitivities/indexing.jl")
     include("sensitivities/scalar.jl")
     include("sensitivities/array.jl")
-
-    # Sensitivities for functionals.
-    include("sensitivities/functional/functional.jl")
-    # include("sensitivities/functional/reduce.jl")
-
-    # # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
+    include("sensitivities/functional.jl")
     # include("sensitivities/linear_algebra.jl")
 
 end # module Nabla

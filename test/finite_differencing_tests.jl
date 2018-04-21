@@ -6,6 +6,7 @@ using Cassette: @primitive
     foo(x::∇Scalar, y::∇Scalar) = 5x + 6y
     foo(x::Vector{<:∇Scalar}, y::Vector{<:∇Scalar}) = 10x + 11y
     foo(x::Matrix{<:∇Scalar}, y::Matrix{<:∇Scalar}) = 15x + 16y
+    Nabla.has∇definition(foo, ::Vararg{Any}) = true
 
     # Create sensitivity intercepts.
     @∇primitive foo
