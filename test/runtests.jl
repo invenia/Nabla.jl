@@ -10,8 +10,8 @@ end
 @testset "Sensitivities" begin
 
     # Utility functionality for use in tests.
-    # include("finite_differencing.jl")
-    include("finite_differencing_tests.jl")
+    include("finite_differencing.jl")
+    # include("finite_differencing_tests.jl")
 
     # # Test sensitivities for the basics.
     # include("sensitivities/indexing.jl")
