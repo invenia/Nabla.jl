@@ -84,6 +84,6 @@ end
         end
 
         # Test whether the exponentiation amibiguity is resolved.
-        @test ∇(x -> x^2)(1) == (2.0,)
+        @test ∇(x -> x^2)(1) == [2.0,]
     end
 end

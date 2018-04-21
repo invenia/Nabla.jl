@@ -17,8 +17,7 @@ for (package, f, arity) in diffrules()
     (package == :NaNMath || (package, f) in ignored_fs) && continue
 
     @eval import $package.$f
-    @eval @primitive $package.$f(args...) where __CONTEXT__ <: ∇Ctx =
-      propagate(__trace__.context, __trace__.metadata, $package.$f, args...)
+    @eval @∇primitive $package.$f
 
     if arity == 1
         push!(unary_sensitivities, (package, f))

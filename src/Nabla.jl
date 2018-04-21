@@ -18,18 +18,15 @@ module Nabla
     include("core.jl")
 
     # Sensitivities for the basics.
-    # include("sensitivities/indexing.jl")
+    include("sensitivities/indexing.jl")
     include("sensitivities/scalar.jl")
-    # include("sensitivities/array.jl")
+    include("sensitivities/array.jl")
 
-    # # Sensitivities for functionals.
-    # include("sensitivities/functional/functional.jl")
+    # Sensitivities for functionals.
+    include("sensitivities/functional/functional.jl")
     # include("sensitivities/functional/reduce.jl")
 
     # # Sensitivities for linear algebra optimisations. All imported from DiffLinearAlgebra.
     # include("sensitivities/linear_algebra.jl")
-
-    # # Finite differencing functionality - only used in tests.
-    # include("finite_differencing.jl")
 
 end # module Nabla

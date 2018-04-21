@@ -1,6 +1,4 @@
-# Implementation of reverse-mode sensitivities for `getindex`.
-@primitive getindex(args...) where {__CONTEXT__ <: ∇Ctx} = propagate_forward(getindex, args...)
-
+@∇primitive Base.getindex
 function ∇(Ā, ::typeof(getindex), ::Type{Val{1}}, p, y, ȳ, A, inds...)
     Ā[inds...] .+= ȳ
     return Ā
@@ -9,9 +7,8 @@ function ∇(Ā, ::typeof(getindex), ::Type{Val{1}}, p, y::AbstractArray, ȳ::
     Ā[inds...] .+= reshape(ȳ, size(y)...)
     return Ā
 end
-function ∇(::typeof(getindex), ::Type{Val{1}}, p, y, ȳ, A, inds...)
-    return ∇(zerod_container(A), getindex, Val{1}, p, y, ȳ, A, inds...)
-end
+∇(::typeof(getindex), ::Type{Val{1}}, p, y, ȳ, A, inds...) =
+    ∇(zerod_container(A), getindex, Val{1}, p, y, ȳ, A, inds...)
 
 # # Implementation of reverse-mode sensitivities for `view`. Not currently in use because
 # `view` turns out to actually be a bit awkward.

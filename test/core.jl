@@ -1,16 +1,27 @@
 @testset "core" begin
 
 let
-
-    # test Forward construction and usage.
+    # Test Forward construction and usage.
     let
-        f′ = Forward(abs2)
-        @test f′(5.0) == abs2(5.0)
-        @show f′
-        @show f′.tape[1]
-        @show f′.tape[2]
-    end
+        f, args = x->abs2(abs2(x)), (5.0,)
+        tape = forward(f, args...)
+        display(tape)
+        println()
+        p = preprocess(forward, tape, init_rvs_tape(tape), f, args...)
+        display(p)
+        println()
 
+        f, args = x->abs2(x * 5), (2.5,)
+        tape = forward(f, args...)
+        display(tape)
+        println()
+        p = preprocess(forward, tape, init_rvs_tape(tape), f, args...)
+        display(p)
+        println()
+
+        @show ∇(x->abs2(abs2(x)))(5.0)
+        @show ∇(x->abs2(x * 5))(2.5)
+    end
 end
 
 # # Check that the convenience implementation of ∇ works as intended.
