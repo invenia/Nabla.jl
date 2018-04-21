@@ -1,40 +1,42 @@
 import Base: push!, length, show, getindex, setindex!, lastindex, eachindex, isassigned
-export ∇, ∇Ctx, Forward
+export ∇, ∇Ctx, forward
 
-using Cassette: Box, unbox, meta, overdub, mapcall, Context
+# Cassette-stuff. This will presumably need to change as Cassette changes...
+using Cassette: Box, unbox, meta, overdub, Context
 @context ∇Ctx
+Cassette.metatype(::Type{<:∇Ctx}, ::DataType) = Tuple{Int, Tuple}
+Cassette.metatype(::Type{<:∇Ctx}, ::Type) = Tuple{Int, Tuple}
 
-abstract type Node end
-const Tape = Vector{Node}
-
-struct PlainData{Ty} <: Node
-    val::Ty
-    n::Int
-end
-struct Leaf{Ty} <: Node
-    val::Ty
-    n::Int
-end
-struct Branch{Ty, N} <: Node
-    val::Ty
-    args::Tuple{Vararg{Int, N}}
+# A wrapper to distinguish between integers as data, and integers as tape indices.
+struct TapeIdx
     n::Int
 end
 
-pos!(::Tape, x::Node) = x.n
-function pos!(tape::Tape, x)
-    push!(tape, PlainData(x, length(tape) + 1))
-    return length(tape)
-end
+# A simple tape construction, with a sane printing method.
+const Tape = Vector{Box{<:∇Ctx}}
+show(io::IO, box::Box{<:∇Ctx}) =
+    print(io, "Box{<:∇Ctx}: $(box.meta.data[1]), $(box.value), $(box.meta.data[2])")
+
+"""
+    fetch(tape::Tape, x::TapeIdx)
+    fetch(::Tape, x::Ref)
+
+Fetch the item `x` from the `tape` if it resides on it (if it's a `TapeIdx`), otherwise
+it should be a `Ref`, so dereference it.
+"""
+fetch(tape::Tape, n::TapeIdx) = tape[n.n].value
+fetch(::Tape, x) = x
+
+getref(x::Box{<:∇Ctx}) = TapeIdx(x.meta.data[1])
+getref(x) = x
 
 @generated propagate(ctx::∇Ctx, tape::Tape, f, args...) =
     any(map(x->x<:Box, args)) ? :(_propagate(ctx, tape, f, args...)) : :(f(args...))
 
-# Compute the and track of the operation implied by `f` and `args`. Track anything that
-# isn't already tracked, including plain (non-boxed) data, for use on the reverse-pass.
 function _propagate(ctx::∇Ctx, tape::Tape, f, args...)
-    push!(tape, Branch(f(args...), map(x->pos!(tape, x), (f, args...)), length(tape) + 1))
-    return Box(ctx, tape[end], length(tape))
+    val = f(map(arg->unbox(ctx, arg), args)...)
+    push!(tape, Box(ctx, val, (length(tape) + 1, map(getref, (f, args...)))))
+    return tape[end]
 end
 
 """
@@ -44,25 +46,30 @@ Perform a forward pass through `f`, keeping track of the information required fo
 reverse-pass. Returns a `Tape` whos last element contains the output of the function.
 """
 function forward(f, x...)
-    c, tape = ∇Ctx(f), push!(Tape(), map(n->Leaf(x[n], n), eachindex(x))...)
-    overdub(c, f; metadata=tape)(Box.(Ref(c), tape, eachindex(x))...)
+    ctx, tape = ∇Ctx(f), Tape()
+    x_boxed = map(n->Box(ctx, x[n], (n, ())), eachindex(x))
+    overdub(ctx, f; metadata=push!(tape, x_boxed...))(x_boxed...)
     return tape
 end
 
 ∇(::typeof(forward), ::Type{Val{N}}, rvs::Vector{Any}, y::Tape, ȳ, f, x...) where N = rvs[N]
 function preprocess(::typeof(forward), tape::Tape, ȳ, f, x::Vararg{Any, N}) where N
-    @assert all(x .=== tape[1:N])
-    rvs = setindex!(Vector{Any}(length(tape)), ȳ, length(tape))
+    @assert all(x .=== map(x->x.value, tape[1:N]))
+    rvs = setindex!(Vector{Any}(undef, length(tape)), ȳ, length(tape))
     for n in reverse(eachindex(tape))
-        if isassigned(rvs[n]) && typeof(tape[n]) <: Branch
-            fidx, xidxs = tape[n].args[1], tape[n].args[2:end]
-            f, y, ȳ = tape[fidx].val, tape[n].val, rvs[n]
-            xs = map(x->x.val, tape[fidxs])
+        metadata = tape[n].meta.data
+        if isassigned(rvs, n) && !isempty(metadata[2])
+
+            # Get data required to compute sensitivities.
+            f, xs = metadata[2][1], map(x->fetch(tape, x), metadata[2][2:end])
+            y, ȳ = tape[n].value, rvs[n]
+
+            # Do preprocessing and update sensitivities w.r.t. each argument.
             p = preprocess(f, y, ȳ, xs...)
-            for (n′, (x, xid)) in enumerate(zip(xs, xidxs))
-                if !(typeof(x) <: PlainData)
-                    rvs[xid] = isassigned(rvs, xid) ?
-                        ∇(rvs[xid], f, Val{n′}, p, y, ȳ, xs...) :
+            for (n′, tape_idx) in enumerate(metadata[2][2:end])
+                if typeof(tape_idx) <: TapeIdx
+                    rvs[tape_idx.n] = isassigned(rvs, tape_idx.n) ?
+                        ∇(rvs[tape_idx.n], f, Val{n′}, p, y, ȳ, xs...) :
                         ∇(f, Val{n′}, p, y, ȳ, xs...)
                 end
             end
@@ -86,15 +93,27 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 function ∇(f)
     return function(x...)
         tape = forward(f, x...)
-        @assert typeof(tape[end].val) <: Number
-        ȳ = one(tape[end].val)
+        @assert typeof(tape[end].value) <: Number
+        ȳ = one(tape[end].value)
         rvs = preprocess(forward, tape, ȳ, f, x...)
-        return map(∇(forward, Val{n}, rvs, tape, ȳ, f, x...), eachindex(x))
+        return map(n->∇(forward, Val{n}, rvs, tape, ȳ, f, x...), eachindex(x))
     end
 end
 
-
 @inline ∇(x̄, f, ::Type{Val{N}}, args...) where N = x̄ + ∇(f, Val{N}, args...)
+
+"""
+    preprocess(::Function, args...)
+
+Default implementation of preprocess returns an empty Tuple. Individual sensitivity
+implementations should add methods specific to their use case. The output is passed
+in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
+"""
+@inline preprocess(::Any, args...) = nothing
+
+
+
+########################## Initialisers for containers ################################
 
 __ones(x) = fill(one(eltype(x)), size(x))
 
@@ -125,12 +144,3 @@ end
 for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
-
-"""
-    preprocess(::Function, args...)
-
-Default implementation of preprocess returns an empty Tuple. Individual sensitivity
-implementations should add methods specific to their use case. The output is passed
-in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
-"""
-@inline preprocess(::Any, args...) = nothing
