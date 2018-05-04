@@ -1,6 +1,7 @@
 using DualNumbers
 
-import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned
+import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned,
+isapprox
 export Leaf, Tape, Node, Branch, ∇
 
 """ Basic unit on the computational graph."""
@@ -97,6 +98,9 @@ Get `.val` if `x` is a Node, otherwise is equivalent to `identity`.
 """
 unbox(x::Node) = x.val
 unbox(x) = x
+
+isapprox(n::Nabla.Branch{T}, f::T) where T = Nabla.unbox(n) ≈ f
+isapprox(f::T, n::Nabla.Branch{T}) where T = n ≈ f
 
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
