@@ -103,8 +103,25 @@ let
 
 end # let
 
+# Check that functions involving `isapprox` can be differentiated
+let
+    f(x) = x ≈ 5.0 ? 1.0 : 3.0 * x
+    g(x) = 5.0 * x
+    h(x) = g(x) ≈ 25.0 ? x : f(x) + g(x)
+    ∇f = ∇(f)
+    ∇h = ∇(h)
+    @test ∇f(5.0) == (0.0,)
+    @test ∇f(6.0) == (3.0,)
+    @test ∇h(5.0) == (1.0,)
+    @test ∇h(6.0) == (8.0,)
+    f(x) = x ≈ [5.0] ? 1.0 : 3.0 * sum(x)
+    ∇f = ∇(f)
+    @test ∇f([5.0]) == ([0.0],)
+    @test ∇f([6.0]) == ([3.0],)
+end
+
 # Check that functions with extra, unused variables can be differentiated
-let 
+let
     f(a,b,c,d) = a*c
     ∇f = ∇(f)
     g(a,b) = 12
@@ -113,7 +130,7 @@ let
     @test ∇f(1,2,3,4) == (3, 0, 1, 0)
     @test ∇f(1,[2.0],3,4.0) == (3, [0.0], 1, 0.0)
     @test ∇g(1,2) == (0,0)
-end 
+end
 
 # Check that the convenience implementation of ∇ works as intended.
 let
