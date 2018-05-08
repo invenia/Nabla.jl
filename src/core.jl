@@ -53,6 +53,9 @@ end
 show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(tape.val)")
 show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(tape.val))")
 
+isapprox(n::Nabla.Leaf{T}, f::T) where T = Nabla.unbox(n) ≈ f
+isapprox(f::T, n::Nabla.Leaf{T}) where T = n ≈ f
+
 """
 A Branch is a Node with parents (args).
 
