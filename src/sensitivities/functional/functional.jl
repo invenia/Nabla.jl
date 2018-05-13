@@ -14,6 +14,11 @@ _∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) w
         map((yn, ȳn, An...)->∇(f, Arg{N}, p, yn, ȳn, An...), y, ȳ, A...) :
         map((ȳn, An...)->ȳn * fmad(f, An, Val{N}), ȳ, A...)
 
+# Deal with ambiguities introduced by `map`.
+map(f, x::AbstractArray{<:Number}...) = invoke(map, Tuple{Any, Vararg{Any}}, f, x...)
+map(f, x::AbstractArray{<:Number}) =
+    invoke(map, Tuple{Any, Union{AbstractArray, AbstractSet, Associative}}, f, x)
+
 # Implementation of sensitivities w.r.t. `broadcast`.
 import Base.broadcast
 @union_intercepts broadcast Tuple{Any, Vararg{∇Scalar}} Tuple{Any, Vararg{Number}}
