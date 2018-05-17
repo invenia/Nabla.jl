@@ -1,6 +1,6 @@
 using FDM
 
-export check_Dv, check_Dv_update, check_errs, fdm, forward_fdm, central_fdm, backward_fdm,
+export check_Dv, check_Dv_update, check_errs,
        assert_approx_equal, domain1, domain2, points, in_domain
 
 """
