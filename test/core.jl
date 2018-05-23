@@ -132,6 +132,21 @@ let
     @test ∇g(1,2) == (0,0)
 end
 
+# Check that functions with `zero` and `one` can be differentiated
+let
+    f(a) = zero(a)
+    g(a) = one(a)
+    h(a) = zero(3 * a) + one(4 * a)
+    ∇f = ∇(f)
+    ∇g = ∇(g)
+    ∇h = ∇(h)
+
+    @test ∇f(1) == (0,)
+    @test ∇f([1]) == ([0],)
+    @test ∇g(4) == (0,)
+    @test ∇h(8) == (0,)
+end
+
 # Check that the convenience implementation of ∇ works as intended.
 let
     f(x, y) = 2x + y
