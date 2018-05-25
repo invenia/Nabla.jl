@@ -1,7 +1,7 @@
 using DualNumbers
 
 import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned,
-isapprox
+isapprox, zero, one
 export Leaf, Tape, Node, Branch, ∇
 
 """ Basic unit on the computational graph."""
@@ -53,9 +53,6 @@ end
 show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(tape.val)")
 show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(tape.val))")
 
-isapprox(n::Nabla.Leaf{T}, f::T) where T = Nabla.unbox(n) ≈ f
-isapprox(f::T, n::Nabla.Leaf{T}) where T = n ≈ f
-
 """
 A Branch is a Node with parents (args).
 
@@ -102,8 +99,11 @@ Get `.val` if `x` is a Node, otherwise is equivalent to `identity`.
 unbox(x::Node) = x.val
 unbox(x) = x
 
-isapprox(n::Nabla.Branch{T}, f::T) where T = Nabla.unbox(n) ≈ f
-isapprox(f::T, n::Nabla.Branch{T}) where T = n ≈ f
+isapprox(n::Node, f) = Nabla.unbox(n) ≈ f
+isapprox(f, n::Node) = n ≈ f
+
+zero(n::Node) = zero(unbox(n))
+one(n::Node) = one(unbox(n))
 
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
