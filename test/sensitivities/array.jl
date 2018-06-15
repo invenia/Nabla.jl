@@ -9,4 +9,11 @@
         @test check_errs(f1, f1(x), x, randn(size(x)...))
         @test check_errs(f2, f2(x), x, randn(size(x)...))
     end
+
+    a = rand(3, 2); b = rand(3); c = rand(3, 3);
+    f(a, b, c) = sum(hcat(2*a, 3*b, 4*c))
+    @test ∇(f)(a,b,c) == (2*ones(3, 2), 3*ones(3), 4*ones(3, 3))
+    a = rand(2, 4); b = rand(1, 4); c = rand(3, 4);
+    f(a, b, c) = sum(vcat(2*a, 3*b, 4*c))
+    @test ∇(f)(a,b,c) == (2*ones(2, 4), 3*ones(1, 4), 4*ones(3, 4))
 end
