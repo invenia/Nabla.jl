@@ -1,4 +1,4 @@
-import Base.LinAlg.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemm!, gemv, gemv!,
+import LinearAlgebra.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemm!, gemv, gemv!,
     syrk, symm, symm!, symv, symv!, trmm, trsm, trmv, trsv, trsv!, ger!
 
 const SA = StridedArray
@@ -17,13 +17,13 @@ const SA = StridedArray
     [false, true, false, true, false],
 )
 ∇(::typeof(dot), ::Type{Arg{2}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    scal!(n, z̄, blascopy!(n, y, iy, zeros(x), ix), ix)
+    scal!(n, z̄, blascopy!(n, y, iy, zeros(eltype(x), size(x)), ix), ix)
 ∇(::typeof(dot), ::Type{Arg{4}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    scal!(n, z̄, blascopy!(n, x, ix, zeros(y), iy), iy)
+    scal!(n, z̄, blascopy!(n, x, ix, zeros(eltype(y), size(y)), iy), iy)
 ∇(x̄, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    (x̄ .= x̄ .+ scal!(n, z̄, blascopy!(n, y, iy, zeros(x), ix), ix))
+    (x̄ .= x̄ .+ scal!(n, z̄, blascopy!(n, y, iy, zeros(eltype(x), size(x)), ix), ix))
 ∇(ȳ, ::typeof(dot), ::Type{Arg{4}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    (ȳ .= ȳ .+ scal!(n, z̄, blascopy!(n, x, ix, zeros(y), iy), iy))
+    (ȳ .= ȳ .+ scal!(n, z̄, blascopy!(n, x, ix, zeros(eltype(y), size(y)), iy), iy))
 
 # Short-form `nrm2`.
 @explicit_intercepts nrm2 Tuple{Union{StridedVector, Array}}
@@ -37,9 +37,9 @@ const SA = StridedArray
     [false, true, false],
 )
 ∇(::typeof(nrm2), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    scal!(n, ȳ / y, blascopy!(n, x, inc, zeros(x), inc), inc)
+    scal!(n, ȳ / y, blascopy!(n, x, inc, zeros(eltype(x), size(x)), inc), inc)
 ∇(x̄, ::typeof(nrm2), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    (x̄ .= x̄ .+ scal!(n, ȳ / y, blascopy!(n, x, inc, zeros(x), inc), inc))
+    (x̄ .= x̄ .+ scal!(n, ȳ / y, blascopy!(n, x, inc, zeros(eltype(x), size(x)), inc), inc))
 
 # Short-form `asum`.
 @explicit_intercepts asum Tuple{Union{StridedVector, Array}}
@@ -53,9 +53,9 @@ const SA = StridedArray
     [false, true, false],
 )
 ∇(::typeof(asum), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeros(x), inc), inc)
+    scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeros(eltype(x), size(x)), inc), inc)
 ∇(x̄, ::typeof(asum), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    (x̄ .= x̄ .+ scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeros(x), inc), inc))
+    (x̄ .= x̄ .+ scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeros(eltype(x), size(x)), inc), inc))
 
 
 # Some weird stuff going on that I haven't figured out yet.
@@ -187,7 +187,7 @@ const SA = StridedArray
     α::T,
     A::StridedMatrix{T},
     x::StridedVector{T},
-) where T<:∇Scalar = uppercase(tA) == 'N' ? α * ȳ * x.' : α * x * ȳ.'
+) where T<:∇Scalar = uppercase(tA) == 'N' ? α * ȳ * x' : α * x * ȳ'
 ∇(Ā::StridedMatrix{T}, ::typeof(gemv), ::Type{Arg{3}}, _, y, ȳ,
     tA::Char,
     α::T,
@@ -256,8 +256,8 @@ const SA = StridedArray
 #     A::StridedVecOrMat{<:∇Scalar},
 # )
 #     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
-#     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
-#     return uppercase(trans) == 'N' ? out : out.'
+#     out = gemm('N', trans, α, triȲ .+ triȲ', A)
+#     return uppercase(trans) == 'N' ? out : out'
 # end
 # function ∇(Ā::StridedVecOrMat{T}, ::typeof(syrk), ::Type{Arg{4}}, p, Y, Ȳ,
 #     uplo::Char,
@@ -266,8 +266,8 @@ const SA = StridedArray
 #     A::StridedVecOrMat{T},
 # ) where T<:∇Scalar
 #     triȲ = uppercase(uplo) == 'L' ? tril(Ȳ) : triu(Ȳ)
-#     out = gemm('N', trans, α, triȲ .+ triȲ.', A)
-#     return broadcast!((ā, δā)->ā+δā, Ā, Ā, uppercase(trans) == 'N' ? out : out.')
+#     out = gemm('N', trans, α, triȲ .+ triȲ', A)
+#     return broadcast!((ā, δā)->ā+δā, Ā, Ā, uppercase(trans) == 'N' ? out : out')
 # end
 
 # # `syrk` sensitivity implementations for `α=1`.
@@ -307,7 +307,7 @@ function ∇(::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
 ) where T<:∇Scalar
-    tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
+    tmp = uppercase(side) == 'L' ? Ȳ * B' : B'Ȳ
     g! = uppercase(ul) == 'L' ? tril! : triu!
     return α * g!(tmp + tmp' - Diagonal(tmp))
 end
@@ -318,7 +318,7 @@ function ∇(Ā::StridedMatrix{T}, ::typeof(symm), ::Type{Arg{4}}, p, Y, Ȳ,
     A::StridedMatrix{T},
     B::StridedVecOrMat{T},
 ) where T<:∇Scalar
-    tmp = uppercase(side) == 'L' ? Ȳ * B.' : B.'Ȳ
+    tmp = uppercase(side) == 'L' ? Ȳ * B' : B'Ȳ
     g! = uppercase(ul) == 'L' ? tril! : triu!
     return broadcast!((ā, δā)->ā + δā, Ā, Ā, α * g!(tmp + tmp' - Diagonal(tmp)))
 end
@@ -485,7 +485,7 @@ function ∇(::typeof(trmv), ::Type{Arg{4}}, p, y, ȳ,
     A::StridedMatrix{T},
     b::StridedVector{T},
 ) where T<:∇Scalar
-    Ā = (uppercase(ul) == 'L' ? tril! : triu!)(uppercase(ta) == 'N' ? ȳ * b.' : b * ȳ.')
+    Ā = (uppercase(ul) == 'L' ? tril! : triu!)(uppercase(ta) == 'N' ? ȳ * b' : b * ȳ')
     dA == 'U' && fill!(view(Ā, diagind(Ā)), zero(T))
     return Ā
 end
@@ -515,11 +515,11 @@ function ∇(::typeof(trsm), ::Type{Arg{6}}, p, Y, Ȳ,
 ) where T<:∇Scalar
     Ā_full = uppercase(side) == 'L' ?
         uppercase(ta) == 'N' ?
-            trsm('L', ul, 'T', dA, -1.0, A, Ȳ * Y.') :
-            trsm('R', ul, 'T', dA, -1.0, A, Y * Ȳ.') :
+            trsm('L', ul, 'T', dA, -1.0, A, Ȳ * Y') :
+            trsm('R', ul, 'T', dA, -1.0, A, Y * Ȳ') :
         uppercase(ta) == 'N' ?
-            trsm('R', ul, 'T', dA, -1.0, A, Y.'Ȳ) :
-            trsm('L', ul, 'T', dA, -1.0, A, Ȳ.'Y)
+            trsm('R', ul, 'T', dA, -1.0, A, Y'Ȳ) :
+            trsm('L', ul, 'T', dA, -1.0, A, Ȳ'Y)
     dA == 'U' && fill!(view(Ā_full, diagind(Ā_full)), zero(T))
     return (uppercase(ul) == 'L' ? tril! : triu!)(Ā_full)
 end

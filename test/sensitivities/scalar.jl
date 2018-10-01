@@ -5,15 +5,15 @@ using DiffRules: diffrule, hasdiffrule
     @test in_domain(cos, 10.)
     @test !in_domain(acos, 10.)
     @test !in_domain(asin, 10.)
-    @test get(domain1(sin)) == (minimum(points), maximum(points))
-    @test get(domain1(log)) == (minimum(points[points .> 0]), maximum(points))
-    @test get(domain1(acos)) == (minimum(points[points .> -1]),
-                                 maximum(points[points .< 1]))
-    @test get(domain2((+))) == ((minimum(points), maximum(points)),
-                                (minimum(points), maximum(points)))
-    @test get(domain2((^))) == ((minimum(points[points .> 0]), maximum(points)),
-                                (minimum(points), maximum(points)))
-    @test get(domain2(beta)) == ((minimum(points[points .> 0]), maximum(points)),
+    @test domain1(sin) == (minimum(points), maximum(points))
+    @test domain1(log) == (minimum(points[points .> 0]), maximum(points))
+    @test domain1(acos) == (minimum(points[points .> -1]),
+                             maximum(points[points .< 1]))
+    @test domain2((+)) == ((minimum(points), maximum(points)),
+                            (minimum(points), maximum(points)))
+    @test domain2((^)) == ((minimum(points[points .> 0]), maximum(points)),
+                            (minimum(points), maximum(points)))
+    @test domain2(beta) == ((minimum(points[points .> 0]), maximum(points)),
                                  (minimum(points[points .> 0]), maximum(points)))
 end
 
@@ -28,8 +28,8 @@ end
         unary_check(f, x) = check_errs(eval(f), ȳ, x, v)
         for (package, f) in Nabla.unary_sensitivities
             domain = domain1(eval(f))
-            isnull(domain) && error("Could not determine domain for $f.")
-            lb, ub = get(domain)
+            domain === nothing && error("Could not determine domain for $f.")
+            lb, ub = domain
             randx = () -> rand(rng) * (ub - lb) + lb
 
             for _ in 1:10
@@ -52,8 +52,8 @@ end
             if ∂f∂x == :NaN && ∂f∂y != :NaN
                 # Assume that the first argument is integer-valued.
                 domain = domain1(y -> eval(f)(0, y))
-                isnull(domain) && error("Could not determine domain for $f.")
-                lb, ub = get(domain)
+                domain === nothing && error("Could not determine domain for $f.")
+                lb, ub = domain
                 randx = () -> rand(rng, 0:5)
                 randy = () -> rand(rng) * (ub - lb) + lb
 
@@ -64,8 +64,8 @@ end
             elseif ∂f∂x != :NaN && ∂f∂y == :NaN
                 # Assume that the second argument is integer-valued.
                 domain = domain1(x -> eval(f)(x, 0))
-                isnull(domain) && error("Could not determine domain for $f.")
-                lb, ub = get(domain)
+                domain === nothing && error("Could not determine domain for $f.")
+                lb, ub = domain
                 randx = () -> rand(rng) * (ub - lb) + lb
                 randy = () -> rand(rng, 0:5)
 
@@ -75,8 +75,8 @@ end
                 end
             elseif ∂f∂x != :NaN && ∂f∂y != :NaN
                 domain = domain2(eval(f))
-                isnull(domain) && error("Could not determine domain for $f.")
-                (x_lb, x_ub), (y_lb, y_ub) = get(domain)
+                domain === nothing && error("Could not determine domain for $f.")
+                (x_lb, x_ub), (y_lb, y_ub) = domain
                 randx = () -> rand(rng) * (x_ub - x_lb) + x_lb
                 randy = () -> rand(rng) * (y_ub - y_lb) + y_lb
 
@@ -91,7 +91,4 @@ end
         # Test whether the exponentiation amibiguity is resolved.
         @test ∇(x -> x^2)(1) == (2.0,)
     end
-
-    # Miscellaneous test for addition to DualNumbers.
-    @test DualNumbers.epsilon(5.0) == 0.0
 end

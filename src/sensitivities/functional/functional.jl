@@ -1,5 +1,4 @@
 # Implementation of functionals (i.e. higher-order functions).
-import Base.Broadcast.broadcast_shape
 
 # Implementation of sensitivities w.r.t. `map`.
 import Base.map
@@ -10,20 +9,37 @@ import Base.map
 ∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
     _∇(map, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
-    method_exists(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
+    hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
         map((yn, ȳn, An...)->∇(f, Arg{N}, p, yn, ȳn, An...), y, ȳ, A...) :
         map((ȳn, An...)->ȳn * fmad(f, An, Val{N}), ȳ, A...)
 
 # Deal with ambiguities introduced by `map`.
 map(f, x::AbstractArray{<:Number}...) = invoke(map, Tuple{Any, Vararg{Any}}, f, x...)
 map(f, x::AbstractArray{<:Number}) =
-    invoke(map, Tuple{Any, Union{AbstractArray, AbstractSet, Associative}}, f, x)
+    invoke(map, Tuple{Any, Union{AbstractArray, AbstractSet, AbstractDict}}, f, x)
 
 # Implementation of sensitivities w.r.t. `broadcast`.
-import Base.broadcast
-@union_intercepts broadcast Tuple{Any, Vararg{∇Scalar}} Tuple{Any, Vararg{Number}}
-@explicit_intercepts broadcast Tuple{Any, Any} [false, true]
-@union_intercepts broadcast Tuple{Any, Vararg{∇ArrayOrScalar}} Tuple{Any, Any, Vararg}
+using Base.Broadcast
+using Base.Broadcast: Broadcasted, broadcastable, broadcast_axes, broadcast_shape
+
+struct NodeStyle{S} <: BroadcastStyle end
+
+Base.BroadcastStyle(::Type{<:Node{T}}) where {T} = NodeStyle{BroadcastStyle(T)}()
+
+Base.BroadcastStyle(::NodeStyle{S}, ::NodeStyle{S}) where {S} = NodeStyle{S}()
+Base.BroadcastStyle(::NodeStyle{S1}, ::NodeStyle{S2}) where {S1,S2} =
+    NodeStyle{BroadcastStyle(S1, S2)}()
+Base.BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S} =
+    NodeStyle{BroadcastStyle(S, B)}()
+
+Broadcast.broadcast_axes(x::Node) = broadcast_axes(x.val)
+Broadcast.broadcastable(x::Node) = x
+
+function Base.copy(bc::Broadcasted{NodeStyle{S}}) where S
+    args = bc.args
+    tape = getfield(args[findfirst(x->x isa Node, args)], :tape)
+    return Branch(broadcast, (bc.f, args...), tape)
+end
 
 """
     broadcastsum!(f::Function, add::Bool, z, As...)
@@ -34,7 +50,7 @@ the current value of z, otherwise it is overwritten.
 function broadcastsum!(f::Function, add::Bool, z, As...)
     tmp_shape = broadcast_shape(map(size, As)...)
     if size(z) != tmp_shape
-        tmp = Array{eltype(z)}(tmp_shape)
+        tmp = Array{eltype(z)}(undef, tmp_shape)
         return sum!(z, broadcast!(f, tmp, As...), init=!add)
     else
         return add ?
@@ -49,7 +65,7 @@ end
 Allocating version of broadcastsum! specialised for Arrays.
 """
 broadcastsum(f, add::Bool, z::AbstractArray, As...) =
-    broadcastsum!(f, add, Array{eltype(z)}(size(z)), As...)
+    broadcastsum!(f, add, Array{eltype(z)}(undef, size(z)), As...)
 
 """
     broadcastsum(f, add::Bool, z::Number, As...)
@@ -57,7 +73,7 @@ broadcastsum(f, add::Bool, z::AbstractArray, As...) =
 Specialisation of broadcastsum to Number-sized outputs.
 """
 function broadcastsum(f, add::Bool, z::Number, As...)
-    tmp = Array{eltype(z)}(broadcast_shape(map(size, As)...))
+    tmp = Array{eltype(z)}(undef, broadcast_shape(map(size, As)...))
     return sum(broadcast!(f, tmp, As...)) + (add ? z : zero(z))
 end
 
@@ -65,7 +81,7 @@ end
 ∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A::∇ArrayOrScalar...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
-    method_exists(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
+    hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
         broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N}, p, yn, ȳn, xn...), false, A[N], y, ȳ, A...) :
         broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N}), false, A[N], ȳ, A...)
 

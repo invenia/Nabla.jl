@@ -13,9 +13,9 @@
                     # Generate some data and get the function to be mapped.
                     f = eval(f)
                     domain = domain1(f)
-                    isnull(domain) && error("Could not determine domain for $f.")
-                    lb, ub = get(domain)
-                    x = rand(rng, N) * (ub - lb) + lb
+                    domain === nothing && error("Could not determine domain for $f.")
+                    lb, ub = domain
+                    x = rand(rng, N) .* (ub - lb) .+ lb
 
                     # Test +.
                     x_ = Leaf(Tape(), x)
@@ -53,7 +53,7 @@
                 x_ = Leaf(Tape(), x)
                 s = functional(+, x_)
                 @test s.val == functional(+, x)
-                @test ∇(s)[x_] ≈ ones(x)
+                @test ∇(s)[x_] ≈ ones(Float64, 100)
             end
         end
 
@@ -66,9 +66,9 @@
                 # Generate some data and get the function to be mapped.
                 f = eval(f)
                 domain = domain1(f)
-                isnull(domain) && error("Could not determine domain for $f.")
-                lb, ub = get(domain)
-                x = rand(rng, N) * (ub - lb) + lb
+                domain === nothing && error("Could not determine domain for $f.")
+                lb, ub = domain
+                x = rand(rng, N) .* (ub .- lb) .+ lb
 
                 # Test +.
                 x_ = Leaf(Tape(), x)

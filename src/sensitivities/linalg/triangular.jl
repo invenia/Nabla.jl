@@ -1,5 +1,4 @@
-import Base: det, logdet, LowerTriangular, UpperTriangular
-export det, logdet, LowerTriangular, UpperTriangular
+import LinearAlgebra: det, logdet, LowerTriangular, UpperTriangular
 
 const ∇ScalarLT = LowerTriangular{<:∇Scalar}
 const ∇ScalarUT = UpperTriangular{<:∇Scalar}
@@ -7,7 +6,7 @@ const ∇ScalarUT = UpperTriangular{<:∇Scalar}
 for (ctor, T) in zip([:LowerTriangular, :UpperTriangular], [:∇ScalarLT, :∇ScalarUT])
 
     @eval @explicit_intercepts $ctor Tuple{∇AbstractMatrix}
-    @eval ∇(::Type{$ctor}, ::Type{Arg{1}}, p, Y::$T, Ȳ::$T, X::∇AbstractMatrix) = full(Ȳ)
+    @eval ∇(::Type{$ctor}, ::Type{Arg{1}}, p, Y::$T, Ȳ::$T, X::∇AbstractMatrix) = Matrix(Ȳ)
     @eval ∇(
         X̄::∇AbstractMatrix,
         ::Type{$ctor},

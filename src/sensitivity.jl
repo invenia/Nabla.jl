@@ -20,7 +20,7 @@ The work-horse for `@union_intercepts`.
 function union_intercepts(f::Symbol, type_tuple::Expr, invoke_type_tuple::Expr)
     call, arg_names = get_union_call(f, type_tuple)
     body = get_body(f, type_tuple, arg_names, invoke_type_tuple)
-    return Expr(:macrocall, Symbol("@generated"), Expr(:function, call, body))
+    return Expr(:macrocall, Symbol("@generated"), nothing, Expr(:function, call, body))
 end
 
 """
@@ -133,7 +133,7 @@ function get_body(
         Expr(Symbol("="), :x, Expr(:tuple, args_dotted)),
         Expr(Symbol("="), :x_syms, Expr(:tuple, args_dotted_quot)),
         Expr(Symbol("="), :x_dots, sym_arg_tuple),
-        Expr(Symbol("="), :is_node, :([any(issubtype.(xj, Node)) for xj in x])),
+        Expr(Symbol("="), :is_node, :([any((<:).(xj, Node)) for xj in x])),
         Expr(:return,
             Expr(:if, Expr(:call, :any, :is_node),
                 :(Nabla.branch_expr(
@@ -175,7 +175,7 @@ Get an expression which will obtain the tape from a Node object in `x`.
 function tape_expr(x::Tuple, syms::NTuple{N, Symbol} where N, is_node::Vector{Bool})
     idx = findfirst(is_node)
     if idx == length(is_node) && isa(x[end], Tuple)
-        node_idx = findfirst([issubtype(varg, Node) for varg in x[end]])
+        node_idx = findfirst([varg <: Node for varg in x[end]])
         return Expr(:call, :getfield, Expr(:ref, syms[end], node_idx), quot(:tape))
     else
         return Expr(:call, :getfield, syms[idx], quot(:tape))

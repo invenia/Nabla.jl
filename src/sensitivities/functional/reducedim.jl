@@ -12,7 +12,7 @@ accept_w_default = :(Tuple{Function, typeof(+), AbstractArray{<:∇Scalar}, Any,
     A::AbstractArray{<:∇Scalar},
     region,
     v0=nothing,
-) = method_exists(∇, Tuple{typeof(f), Type{Arg{1}}, ∇Scalar}) ?
+) = hasmethod(∇, Tuple{typeof(f), Type{Arg{1}}, ∇Scalar}) ?
         broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An), A, ȳ) :
         broadcast((An, ȳn)->ȳn * fmad(f, (An,), Val{1}), A, ȳ)
 

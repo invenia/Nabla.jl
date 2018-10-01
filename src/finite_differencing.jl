@@ -38,7 +38,7 @@ approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScala
 
 Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this
 result to back-propagate the sensitivity ȳ. If ȳ, x and v are column vectors, then this is
-equivalent to computing `ȳ.'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian of `f`
+equivalent to computing `ȳ'(J f)(x) v`, where `(J f)(x)` denotes the Jacobian of `f`
 evaluated at `x`. Analogous operations happen for scalars and N-dimensional arrays.
 """
 function compute_Dv(
@@ -65,7 +65,7 @@ function compute_Dv_update(
     rtape = reverse_tape(y, ȳ)
 
     # Randomly initialise `Leaf`s.
-    inits = Vector(length(rtape))
+    inits = Vector(undef, length(rtape))
     for i = 1:length(rtape)
         if isleaf(y.tape[i])
             inits[i] = randned_container(y.tape[i].val)
@@ -127,7 +127,7 @@ Check whether an input `x` is in a scalar, real function `f`'s domain.
 function in_domain(f::Function, x::Float64...)
     try
         y = f(x...)
-        return issubtype(typeof(y), Real) && !isnan(y)
+        return isa(y, Real) && !isnan(y)
     catch err
         return isa(err, DomainError) ? false : throw(err)
     end
@@ -148,7 +148,7 @@ Attempt to find a domain for a unary, scalar function `f`.
 - `measure::Function`: Function that measures the size of a set of points for `f`.
 - `points::Vector{T}`: Ordered set of test points to construct the domain from.
 """
-function domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
+function domain1(in_domain::Function, measure::Function, points::Vector{T}) where T
    # Find the connected sets of points that are in f's domain.
    connected_sets, set = Vector{Vector{T}}(), Vector{T}()
    for x in points
@@ -165,17 +165,17 @@ function domain1{T}(in_domain::Function, measure::Function, points::Vector{T})
    # Add the possibly yet unadded set.
    length(set) > 0 && push!(connected_sets, set)
 
-   # Return null if no domain could be found.
-   length(connected_sets) == 0 && return Nullable{Vector{T}}()
+   # Return nothing if no domain could be found.
+   length(connected_sets) == 0 && return
 
    # Pick the largest domain.
-   return Nullable(connected_sets[indmax(measure.(connected_sets))])
+   return connected_sets[argmax(measure.(connected_sets))]
 end
 
 function domain1(f::Function)
     set = domain1(x -> in_domain(f, x), x -> maximum(x) - minimum(x), points)
-    isnull(set) && return Nullable{NTuple{2, Float64}}()
-    return Nullable((minimum(get(set)), maximum(get(set))))
+    set === nothing && return
+    return (minimum(set), maximum(set))
 end
 
 """
@@ -183,9 +183,9 @@ end
 
 Slice of a Float64 x Float64 domain.
 """
-type Slice2
+mutable struct Slice2
     x::Float64
-    y_range::Nullable{Tuple{Float64, Float64}}
+    y_range::Union{Tuple{Float64, Float64}, Nothing}
 end
 
 """
@@ -199,29 +199,29 @@ function domain2(f::Function)
 
     # Extract a set of in-domain slices.
     measure = x -> maximum(getfield.(x, :x)) - minimum(getfield.(x, :x))
-    in_domain_slices = domain1(x -> !isnull(x.y_range), measure, slices)
-    isnull(in_domain_slices) && return Nullable{NTuple{2, NTuple{2, Float64}}}()
+    in_domain_slices = domain1(x -> x.y_range !== nothing, measure, slices)
+    in_domain_slices === nothing && return
 
     # Extract the x range of the domain.
-    xs = getfield.(get(in_domain_slices), :x)
+    xs = getfield.(in_domain_slices, :x)
     x_range = (minimum(xs), maximum(xs))
 
     # Extract the y range of the domain.
-    y_ranges = get.(getfield.(get(in_domain_slices), :y_range))
+    y_ranges = getfield.(in_domain_slices, :y_range)
     y_lower, y_upper = maximum(getindex.(y_ranges, 1)), minimum(getindex.(y_ranges, 2))
-    y_lower >= y_upper && return Nullable{NTuple{2, NTuple{2, Float64}}}()
+    y_lower >= y_upper && return
     y_range = (y_lower, y_upper)
 
-    return Nullable((x_range, y_range))
+    return (x_range, y_range)
 end
 
 # `beta`s domain cannot be determined correctly, since `beta(-.2, -.2)` doesn't throw an
 # error, strangely enough.
-domain2(::typeof(beta)) = Nullable(((minimum(points[points .> 0]), maximum(points)),
-                                    (minimum(points[points .> 0]), maximum(points))))
+domain2(::typeof(beta)) = ((minimum(points[points .> 0]), maximum(points)),
+                           (minimum(points[points .> 0]), maximum(points)))
 
 # Both of these functions are technically defined on the entire real line, but the left
 # half is troublesome due to the large number of points at which it isn't defined. As such
 # we restrict unit testing to the right-half.
-domain1(::typeof(gamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
-domain1(::typeof(trigamma)) = Nullable((minimum(points[points .> 0]), maximum(points[points .> 0])))
+domain1(::typeof(gamma)) = (minimum(points[points .> 0]), maximum(points[points .> 0]))
+domain1(::typeof(trigamma)) = (minimum(points[points .> 0]), maximum(points[points .> 0]))

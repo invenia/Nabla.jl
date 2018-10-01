@@ -1,9 +1,14 @@
 using SpecialFunctions
 using DiffRules: diffrule, hasdiffrule
 
+# ones(::AbstractArray) is deprecated in 0.7 and removed in 1.0, but it's a pretty useful
+# method, so we'll define our own for testing purposes
+oneslike(a::AbstractArray) = ones(eltype(a), size(a))
+oneslike(n::Integer) = ones(n)
+
 @testset "Functional" begin
     # Apparently Distributions.jl doesn't implement the following, so we'll have to do it.
-    Distributions.rand(rng::AbstractRNG, a::Distributions.Distribution, n::Integer) =
+    Random.rand(rng::AbstractRNG, a::Distribution, n::Integer) =
         [rand(rng, a) for _ in 1:n]
 
     let rng = MersenneTwister(123456)
@@ -22,12 +27,12 @@ using DiffRules: diffrule, hasdiffrule
         function check_unary_broadcast(f, x)
             x_ = Leaf(Tape(), x)
             s = broadcast(f, x_)
-            return ∇(s, ones(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
+            return ∇(s, oneslike(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
         end
         for (package, f) in Nabla.unary_sensitivities
             domain = domain1(eval(f))
-            isnull(domain) && error("Could not determine domain for $f.")
-            x_dist = Uniform(get(domain)...)
+            domain === nothing && error("Could not determine domain for $f.")
+            x_dist = Uniform(domain...)
             x = rand(rng, x_dist, 100)
             @test check_unary_broadcast(eval(f), x)
         end
@@ -38,11 +43,12 @@ using DiffRules: diffrule, hasdiffrule
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             s = broadcast(f, x_, y_)
-            ∇s = ∇(s, ones(s.val))
+            o = oneslike(s.val)
+            ∇s = ∇(s, o)
             ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
-                           s.val, ones(s.val), x, y)
+                           s.val, o, x, y)
             ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
-                           s.val, ones(s.val), x, y)
+                           s.val, o, x, y)
             @test broadcast(f, x, y) == s.val
             @test ∇s[x_] ≈ ∇x
             @test ∇s[y_] ≈ ∇y
@@ -51,11 +57,12 @@ using DiffRules: diffrule, hasdiffrule
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             s = broadcast(f, x_, y_)
-            ∇s = ∇(s, ones(s.val))
+            o = oneslike(s.val)
+            ∇s = ∇(s, o)
             ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
-                               s.val, ones(s.val), x, y))
+                               s.val, o, x, y))
             ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
-                           s.val, ones(s.val), x, y)
+                           s.val, o, x, y)
             @test broadcast(f, x, y) == s.val
             @test ∇s[x_] ≈ ∇x
             @test ∇s[y_] ≈ ∇y
@@ -64,11 +71,12 @@ using DiffRules: diffrule, hasdiffrule
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             s = broadcast(f, x_, y_)
-            ∇s = ∇(s, ones(s.val))
+            o = oneslike(s.val)
+            ∇s = ∇(s, o)
             ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
-                           s.val, ones(s.val), x, y)
+                           s.val, o, x, y)
             ∇y = sum(broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
-                               s.val, ones(s.val), x, y))
+                               s.val, o, x, y))
             @test broadcast(f, x, y) == s.val
             @test ∇s[x_] ≈ ∇x
             @test ∇s[y_] ≈ ∇y
@@ -86,8 +94,8 @@ using DiffRules: diffrule, hasdiffrule
             # argument.
             (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
             domain = domain2(eval(f))
-            isnull(domain) && error("Could not determine domain for $f.")
-            (x_lb, x_ub), (y_lb, y_ub) = get(domain)
+            domain === nothing && error("Could not determine domain for $f.")
+            (x_lb, x_ub), (y_lb, y_ub) = domain
             x_dist, y_dist = Uniform(x_lb, x_ub), Uniform(y_lb, y_ub)
             x, y = rand(rng, x_dist, 100), rand(rng, y_dist, 100)
             check_binary_broadcast(eval(f), x, y)
@@ -100,7 +108,7 @@ using DiffRules: diffrule, hasdiffrule
             x, y, z = randn(rng, 5), randn(rng, 5), randn(rng, 5)
             x_, y_, z_ = Leaf.(Tape(), (x, y, z))
             s_ = broadcast(f, x_, y_, z_)
-            ∇s = ∇(s_, ones(s_.val))
+            ∇s = ∇(s_, oneslike(s_.val))
             @test s_.val == broadcast(f, x, y, z)
             @test ∇s[x_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 1)
             @test ∇s[y_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 2)
@@ -110,47 +118,47 @@ using DiffRules: diffrule, hasdiffrule
         let
             x, y, tape = 5.0, randn(rng, 5), Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
-            z_ = x_ + y_
+            z_ = x_ .+ y_
             z2_ = broadcast(+, x_, y_)
-            @test z_.val == x + y
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
-            @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
+            @test z_.val == x .+ y
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ * y_
             z2_ = broadcast(*, x_, y_)
-            @test z_.val == x * y
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
-            @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
+            @test z_.val == x .* y
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
-            z_ = x_ - y_
+            z_ = x_ .- y_
             z2_ = broadcast(-, x_, y_)
-            @test z_.val == x - y
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
-            @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
+            @test z_.val == x .- y
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ / y_
             z2_ = broadcast(/, x_, y_)
-            @test z_.val == x / y
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
-            @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
+            @test z_.val == x ./ y
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
         end
         let
             x, y, tape = 5.0, randn(rng, 5), Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ \ y_
             z2_ = broadcast(\, x_, y_)
-            @test z_.val == x \ y
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
-            @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
+            @test z_.val == x .\ y
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
         end
 
         # Check that dot notation works as expected for all unary function in Nabla for both
@@ -160,7 +168,7 @@ using DiffRules: diffrule, hasdiffrule
             z_ = f.(x_)
             z2_ = broadcast(f, x_)
             @test z_.val == f.(x)
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
         end
         function check_unary_dot(f, x::∇Scalar)
             x_ = Leaf(Tape(), x)
@@ -170,8 +178,8 @@ using DiffRules: diffrule, hasdiffrule
         end
         for (package, f) in Nabla.unary_sensitivities
             domain = domain1(eval(f))
-            isnull(domain) && error("Could not determine domain for $f.")
-            x_dist = Uniform(get(domain)...)
+            domain === nothing && error("Could not determine domain for $f.")
+            x_dist = Uniform(domain...)
             check_unary_dot(eval(f), rand(rng, x_dist))
             check_unary_dot(eval(f), rand(rng, x_dist, 100))
         end
@@ -183,8 +191,8 @@ using DiffRules: diffrule, hasdiffrule
             z_ = f.(x_, y_)
             z2_ = broadcast(f, x_, y_)
             @test z_.val == f.(x, y)
-            @test ∇(z_, ones(z_.val))[x_] == ∇(z2_, ones(z2_.val))[x_]
-            @test ∇(z_, ones(z_.val))[y_] == ∇(z2_, ones(z2_.val))[y_]
+            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
         end
         function check_binary_dot(f, x::∇Scalar, y::∇Scalar)
             x_, y_ = Leaf.(Tape(), (x, y))
@@ -194,7 +202,7 @@ using DiffRules: diffrule, hasdiffrule
         end
         for (package, f) in Nabla.binary_sensitivities
             # TODO: More care needs to be taken to test the following.
-            f in [:atan2, :mod, :rem] && continue
+            f in [:atan, :mod, :rem] && continue
             if hasdiffrule(package, f, 2)
                 ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
             else
@@ -204,8 +212,8 @@ using DiffRules: diffrule, hasdiffrule
             # argument.
             (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
             domain = domain2(eval(f))
-            isnull(domain) && error("Could not determine domain for $f.")
-            (x_lb, x_ub), (y_lb, y_ub) = get(domain)
+            domain === nothing && error("Could not determine domain for $f.")
+            (x_lb, x_ub), (y_lb, y_ub) = domain
             x_distr = Uniform(x_lb, x_ub)
             y_distr = Uniform(y_lb, y_ub)
             x = rand(rng, x_distr, 100)

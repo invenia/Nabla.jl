@@ -4,7 +4,7 @@ os:
   - linux
   - osx
 julia:
-  - 0.6
+  - 0.7 # TODO: Add 1.0 once 0.7 works
   - nightly
 notifications:
   email: false
@@ -18,7 +18,6 @@ matrix:
 #  - julia -e 'Pkg.clone(pwd()); Pkg.build("Nabla"); Pkg.test("Nabla"; coverage=true)'
 after_success:
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("Nabla")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
   # build documentation
-  - julia -e 'Pkg.add("Documenter")'
-  - julia -e 'cd(Pkg.dir("Nabla")); include(joinpath("docs", "make.jl"))'
+  - julia -e 'using Pkg; Pkg.add("Documenter"); include(joinpath("docs", "make.jl"))'

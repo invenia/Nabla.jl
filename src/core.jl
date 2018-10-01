@@ -1,17 +1,18 @@
 using DualNumbers
 
-import Base: push!, length, show, getindex, setindex!, endof, eachindex, isassigned,
-isapprox, zero, one
+import Base: push!, length, show, getindex, setindex!, eachindex, isassigned,
+             isapprox, zero, one, lastindex
+
 export Leaf, Tape, Node, Branch, ∇
 
 """ Basic unit on the computational graph."""
 abstract type Node{T} end
 
 """ A topologically ordered collection of Nodes. """
-immutable Tape
+struct Tape
     tape::Vector{Any}
     Tape() = new(Vector{Any}())
-    Tape(N::Int) = new(Vector{Any}(N))
+    Tape(N::Int) = new(Vector{Any}(undef, N))
 end
 function show(io::IO, tape::Tape)
     if length(tape) == 0
@@ -24,13 +25,16 @@ function show(io::IO, tape::Tape)
 end
 @inline getindex(tape::Tape, n::Int) = Base.getindex(tape.tape, n)
 @inline getindex(tape::Tape, node::Node) = Base.getindex(tape, node.pos)
-@inline endof(tape::Tape) = length(tape)
+@inline lastindex(tape::Tape) = length(tape)
 @inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
 @inline eachindex(tape::Tape) = eachindex(tape.tape)
 @inline length(tape::Tape) = length(tape.tape)
 @inline push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
 @inline isassigned(tape::Tape, n::Int) = isassigned(tape.tape, n)
 @inline isassigned(tape::Tape, node::Node) = isassigned(tape, node.pos)
+
+# Make `Tape`s broadcast as scalars without a warning on 0.7
+Base.Broadcast.broadcastable(tape::Tape) = Ref(tape)
 
 """
 An element at the 'bottom' of the computational graph.
@@ -63,7 +67,7 @@ args - Values indicating which elements in the tape will require updating by thi
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
 """
-immutable Branch{T} <: Node{T}
+struct Branch{T} <: Node{T}
     val::T
     f
     args::Tuple
@@ -99,7 +103,7 @@ Get `.val` if `x` is a Node, otherwise is equivalent to `identity`.
 unbox(x::Node) = x.val
 unbox(x) = x
 
-isapprox(n::Node, f) = Nabla.unbox(n) ≈ f
+isapprox(n::Node, f) = unbox(n) ≈ f
 isapprox(f, n::Node) = n ≈ f
 
 zero(n::Node) = zero(unbox(n))
@@ -177,8 +181,8 @@ function ∇(f, get_output::Bool=false)
         y isa Node || return zero.(args)
         ∇f = ∇(y)
         ∇args = ([isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
-		for (arg_, arg) in zip(args_, args)]...)
-	return get_output ? (y, ∇args) : ∇args
+                  for (arg_, arg) in zip(args_, args)]...,)
+        return get_output ? (y, ∇args) : ∇args
     end
 end
 
@@ -205,16 +209,16 @@ end
 # A collection of methods for initialising nested indexable containers to zero.
 for (f_name, scalar_init, array_init) in
     zip((:zerod_container, :oned_container, :randned_container),
-        (:zero, :one, Nullable()),
-        (:zeros, :ones, Nullable()))
-    if !isnull(scalar_init)
+        (:zero, :one, nothing),
+        (:zeros, :ones, nothing))
+    if scalar_init !== nothing
         @eval @inline $f_name(x::Number) = $scalar_init(x)
     end
-    if !isnull(array_init)
-        @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(x)
+    if array_init !== nothing
+        @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(eltype(x), size(x))
     end
     eval(quote
-        @inline $f_name(x::Tuple) = ([$f_name(n) for n in x]...)
+        @inline $f_name(x::Tuple) = map($f_name, x)
         @inline function $f_name(x)
             y = Base.copy(x)
             for n in eachindex(y)
@@ -250,8 +254,3 @@ function fmad_expr(f, x::Type{<:Tuple})
     return body
 end
 @generated fmad(f, x) = fmad_expr(f, x)
-
-function Base.exp10(x::Dual)
-    y = exp10(DualNumbers.value(x))
-    return Dual(y, y * log(10) * DualNumbers.epsilon(x))
-end

@@ -1,25 +1,19 @@
 @testset "Diagonal" begin
     let rng = MersenneTwister(123456), N = 10
-        λ_2 = x->diagm(x, 2)
-        λ_m3 = x->diagm(x, -3)
-        λ_0 = x->diagm(x, 0)
-        λ_false = x->diagm(x, false)
-        λ_true = x->diagm(x, true)
+        λ_2 = x->diagm(2 => x)
+        λ_m3 = x->diagm(-3 => x)
+        λ_0 = x->diagm(0 => x)
+        λ_false = x->diagm(false => x)
+        λ_true = x->diagm(true => x)
         for _ in 1:10
-
-            # Test vector case.
             x, vx = randn.(rng, [N, N])
-            @test check_errs(diagm, diagm(randn(rng, N)), x, vx)
+            @test check_errs(x->diagm(0 => x), diagm(0 => randn(rng, N)), x, vx)
 
             @test check_errs(λ_2, λ_2(randn(rng, N)), x, vx)
             @test check_errs(λ_m3, λ_m3(randn(rng, N)), x, vx)
             @test check_errs(λ_0, λ_0(randn(rng, N)), x, vx)
             @test check_errs(λ_false, λ_false(randn(rng, N)), x, vx)
             @test check_errs(λ_true, λ_true(randn(rng, N)), x, vx)
-
-            # Test scalar case.
-            x, vx = randn(rng), randn(rng)
-            @test check_errs(diagm, diagm(randn(rng)), x, vx)
         end
     end
     let rng = MersenneTwister(123456), N = 10

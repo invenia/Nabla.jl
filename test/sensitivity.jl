@@ -95,7 +95,7 @@
         @test from_func == expected
     end
     let
-        from_func = branch_expr(:bar, [true], ((Leaf{Float64},),), (:x,), :((x...)))
+        from_func = branch_expr(:bar, [true], ((Leaf{Float64},),), (:x,), :((x...,)))
         tape = Expr(:call, :getfield, Expr(:ref, :x, :1), quot(:tape))
         expected = Expr(:call, :Branch, :bar, :((x...,)), tape)
         @test from_func == expected

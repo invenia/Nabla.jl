@@ -2,6 +2,9 @@ __precompile__()
 
 module Nabla
 
+    using SpecialFunctions
+    using LinearAlgebra
+
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
     const ∇Scalar = Number
@@ -34,7 +37,7 @@ module Nabla
     # Sensitivities for functionals.
     include("sensitivities/functional/functional.jl")
     include("sensitivities/functional/reduce.jl")
-    include("sensitivities/functional/reducedim.jl")
+    #include("sensitivities/functional/reducedim.jl")
 
     # Linear algebra optimisations.
     include("sensitivities/linalg/generic.jl")
@@ -43,6 +46,6 @@ module Nabla
     include("sensitivities/linalg/blas.jl")
     include("sensitivities/linalg/diagonal.jl")
     include("sensitivities/linalg/triangular.jl")
-    include("sensitivities/linalg/factorization/cholesky.jl")
+    #include("sensitivities/linalg/factorization/cholesky.jl")
 
 end # module Nabla

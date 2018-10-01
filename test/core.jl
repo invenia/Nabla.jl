@@ -3,7 +3,7 @@
 let
     # Simple tests for `Tape`.
     @test getindex(setindex!(Tape(5), "hi", 5), 5) == "hi"
-    @test endof(Tape(50)) == 50
+    @test lastindex(Tape(50)) == 50
     @test eachindex(Tape(50)) == Base.OneTo(50)
     @test length(Tape()) == 0
     @test length(Tape(50)) == 50
@@ -14,24 +14,24 @@ let
     let
         buffer = IOBuffer()
         show(buffer, Tape())
-        @test String(buffer) == "Empty tape.\n"
+        @test String(take!(buffer)) == "Empty tape.\n"
     end
     let
         buffer = IOBuffer()
         show(buffer, Tape(1))
-        @test String(buffer) == "1 #undef\n"
+        @test String(take!(buffer)) == "1 #undef\n"
     end
     let
         buffer = IOBuffer()
         show(buffer, Tape(2))
-        @test String(buffer) == "1 #undef\n2 #undef\n"
+        @test String(take!(buffer)) == "1 #undef\n2 #undef\n"
     end
     let
         buffer = IOBuffer()
         tape = Tape(1)
         tape[1] = 5
         show(buffer, tape)
-        @test String(buffer) == "1 5\n"
+        @test String(take!(buffer)) == "1 5\n"
     end
 
     # Check isassigned consistency.
