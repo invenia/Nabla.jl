@@ -250,3 +250,8 @@ function fmad_expr(f, x::Type{<:Tuple})
     return body
 end
 @generated fmad(f, x) = fmad_expr(f, x)
+
+function Base.exp10(x::Dual)
+    y = exp10(DualNumbers.value(x))
+    return Dual(y, y * log(10) * DualNumbers.epsilon(x))
+end
