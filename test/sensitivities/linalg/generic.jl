@@ -21,10 +21,10 @@
 
             # Test binary linalg sensitivities.
             for (f, T_A, T_B, T_Y, Ā, B̄) in Nabla.binary_linalg_optimisations
-                A, B, VA, VB = trandn.(rng, (T_A, T_B, T_A, T_B))
+                A, B, VA, VB = trandn.(Ref(rng), (T_A, T_B, T_A, T_B))
                 @test check_errs(eval(f), eval(f)(A, B), (A, B), (VA, VB))
             end
-            A, B, VA, VB = trandn.(rng, (∇Array, ∇Array, ∇Array, ∇Array))
+            A, B, VA, VB = trandn.(Ref(rng), (∇Array, ∇Array, ∇Array, ∇Array))
             @test check_errs(kron, kron(A, B), (A, B), (VA, VB))
         end
 

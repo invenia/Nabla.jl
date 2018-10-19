@@ -6,7 +6,7 @@
         λ_false = x->diagm(false => x)
         λ_true = x->diagm(true => x)
         for _ in 1:10
-            x, vx = randn.(rng, [N, N])
+            x, vx = randn.(Ref(rng), [N, N])
             @test check_errs(x->diagm(0 => x), diagm(0 => randn(rng, N)), x, vx)
 
             @test check_errs(λ_2, λ_2(randn(rng, N)), x, vx)
