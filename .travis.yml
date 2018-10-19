@@ -4,7 +4,8 @@ os:
   - linux
   - osx
 julia:
-  - 0.7 # TODO: Add 1.0 once 0.7 works
+  - 0.7
+  - 1.0
   - nightly
 notifications:
   email: false
