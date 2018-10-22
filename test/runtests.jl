@@ -34,8 +34,8 @@ end
         include("sensitivities/linalg/strided.jl")
         include("sensitivities/linalg/blas.jl")
 
-        #@testset "Factorisations" begin
-        #    include("sensitivities/linalg/factorization/cholesky.jl")
-        #end
+        @testset "Factorisations" begin
+            include("sensitivities/linalg/factorization/cholesky.jl")
+        end
     end
 end

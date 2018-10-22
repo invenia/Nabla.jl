@@ -1,5 +1,13 @@
 import LinearAlgebra.BLAS: gemv, gemv!, gemm!, trsm!, axpy!, ger!
-import LinearAlgebra.chol
+
+# NOTE: Cholesky factorizations pose a significant issue for us as of Julia 0.7, since
+# the simple function chol, which produced the U in the factorization U'U, has been
+# deprecated in favor of accessing the .U field of a Cholesky object produced by cholesky.
+# This does not lend itself well to tracing. To get around this, we'll define our own
+# chol that users of Nabla can use to obtain the Julia 0.6 behavior.
+# See issue #105 for discussion.
+export chol
+chol(X::AbstractMatrix{<:Real}) = cholesky(X).U
 
 #=
 See [1] for implementation details: pages 5-9 in particular. The derivations presented in

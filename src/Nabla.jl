@@ -46,6 +46,6 @@ module Nabla
     include("sensitivities/linalg/blas.jl")
     include("sensitivities/linalg/diagonal.jl")
     include("sensitivities/linalg/triangular.jl")
-    #include("sensitivities/linalg/factorization/cholesky.jl")
+    include("sensitivities/linalg/factorization/cholesky.jl")
 
 end # module Nabla
