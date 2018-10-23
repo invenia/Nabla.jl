@@ -29,7 +29,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "A Toy Problem",
     "category": "section",
-    "text": "Consider the gradient of a vector-quadratic function. The following code snippet constructs such a function, and inputs x and y.using Nabla\n\n# Generate some data.\nrng, N = MersenneTwister(123456), 2\nx, y = randn.(rng, [N, N])\nA = randn(rng, N, N)\n\n# Construct a vector-quadratic function in `x` and `y`.\nf(x, y) = y.\' * (A * x)\nf(x, y)Only a small amount of matrix calculus is required to the find the gradient of f(x, y) w.r.t. x and y, which we denote by ∇x and ∇y respectively, to be(∇x, ∇y) = (A.\'y, A * x)"
+    "text": "Consider the gradient of a vector-quadratic function. The following code snippet constructs such a function, and inputs x and y.using Nabla\n\n# Generate some data.\nrng, N = MersenneTwister(123456), 2\nx, y = randn.(rng, [N, N])\nA = randn(rng, N, N)\n\n# Construct a vector-quadratic function in `x` and `y`.\nf(x, y) = y\' * (A * x)\nf(x, y)Only a small amount of matrix calculus is required to the find the gradient of f(x, y) w.r.t. x and y, which we denote by ∇x and ∇y respectively, to be(∇x, ∇y) = (A\'y, A * x)"
 },
 
 {
@@ -61,7 +61,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.Arg",
     "category": "type",
-    "text": "Used to flag which argument is being specified in x̄. \n\n\n\n"
+    "text": "Used to flag which argument is being specified in x̄. \n\n\n\n\n\n"
 },
 
 {
@@ -69,7 +69,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.Branch",
     "category": "type",
-    "text": "A Branch is a Node with parents (args).\n\nFields: val - the value of this node produced in the forward pass. f - the function used to generate this Node. args - Values indicating which elements in the tape will require updating by this node. tape - The Tape to which this Branch is assigned. pos - the location of this Branch in the tape to which it is assigned.\n\n\n\n"
+    "text": "A Branch is a Node with parents (args).\n\nFields: val - the value of this node produced in the forward pass. f - the function used to generate this Node. args - Values indicating which elements in the tape will require updating by this node. tape - The Tape to which this Branch is assigned. pos - the location of this Branch in the tape to which it is assigned.\n\n\n\n\n\n"
 },
 
 {
@@ -77,7 +77,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.Leaf",
     "category": "type",
-    "text": "An element at the \'bottom\' of the computational graph.\n\nFields: val - the value of the node. tape - The Tape to which this Leaf is assigned. pos - the location of this Leaf in the tape to which it is assigned.\n\n\n\n"
+    "text": "An element at the \'bottom\' of the computational graph.\n\nFields: val - the value of the node. tape - The Tape to which this Leaf is assigned. pos - the location of this Leaf in the tape to which it is assigned.\n\n\n\n\n\n"
 },
 
 {
@@ -85,7 +85,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.Node",
     "category": "type",
-    "text": "Basic unit on the computational graph.\n\n\n\n"
+    "text": "Basic unit on the computational graph.\n\n\n\n\n\n"
 },
 
 {
@@ -93,23 +93,23 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.Tape",
     "category": "type",
-    "text": "A topologically ordered collection of Nodes. \n\n\n\n"
+    "text": "A topologically ordered collection of Nodes. \n\n\n\n\n\n"
 },
 
 {
-    "location": "pages/api.html#Nabla.check_errs-Union{Tuple{Any,Union{AbstractArray{#s1,N} where N where #s1<:Number, Number},T,T,Number,Number}, Tuple{Any,Union{AbstractArray{#s1,N} where N where #s1<:Number, Number},T,T,Number}, Tuple{Any,Union{AbstractArray{#s1,N} where N where #s1<:Number, Number},T,T}, Tuple{T}} where T",
+    "location": "pages/api.html#Nabla.check_errs-Union{Tuple{T}, Tuple{Any,Union{Number, AbstractArray{#s12,N} where N where #s12<:Number},T,T}, Tuple{Any,Union{Number, AbstractArray{#s12,N} where N where #s12<:Number},T,T,Number}, Tuple{Any,Union{Number, AbstractArray{#s12,N} where N where #s12<:Number},T,T,Number,Number}} where T",
     "page": "API",
     "title": "Nabla.check_errs",
     "category": "method",
-    "text": "check_errs(\n    f,\n    ȳ::∇ArrayOrScalar,\n    x::T,\n    v::T,\n    ε_abs::∇Scalar=1e-10,\n    ε_rel::∇Scalar=1e-7\n)::Bool where T\n\nCheck that the difference between finite differencing directional derivative estimation and RMAD directional derivative computation for function f at x in direction v, for both allocating and in-place modes, has absolute and relative errors of ε_abs and ε_rel respectively, when scaled by reverse-mode sensitivity ȳ.\n\n\n\n"
+    "text": "check_errs(\n    f,\n    ȳ::∇ArrayOrScalar,\n    x::T,\n    v::T,\n    ε_abs::∇Scalar=1e-10,\n    ε_rel::∇Scalar=1e-7\n)::Bool where T\n\nCheck that the difference between finite differencing directional derivative estimation and RMAD directional derivative computation for function f at x in direction v, for both allocating and in-place modes, has absolute and relative errors of ε_abs and ε_rel respectively, when scaled by reverse-mode sensitivity ȳ.\n\n\n\n\n\n"
 },
 
 {
-    "location": "pages/api.html#Nabla.domain1-Union{Tuple{Function,Function,Array{T,1}}, Tuple{T}} where T",
+    "location": "pages/api.html#Nabla.domain1-Union{Tuple{T}, Tuple{Function,Function,Array{T,1}}} where T",
     "page": "API",
     "title": "Nabla.domain1",
     "category": "method",
-    "text": "domain1{T}(in_domain::Function, measure::Function, points::Vector{T})\ndomain1(f::Function)\n\nAttempt to find a domain for a unary, scalar function f.\n\nArguments\n\nin_domain::Function: Function that takes a single argument x and returns whether x   argument is in f\'s domain.\nmeasure::Function: Function that measures the size of a set of points for f.\npoints::Vector{T}: Ordered set of test points to construct the domain from.\n\n\n\n"
+    "text": "domain1{T}(in_domain::Function, measure::Function, points::Vector{T})\ndomain1(f::Function)\n\nAttempt to find a domain for a unary, scalar function f.\n\nArguments\n\nin_domain::Function: Function that takes a single argument x and returns whether x   argument is in f\'s domain.\nmeasure::Function: Function that measures the size of a set of points for f.\npoints::Vector{T}: Ordered set of test points to construct the domain from.\n\n\n\n\n\n"
 },
 
 {
@@ -117,7 +117,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.domain2",
     "category": "method",
-    "text": "domain2(f::Function)\n\nAttempt to find a rectangular domain for a binary, scalar function f.\n\n\n\n"
+    "text": "domain2(f::Function)\n\nAttempt to find a rectangular domain for a binary, scalar function f.\n\n\n\n\n\n"
 },
 
 {
@@ -125,7 +125,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.in_domain",
     "category": "method",
-    "text": "in_domain(f::Function, x::Float64...)\n\nCheck whether an input x is in a scalar, real function f\'s domain.\n\n\n\n"
+    "text": "in_domain(f::Function, x::Float64...)\n\nCheck whether an input x is in a scalar, real function f\'s domain.\n\n\n\n\n\n"
 },
 
 {
@@ -133,7 +133,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.preprocess",
     "category": "method",
-    "text": "preprocess(::Function, args...)\n\nDefault implementation of preprocess returns an empty Tuple. Individual sensitivity implementations should add methods specific to their use case. The output is passed in to ∇ as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.\n\n\n\n"
+    "text": "preprocess(::Function, args...)\n\nDefault implementation of preprocess returns an empty Tuple. Individual sensitivity implementations should add methods specific to their use case. The output is passed in to ∇ as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.\n\n\n\n\n\n"
 },
 
 {
@@ -141,31 +141,31 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.∇",
     "category": "function",
-    "text": "∇(f; get_output::Bool=false)\n\nReturns a function which, when evaluated with arguments that are accepted by f, will return the gradient w.r.t. each of the arguments.\n\n\n\n"
+    "text": "∇(f; get_output::Bool=false)\n\nReturns a function which, when evaluated with arguments that are accepted by f, will return the gradient w.r.t. each of the arguments.\n\n\n\n\n\n"
 },
 
 {
-    "location": "pages/api.html#Nabla.∇-Tuple{Nabla.Node,Any}",
+    "location": "pages/api.html#Nabla.∇-Tuple{Node,Any}",
     "page": "API",
     "title": "Nabla.∇",
     "category": "method",
-    "text": "∇(y::Node{<:∇Scalar})\n∇(y::Node{T}, ȳ::T) where T\n\nReturn a Tape object which can be indexed using Nodes, each element of which contains the result of multiplying ȳ by the transpose of the Jacobian of the function specified by the Tape object in y. If y is a scalar and ȳ = 1 then this is equivalent to computing the gradient of y w.r.t. each of the elements in the Tape.\n\n∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)\n∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)\n\nTo implement a new reverse-mode sensitivity for the N^{th} argument of function f. p is the output of preprocess. x1, x2,... are the inputs to the function, y is its output and ȳ the reverse-mode sensitivity of y.\n\n\n\n"
+    "text": "∇(y::Node{<:∇Scalar})\n∇(y::Node{T}, ȳ::T) where T\n\nReturn a Tape object which can be indexed using Nodes, each element of which contains the result of multiplying ȳ by the transpose of the Jacobian of the function specified by the Tape object in y. If y is a scalar and ȳ = 1 then this is equivalent to computing the gradient of y w.r.t. each of the elements in the Tape.\n\n∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)\n∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)\n\nTo implement a new reverse-mode sensitivity for the N^{th} argument of function f. p is the output of preprocess. x1, x2,... are the inputs to the function, y is its output and ȳ the reverse-mode sensitivity of y.\n\n\n\n\n\n"
 },
 
 {
-    "location": "pages/api.html#Nabla.@explicit_intercepts-Tuple{Union{Expr, Symbol},Expr,Expr}",
+    "location": "pages/api.html#Nabla.@explicit_intercepts",
     "page": "API",
     "title": "Nabla.@explicit_intercepts",
     "category": "macro",
-    "text": "@explicit_intercepts(f::Symbol, type_tuple::Expr, is_node::Expr)\n@explicit_intercepts(f::Symbol, type_tuple::Expr)\n\nCreate a collection of methods which intecept the function calls to f in which at least one argument is a Node. Types of arguments are specified by the type tuple expression in type_tuple. If there are arguments which are not differentiable, they can be specified by providing a boolean vector is_node which indicates those arguments that are differentiable with true values and those which are not as false.\n\n\n\n"
+    "text": "@explicit_intercepts(f::Symbol, type_tuple::Expr, is_node::Expr[, kwargs::Expr])\n@explicit_intercepts(f::Symbol, type_tuple::Expr)\n\nCreate a collection of methods which intecept the function calls to f in which at least one argument is a Node. Types of arguments are specified by the type tuple expression in type_tuple. If there are arguments which are not differentiable, they can be specified by providing a boolean vector is_node which indicates those arguments that are differentiable with true values and those which are not as false. Keyword arguments to add to the function signature can be specified in kwargs, which must be a NamedTuple.\n\n\n\n\n\n"
 },
 
 {
-    "location": "pages/api.html#Nabla.@union_intercepts-Tuple{Symbol,Expr,Expr}",
+    "location": "pages/api.html#Nabla.@union_intercepts",
     "page": "API",
     "title": "Nabla.@union_intercepts",
     "category": "macro",
-    "text": "@union_intercepts f type_tuple invoke_type_tuple\n\nInterception strategy based on adding a method to f which accepts the union of each of the types specified by type_tuple. If none of the arguments are Nodes then the method of f specified by invoke_type_tuple is invoked.\n\n\n\n"
+    "text": "@union_intercepts f type_tuple invoke_type_tuple [kwargs]\n\nInterception strategy based on adding a method to f which accepts the union of each of the types specified by type_tuple. If none of the arguments are Nodes then the method of f specified by invoke_type_tuple is invoked. If applicable, keyword arguments should be provided as a NamedTuple and be added to the generated function\'s signature.\n\n\n\n\n\n"
 },
 
 {
@@ -173,7 +173,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.@unionise",
     "category": "macro",
-    "text": "@unionise code\n\nTransform code such that each function definition accepts Node objects as arguments, without effecting dispatch in other ways.\n\n\n\n"
+    "text": "@unionise code\n\nTransform code such that each function definition accepts Node objects as arguments, without effecting dispatch in other ways.\n\n\n\n\n\n"
 },
 
 {
