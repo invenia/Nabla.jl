@@ -11,10 +11,10 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
 julia = "0.7, 1.0"
-DiffRules = "0.0.1"
+DiffRules = "0.0"
 DualNumbers = "0.6.0"
-FDM = "0.1.0"
-SpecialFunctions = "0.3.0"
+FDM = "0.1.0, 0.2.0"
+SpecialFunctions = ">=0.5.0"
 
 [extras]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
