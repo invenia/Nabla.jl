@@ -1,12 +1,31 @@
-function get_union_call(foo::Symbol, type_tuple::Expr)
+function add_kwargs!(ex::Expr; kwargs...)
+    ex.head === :call || throw(ArgumentError("expression is not a function call"))
+    isempty(ex.args) && throw(ArgumentError("expression body is empty"))
+    if !isempty(kwargs)
+        params = Expr(:parameters)
+        for (name, value) in kwargs
+            push!(params.args, Expr(:kw, name, value))
+        end
+        # Parameters need to come after the function name and before positional arguments
+        if length(ex.args) == 1
+            push!(ex.args, params)
+        else
+            insert!(ex.args, 2, params)
+        end
+    end
+    ex
+end
 
+function get_union_call(foo::Symbol, type_tuple::Expr; kwargs...)
     # Get types from tuple and create a collection of symbols for use in the call.
     types = get_types(get_body(type_tuple))
     arg_names = [Symbol("x$j") for j in 1:length(types)]
 
     # Generate the call.
-    typed_args = [:($name::$typ) for (name, typ) in zip(arg_names, unionise_type.(types))]
-    return replace_body(type_tuple, Expr(:call, foo, typed_args...)), arg_names
+    typed_args = map((name, typ)->:($name::$(unionise_type(typ))), arg_names, types)
+    call = add_kwargs!(Expr(:call, foo, typed_args...); kwargs...)
+
+    return replace_body(type_tuple, call), arg_names
 end
 
 """

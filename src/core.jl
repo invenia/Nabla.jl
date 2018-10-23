@@ -74,9 +74,9 @@ struct Branch{T} <: Node{T}
     tape::Tape
     pos::Int
 end
-function Branch(f, args::Tuple, tape::Tape)
+function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...), f, args, tape, length(tape) + 1)
+    branch = Branch(f(unboxed...; kwargs...), f, args, tape, length(tape) + 1)
     push!(tape, branch)
     return branch
 end

@@ -1,11 +1,11 @@
 # Intercepts for `mapreduce`, `mapfoldl` and `mapfoldr` under `op` `+`.
 const plustype = Union{typeof(+), typeof(Base.add_sum)}
 const type_tuple = :(Tuple{Any, $plustype, ∇ArrayOrScalar})
-for f in (:mapreduce, :mapfoldl, :mapfoldr)
+for f in (:mapfoldl, :mapfoldr)
     @eval begin
         import Base: $f
-        @explicit_intercepts $f $type_tuple [false, false, true]
-        ∇(::typeof($f), ::Type{Arg{3}}, p, y, ȳ, f, ::$plustype, A::∇ArrayOrScalar) =
+        @explicit_intercepts $f $type_tuple [false, false, true] (init=nothing,)
+        ∇(::typeof($f), ::Type{Arg{3}}, p, y, ȳ, f, ::$plustype, A::∇ArrayOrScalar; init=nothing) =
             hasmethod(∇, Tuple{typeof(f), Type{Arg{1}}, Real}) ?
                 broadcast(An->ȳ * ∇(f, Arg{1}, An), A) :
                 broadcast(An->ȳ * fmad(f, (An,), Val{1}), A)

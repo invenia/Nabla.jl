@@ -21,7 +21,7 @@ end
     @testset "Functional" begin
         include("sensitivities/functional/functional.jl")
         include("sensitivities/functional/reduce.jl")
-        #include("sensitivities/functional/reducedim.jl")
+        include("sensitivities/functional/reducedim.jl")
     end
 
     # Test sensitivities for linear algebra optimisations.

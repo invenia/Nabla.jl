@@ -2,30 +2,30 @@
     let rng = MersenneTwister(123456)
         # mapreducedim on a single-dimensional array should be consistent with mapreduce.
         x = Leaf(Tape(), [1.0, 2.0, 3.0, 4.0, 5.0])
-        s = 5.0 * mapreducedim(abs2, +, x, 1)[1]
+        s = 5.0 * mapreduce(abs2, +, x, dims=1)
         @test ∇(s)[x] ≈ 5.0 * [2.0, 4.0, 6.0, 8.0, 10.0]
 
-        # mapreducedim on a two-dimensional array when reduced over a single dimension
+        # mapreduce on a two-dimensional array when reduced over a single dimension
         # should give different results to mapreduce over the same array.
         x2_ = reshape([1.0, 2.0, 3.0, 4.0,], (2, 2))
         x2 = Leaf(Tape(), x2_)
-        s = mapreducedim(abs2, +, x2, 1)
+        s = mapreduce(abs2, +, x2, dims=1)
         @test ∇(s, ones(eltype(s.val), size(s.val)))[x2] ≈ 2.0 * x2_
 
         # mapreducedim under `exp` should trigger the first conditional in the ∇ impl.
         x3_ = randn(rng, 5, 4)
         x3 = Leaf(Tape(), x3_)
-        s = mapreducedim(exp, +, x3, 1)
+        s = mapreduce(exp, +, x3, dims=1)
         @test ∇(s, ones(eltype(s.val), size(s.val)))[x3] == exp.(x3_)
 
         # mapreducedim under an anonymous-function should trigger fmad.
         x4_ = randn(rng, 5, 4)
         x4 = Leaf(Tape(), x4_)
-        s = mapreducedim(x->x*x, +, x4, 2)
+        s = mapreduce(x->x*x, +, x4, dims=2)
         @test ∇(s, ones(eltype(s.val), size(s.val)))[x4] == 2x4_
 
         # Check that `sum` works correctly with `Node`s.
         x_sum = Leaf(Tape(), randn(rng, 5, 4, 3))
-        @test sum(x_sum, [2, 3]).val == mapreducedim(identity, +, x_sum, [2, 3]).val
+        @test sum(x_sum, dims=[2, 3]).val == mapreduce(identity, +, x_sum, dims=[2, 3]).val
     end
 end
