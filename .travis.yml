@@ -22,7 +22,7 @@ after_success:
   - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
 jobs:
   include:
-    - state: "Documentation"
+    - stage: "Documentation"
       julia: 1.0
       os: linux
       script:
