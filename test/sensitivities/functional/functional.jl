@@ -1,11 +1,6 @@
 using SpecialFunctions
 using DiffRules: diffrule, hasdiffrule
 
-# ones(::AbstractArray) is deprecated in 0.7 and removed in 1.0, but it's a pretty useful
-# method, so we'll define our own for testing purposes
-oneslike(a::AbstractArray) = ones(eltype(a), size(a))
-oneslike(n::Integer) = ones(n)
-
 @testset "Functional" begin
     # Apparently Distributions.jl doesn't implement the following, so we'll have to do it.
     Random.rand(rng::AbstractRNG, a::Distribution, n::Integer) =

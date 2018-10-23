@@ -11,7 +11,7 @@ function ∇(
     ȳ::∇AbstractVector,
     x::∇AbstractMatrix,
 )
-    x̄ = zeros(eltype(x), size(x))
+    x̄ = zeroslike(x)
     x̄[diagind(x̄)] = ȳ
     return x̄
 end
@@ -39,7 +39,7 @@ function ∇(
     x::∇AbstractMatrix,
     k::Integer,
 )
-    x̄ = zeros(eltype(x), size(x))
+    x̄ = zeroslike(x)
     x̄[diagind(x̄, k)] = ȳ
     return x̄
 end
@@ -90,7 +90,7 @@ function ∇(
     Ȳ::∇ScalarDiag,
     X::∇AbstractMatrix,
 )
-    X̄ = zeros(eltype(X), size(X))
+    X̄ = zeroslike(X)
     copyto!(view(X̄, diagind(X)), Ȳ.diag)
     return X̄
 end

@@ -17,13 +17,13 @@ const SA = StridedArray
     [false, true, false, true, false],
 )
 ∇(::typeof(dot), ::Type{Arg{2}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    scal!(n, z̄, blascopy!(n, y, iy, zeros(eltype(x), size(x)), ix), ix)
+    scal!(n, z̄, blascopy!(n, y, iy, zeroslike(x), ix), ix)
 ∇(::typeof(dot), ::Type{Arg{4}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    scal!(n, z̄, blascopy!(n, x, ix, zeros(eltype(y), size(y)), iy), iy)
+    scal!(n, z̄, blascopy!(n, x, ix, zeroslike(y), iy), iy)
 ∇(x̄, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    (x̄ .= x̄ .+ scal!(n, z̄, blascopy!(n, y, iy, zeros(eltype(x), size(x)), ix), ix))
+    (x̄ .= x̄ .+ scal!(n, z̄, blascopy!(n, y, iy, zeroslike(x), ix), ix))
 ∇(ȳ, ::typeof(dot), ::Type{Arg{4}}, p, z, z̄, n::Int, x::SA, ix::Int, y::SA, iy::Int) =
-    (ȳ .= ȳ .+ scal!(n, z̄, blascopy!(n, x, ix, zeros(eltype(y), size(y)), iy), iy))
+    (ȳ .= ȳ .+ scal!(n, z̄, blascopy!(n, x, ix, zeroslike(y), iy), iy))
 
 # Short-form `nrm2`.
 @explicit_intercepts nrm2 Tuple{Union{StridedVector, Array}}
@@ -37,9 +37,9 @@ const SA = StridedArray
     [false, true, false],
 )
 ∇(::typeof(nrm2), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    scal!(n, ȳ / y, blascopy!(n, x, inc, zeros(eltype(x), size(x)), inc), inc)
+    scal!(n, ȳ / y, blascopy!(n, x, inc, zeroslike(x), inc), inc)
 ∇(x̄, ::typeof(nrm2), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    (x̄ .= x̄ .+ scal!(n, ȳ / y, blascopy!(n, x, inc, zeros(eltype(x), size(x)), inc), inc))
+    (x̄ .= x̄ .+ scal!(n, ȳ / y, blascopy!(n, x, inc, zeroslike(x), inc), inc))
 
 # Short-form `asum`.
 @explicit_intercepts asum Tuple{Union{StridedVector, Array}}
@@ -53,9 +53,9 @@ const SA = StridedArray
     [false, true, false],
 )
 ∇(::typeof(asum), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeros(eltype(x), size(x)), inc), inc)
+    scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeroslike(x), inc), inc)
 ∇(x̄, ::typeof(asum), ::Type{Arg{2}}, p, y, ȳ, n::Integer, x, inc::Integer) =
-    (x̄ .= x̄ .+ scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeros(eltype(x), size(x)), inc), inc))
+    (x̄ .= x̄ .+ scal!(n, ȳ, blascopy!(n, sign.(x), inc, zeroslike(x), inc), inc))
 
 
 # Some weird stuff going on that I haven't figured out yet.

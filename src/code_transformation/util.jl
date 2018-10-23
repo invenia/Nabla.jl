@@ -22,7 +22,7 @@ function get_union_call(foo::Symbol, type_tuple::Expr; kwargs...)
     arg_names = [Symbol("x$j") for j in 1:length(types)]
 
     # Generate the call.
-    typed_args = map((name, typ)->:($name::$(unionise_type(typ))), arg_names, types)
+    typed_args = map((name, typ) -> :($name::$(unionise_type(typ))), arg_names, types)
     call = add_kwargs!(Expr(:call, foo, typed_args...); kwargs...)
 
     return replace_body(type_tuple, call), arg_names

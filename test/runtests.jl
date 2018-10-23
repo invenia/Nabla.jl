@@ -2,6 +2,8 @@ using Nabla
 using Test, LinearAlgebra, Random
 using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
 
+using Nabla: oneslike, zeroslike
+
 @testset "Core" begin
     include("core.jl")
     include("code_transformation/util.jl")

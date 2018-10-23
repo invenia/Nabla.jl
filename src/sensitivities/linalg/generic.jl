@@ -17,8 +17,10 @@ for (f, T_In, T_Out, X̄, bounds) in unary_linalg_optimisations
     else
         @eval import LinearAlgebra: $f
     end
-    @eval @explicit_intercepts $f Tuple{$T_In}
-    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Out, Ȳ::$T_Out, X::$T_In) = $X̄
+    @eval begin
+        @explicit_intercepts $f Tuple{$T_In}
+        ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Out, Ȳ::$T_Out, X::$T_In) = $X̄
+    end
 end
 
 # Implementation of sensitivities for binary linalg optimisations.
@@ -115,9 +117,9 @@ import LinearAlgebra: kron
 
 # The allocating versions simply allocate and then call the in-place versions.
 ∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A) =
-    ∇(zeros(eltype(A), size(A)), kron, Arg{1}, p, Y, Ȳ, A, B)
+    ∇(zeroslike(A), kron, Arg{1}, p, Y, Ȳ, A, B)
 ∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A) =
-    ∇(zeros(eltype(B), size(B)), kron, Arg{2}, p, Y, Ȳ, A, B)
+    ∇(zeroslike(B), kron, Arg{2}, p, Y, Ȳ, A, B)
 
 function ∇(Ā::A, ::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
     (I, J), (K, L), m = size(A), size(B), length(Y)

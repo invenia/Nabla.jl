@@ -35,9 +35,9 @@ Base.BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S} =
 Broadcast.broadcast_axes(x::Node) = broadcast_axes(x.val)
 Broadcast.broadcastable(x::Node) = x
 
-function Base.copy(bc::Broadcasted{NodeStyle{S}}) where S
+function Base.copy(bc::Broadcasted{<:NodeStyle})
     args = bc.args
-    tape = getfield(args[findfirst(x->x isa Node, args)], :tape)
+    tape = getfield(args[findfirst(x -> x isa Node, args)], :tape)
     return Branch(broadcast, (bc.f, args...), tape)
 end
 

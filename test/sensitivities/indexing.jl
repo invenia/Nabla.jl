@@ -10,6 +10,6 @@
         x = Leaf(Tape(), 10 * [1, 1, 1])
         y = x[2:3]
         @test y.val == [10, 10]
-        @test ∇(y, ones(eltype(y.val), size(y.val)))[x] == [0, 1, 1]
+        @test ∇(y, oneslike(y.val))[x] == [0, 1, 1]
     end
 end
