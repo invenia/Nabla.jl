@@ -6,7 +6,7 @@ for i = 1:7
 end
 
 function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
-    Ā[inds...] .+= ȳ
+    Ā[inds...] += ȳ
     return Ā
 end
 function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y::AbstractArray, ȳ::AbstractArray, A, inds...)

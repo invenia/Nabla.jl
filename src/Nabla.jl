@@ -2,6 +2,9 @@ __precompile__()
 
 module Nabla
 
+    using SpecialFunctions
+    using LinearAlgebra
+
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
     const ∇Scalar = Number
@@ -11,6 +14,15 @@ module Nabla
     const ∇ArrayOrScalar = Union{AbstractArray{<:∇Scalar}, ∇Scalar}
     const SymOrExpr = Union{Symbol, Expr}
 
+    # ones/zeros(::AbstractArray) is deprecated in 0.7 and removed in 1.0, but it's a
+    # pretty useful method, so we'll define our own for internal use
+    for f in (:ones, :zeros)
+        like = Symbol(f, "like")
+        @eval begin
+            $(like)(a::AbstractArray) = $(f)(eltype(a), size(a))
+            $(like)(n::Integer) = $(f)(n)
+        end
+    end
 
     # Meta-programming utilities specific to Nabla.
     include("code_transformation/util.jl")

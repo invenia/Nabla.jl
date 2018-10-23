@@ -1,5 +1,4 @@
-import Base: det, logdet, diagm, Diagonal, diag
-export diag, diagm, Diagonal
+import LinearAlgebra: det, logdet, diagm, Diagonal, diag
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
 
@@ -12,7 +11,7 @@ function ∇(
     ȳ::∇AbstractVector,
     x::∇AbstractMatrix,
 )
-    x̄ = zeros(x)
+    x̄ = zeroslike(x)
     x̄[diagind(x̄)] = ȳ
     return x̄
 end
@@ -40,7 +39,7 @@ function ∇(
     x::∇AbstractMatrix,
     k::Integer,
 )
-    x̄ = zeros(x)
+    x̄ = zeroslike(x)
     x̄[diagind(x̄, k)] = ȳ
     return x̄
 end
@@ -59,67 +58,6 @@ function ∇(
     return x̄
 end
 
-@explicit_intercepts diagm Tuple{∇AbstractVector}
-function ∇(
-    ::typeof(diagm),
-    ::Type{Arg{1}},
-    p,
-    Y::∇AbstractMatrix,
-    Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector,
-)
-    return copy!(similar(x), view(Ȳ, diagind(Ȳ)))
-end
-function ∇(
-    x̄::∇AbstractVector,
-    ::typeof(diagm),
-    ::Type{Arg{1}},
-    p,
-    Y::∇AbstractMatrix,
-    Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector,
-)
-    return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ)))
-end
-
-@explicit_intercepts diagm Tuple{∇AbstractVector, Integer} [true, false]
-function ∇(
-    ::typeof(diagm),
-    ::Type{Arg{1}},
-    p,
-    Y::∇AbstractMatrix,
-    Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector,
-    k::Integer,
-)
-    return copy!(similar(x), view(Ȳ, diagind(Ȳ, k)))
-end
-function ∇(
-    x̄::∇AbstractVector,
-    ::typeof(diagm),
-    ::Type{Arg{1}},
-    p,
-    Y::∇AbstractMatrix,
-    Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector,
-    k::Integer,
-)
-    return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ, k)))
-end
-
-@explicit_intercepts diagm Tuple{∇Scalar}
-function ∇(
-    ::typeof(diagm),
-    ::Type{Arg{1}},
-    p,
-    Y::∇AbstractMatrix,
-    Ȳ::∇AbstractMatrix,
-    x::∇Scalar,
-)
-    length(Ȳ) != 1 && throw(error("Ȳ isn't a 1x1 matrix."))
-    return Ȳ[1]
-end
-
 @explicit_intercepts Diagonal Tuple{∇AbstractVector}
 function ∇(
     ::Type{Diagonal},
@@ -129,7 +67,7 @@ function ∇(
     Ȳ::∇ScalarDiag,
     x::∇AbstractVector,
 )
-    return copy!(similar(x), Ȳ.diag)
+    return copyto!(similar(x), Ȳ.diag)
 end
 function ∇(
     x̄::∇AbstractVector,
@@ -152,8 +90,8 @@ function ∇(
     Ȳ::∇ScalarDiag,
     X::∇AbstractMatrix,
 )
-    X̄ = zeros(X)
-    copy!(view(X̄, diagind(X)), Ȳ.diag)
+    X̄ = zeroslike(X)
+    copyto!(view(X̄, diagind(X)), Ȳ.diag)
     return X̄
 end
 function ∇(
@@ -200,4 +138,62 @@ function ∇(
 )
     broadcast!((x̄, x, ȳ)->x̄ + ȳ / x, X̄.diag, X̄.diag, X.diag, ȳ)
     return X̄
+end
+
+# NOTE: diagm can't go through the @explicit_intercepts machinery directly because as of
+# Julia 0.7, its methods are not sufficiently straightforward; we need to dispatch on one
+# of the parameters in the parametric type of diagm's one argument. However, we can cheat
+# a little bit and use an internal helper function _diagm that has simple methods that
+# dispatch to diagm when no arguments are Nodes, and we'll extend diagm to dispatch to
+# _diagm when it receives arguments that are nodes. _diagm can go through the intercepts
+# machinery, so it knows how to deal.
+
+_diagm(x::∇AbstractVector, k::Integer=0) = diagm(k => x)
+LinearAlgebra.diagm(x::Pair{<:Integer, <:Node{<:∇AbstractVector}}) = _diagm(last(x), first(x))
+
+@explicit_intercepts _diagm Tuple{∇AbstractVector}
+function ∇(
+    ::typeof(_diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+)
+    return copyto!(similar(x), view(Ȳ, diagind(Ȳ)))
+end
+function ∇(
+    x̄::∇AbstractVector,
+    ::typeof(_diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+)
+    return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ)))
+end
+@explicit_intercepts _diagm Tuple{∇AbstractVector, Integer} [true, false]
+function ∇(
+    ::typeof(_diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+    k::Integer,
+)
+    return copyto!(similar(x), view(Ȳ, diagind(Ȳ, k)))
+end
+function ∇(
+    x̄::∇AbstractVector,
+    ::typeof(_diagm),
+    ::Type{Arg{1}},
+    p,
+    Y::∇AbstractMatrix,
+    Ȳ::∇AbstractMatrix,
+    x::∇AbstractVector,
+    k::Integer,
+)
+    return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ, k)))
 end

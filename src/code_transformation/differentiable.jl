@@ -12,7 +12,7 @@ unionise_arg(arg::Expr) =
         Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
         arg.head == Symbol("...") ?
             Expr(Symbol("..."), unionise_arg(arg.args[1])) :
-            throw(error("Unrecognised argument in Symbol ($arg)."))
+            throw(ArgumentError("Unrecognised argument in Symbol ($arg)."))
 
 """
     unionise_subtype(arg::Union{Symbol, Expr})
@@ -23,7 +23,7 @@ unionise_subtype(arg::Symbol) = arg
 unionise_subtype(arg::Expr) =
     arg.head == Symbol("<:") ?
         Expr(Symbol("<:"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
-        throw(error("Unrecognised argument in arg ($arg)."))
+        throw(ArgumentError("Unrecognised argument in arg ($arg)."))
 
 """
     get_quote_body(code)
@@ -42,7 +42,7 @@ Unionise the code inside a call to `eval`, such that when the `eval` call actual
 the code inside will be unionised.
 """
 function unionise_eval(code::Expr)
-    body = Expr(:macrocall, Symbol("@unionise"), deepcopy(get_quote_body(code.args[end])))
+    body = Expr(:macrocall, Symbol("@unionise"), nothing, deepcopy(get_quote_body(code.args[end])))
     return length(code.args) == 3 ?
         Expr(:call, :eval, deepcopy(code.args[2]), quot(body)) :
         Expr(:call, :eval, quot(body))
@@ -55,10 +55,10 @@ Unionise the code in a call to @eval, such that when the `eval` call actually oc
 code inside will be unionised.
 """
 function unionise_macro_eval(code::Expr)
-    body = Expr(:macrocall, Symbol("@unionise"), deepcopy(code.args[end]))
-    return length(code.args) == 3 ?
-        Expr(:macrocall, Symbol("@eval"), deepcopy(code.args[2]), body) :
-        Expr(:macrocall, Symbol("@eval"), body)
+    body = Expr(:macrocall, Symbol("@unionise"), nothing, deepcopy(code.args[end]))
+    return length(code.args) == 4 ?
+        Expr(:macrocall, Symbol("@eval"), nothing, deepcopy(code.args[3]), body) :
+        Expr(:macrocall, Symbol("@eval"), nothing, body)
 end
 
 """
@@ -95,13 +95,13 @@ function unionise_struct(code::Expr)
         curly = Expr(:curly, name.args[1], unionise_subtype.(name.args[2:end])...)
         if is_subtype_expr
             return Expr(
-                :type,
+                :struct,
                 code.args[1],
                 Expr(Symbol("<:"), curly, tmp.args[2]),
                 code.args[3],
             )
         else
-            return Expr(:type, code.args[1], curly, code.args[3])
+            return Expr(:struct, code.args[1], curly, code.args[3])
         end
     else
         return code
@@ -131,7 +131,7 @@ function unionise(code::Expr)
         return unionise_eval(code)
     elseif code.head == :macrocall && code.args[1] == Symbol("@eval")
         return unionise_macro_eval(code)
-    elseif code.head == :type
+    elseif code.head == :struct
         return unionise_struct(code)
     else
         return Expr(code.head, [unionise(arg) for arg in code.args]...)

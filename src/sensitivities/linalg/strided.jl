@@ -2,32 +2,34 @@
 # BLAS for matrix-vector stuff yet. Definitely an optimisation that we might want to
 # consider at some point in the future though.
 const RS = StridedMatrix{<:∇Scalar}
+const RST = Transpose{<:∇Scalar, RS}
+const RSA = Adjoint{<:∇Scalar, RS}
 strided_matmul = [
-    (:*,         'N', 'C', :Ȳ, :B, 'C', 'N', :A, :Ȳ),
-    (:At_mul_B,  'N', 'T', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
-    (:A_mul_Bt,  'N', 'N', :Ȳ, :B, 'T', 'N', :Ȳ, :A),
-    (:At_mul_Bt, 'T', 'T', :B, :Ȳ, 'T', 'T', :Ȳ, :A),
-    (:Ac_mul_B,  'N', 'C', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
-    (:A_mul_Bc,  'N', 'N', :Ȳ, :B, 'C', 'N', :Ȳ, :A),
-    (:Ac_mul_Bc, 'C', 'C', :B, :Ȳ, 'C', 'C', :Ȳ, :A),
+    (RS,  RS,  'N', 'C', :Ȳ, :B, 'C', 'N', :A, :Ȳ),
+    (RST, RS,  'N', 'T', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
+    (RS,  RST, 'N', 'N', :Ȳ, :B, 'T', 'N', :Ȳ, :A),
+    (RST, RST, 'T', 'T', :B, :Ȳ, 'T', 'T', :Ȳ, :A),
+    (RSA, RS,  'N', 'C', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
+    (RS,  RSA, 'N', 'N', :Ȳ, :B, 'C', 'N', :Ȳ, :A),
+    (RSA, RSA, 'C', 'C', :B, :Ȳ, 'C', 'C', :Ȳ, :A),
 ]
-for (f, tCA, tDA, CA, DA, tCB, tDB, CB, DB) in strided_matmul
+import Base: *
+for (TA, TB, tCA, tDA, CA, DA, tCB, tDB, CB, DB) in strided_matmul
 
     # Add intercepts and export names.
-    @eval import Base.$f
-    @eval @explicit_intercepts $f Tuple{RS, RS}
+    @eval @explicit_intercepts $(Symbol("*")) Tuple{$TA, $TB}
 
     # Define allocating and non-allocating sensitivities for each output.
-    alloc_Ā = :(Base.BLAS.gemm($tCA, $tDA, $CA, $DA))
-    alloc_B̄ = :(Base.BLAS.gemm($tCB, $tDB, $CB, $DB))
-    no_alloc_Ā = :(Base.BLAS.gemm!($tCA, $tDA, 1., $CA, $DA, 1., Ā))
-    no_alloc_B̄ = :(Base.BLAS.gemm!($tCB, $tDB, 1., $CB, $DB, 1., B̄))
+    alloc_Ā = :(LinearAlgebra.BLAS.gemm($tCA, $tDA, $CA, $DA))
+    alloc_B̄ = :(LinearAlgebra.BLAS.gemm($tCB, $tDB, $CB, $DB))
+    no_alloc_Ā = :(LinearAlgebra.BLAS.gemm!($tCA, $tDA, 1., $CA, $DA, 1., Ā))
+    no_alloc_B̄ = :(LinearAlgebra.BLAS.gemm!($tCB, $tDB, 1., $CB, $DB, 1., B̄))
 
     # Add sensitivity definitions.
-    @eval ∇(::typeof($f), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $alloc_Ā
-    @eval ∇(::typeof($f), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $alloc_B̄
-    @eval ∇(Ā, ::typeof($f), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $no_alloc_Ā
-    @eval ∇(B̄, ::typeof($f), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::RS, B::RS) = $no_alloc_B̄
+    @eval ∇(::typeof(*), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $alloc_Ā
+    @eval ∇(::typeof(*), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $alloc_B̄
+    @eval ∇(Ā, ::typeof(*), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $no_alloc_Ā
+    @eval ∇(B̄, ::typeof(*), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $no_alloc_B̄
 end
 
 # # Not every permutation of transpositions makes sense for matrix-vector multiplication. This
@@ -38,7 +40,7 @@ end
 #     (:Ac_mul_B,  'C', :b, :ȳ, 'N'),
 # ]
 # for (f, tdA, CA, dA, tCb) in strided_matvecmul
-#     n_Ā, u_Ā = tdA == 'C' ? :(Ā = $CA * $dA') : :(Ā = $CA * $dA.'), :(ger!(1., $CA, $dA, Ā))
+#     n_Ā, u_Ā = tdA == 'C' ? :(Ā = $CA * $dA') : :(Ā = $CA * $dA'), :(ger!(1., $CA, $dA, Ā))
 #     n_b̄, u_b̄ = :(b̄ = gemv($tCb, A, ȳ)), :(b̄ = gemv!($tCb, 1., A, ȳ, 1., b̄))
 #     generate_primitive(f, [:(T <: StridedMatrix), :(V <: StridedVector)],
 #         [:A, :b], [:Ā, :b̄], [:T, :V], [true, true], :y, :ȳ, [n_Ā, n_b̄], [u_Ā, u_b̄])

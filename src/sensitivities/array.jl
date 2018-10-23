@@ -21,7 +21,8 @@ function Nabla.∇(
 ) where i
     l = sum([size(A[j], 2) for j in 1:(i - 1)])
     u = l + size(A[i], 2)
-    return u > l + 1 ? slicedim(ȳ, 2, (l+1):u) : slicedim(ȳ, 2, u)
+    # Using copy materializes the views returned by selectdim
+    return copy(u > l + 1 ? selectdim(ȳ, 2, (l+1):u) : selectdim(ȳ, 2, u))
 end
 
 @union_intercepts vcat Tuple{Vararg{∇Array}} Tuple{Vararg{AbstractArray}}
@@ -35,5 +36,5 @@ function Nabla.∇(
 ) where i
     l = sum([size(A[j], 1) for j in 1:(i - 1)])
     u = l + size(A[i], 1)
-    return slicedim(ȳ, 1, (l+1):u)
+    return copy(selectdim(ȳ, 1, (l+1):u))
 end

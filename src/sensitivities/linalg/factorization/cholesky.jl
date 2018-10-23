@@ -1,5 +1,13 @@
-import Base.LinAlg.BLAS: gemv, gemv!, gemm!, trsm!, axpy!, ger!
-import Base.LinAlg.chol
+import LinearAlgebra.BLAS: gemv, gemv!, gemm!, trsm!, axpy!, ger!
+
+# NOTE: Cholesky factorizations pose a significant issue for us as of Julia 0.7, since
+# the simple function chol, which produced the U in the factorization U'U, has been
+# deprecated in favor of accessing the .U field of a Cholesky object produced by cholesky.
+# This does not lend itself well to tracing. To get around this, we'll define our own
+# chol that users of Nabla can use to obtain the Julia 0.6 behavior.
+# See issue #105 for discussion.
+export chol
+chol(X::AbstractMatrix{<:Real}) = cholesky(X).U
 
 #=
 See [1] for implementation details: pages 5-9 in particular. The derivations presented in
@@ -14,7 +22,7 @@ const AM = AbstractMatrix
 const UT = UpperTriangular
 @explicit_intercepts chol Tuple{AbstractMatrix{<:∇Scalar}}
 ∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::AM{T}, Σ::AM{T}) where T<:∇Scalar =
-    chol_blocked_rev(full(Ū), full(U), 25, true)
+    chol_blocked_rev(Matrix(Ū), Matrix(U), 25, true)
 
 """
     level2partition(A::AbstractMatrix, j::Int, upper::Bool)
@@ -139,7 +147,7 @@ function chol_blocked_rev!(Σ̄::AM{T}, L::AM{T}, Nb::Int, upper::Bool) where T<
     M, N = size(Σ̄)
     M != N && throw(ArgumentError("Σ̄ is not square."))
 
-    tmp = Matrix{T}(Nb, Nb)
+    tmp = Matrix{T}(undef, Nb, Nb)
 
     # Compute the reverse-mode diff.
     k = N

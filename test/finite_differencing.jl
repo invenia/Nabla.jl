@@ -13,8 +13,8 @@ import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
     @explicit_intercepts foo Tuple{Matrix{<:∇Scalar}, Matrix{<:∇Scalar}}
 
     # Define sensitivity implementations.
-    const _Vec = Vector{<:∇Scalar}
-    const _Mat = Matrix{<:∇Scalar}
+    _Vec = Vector{<:∇Scalar}
+    _Mat = Matrix{<:∇Scalar}
     Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar) = 5z̄
     Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = 5z̄
     Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, z, z̄, x::_Vec, y::_Vec) = 10z̄

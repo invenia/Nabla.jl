@@ -1,5 +1,8 @@
-using Base.Test, Nabla
-using Distributions, BenchmarkTools
+using Nabla
+using Test, LinearAlgebra, Random
+using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
+
+using Nabla: oneslike, zeroslike
 
 @testset "Core" begin
     include("core.jl")
