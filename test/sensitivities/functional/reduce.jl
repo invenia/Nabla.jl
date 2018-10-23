@@ -53,7 +53,7 @@
                 x_ = Leaf(Tape(), x)
                 s = functional(+, x_)
                 @test s.val == functional(+, x)
-                @test ∇(s)[x_] ≈ ones(Float64, 100)
+                @test ∇(s)[x_] ≈ oneslike(100)
             end
         end
 
