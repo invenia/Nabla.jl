@@ -26,7 +26,9 @@
             end
             A, B, VA, VB = trandn.(Ref(rng), (∇Array, ∇Array, ∇Array, ∇Array))
             @test check_errs(kron, kron(A, B), (A, B), (VA, VB))
+        end
 
+        for _ in 1:5
             A, VA, tI = randn(rng, 5, 5), randn(rng, 5, 5), 0.65 * I
             @test check_errs(X->X + tI, VA, A, 1e-1 * randn(rng, 5, 5))
             @test check_errs(X->tI + X, VA, A, 1e-1 * randn(rng, 5, 5))
