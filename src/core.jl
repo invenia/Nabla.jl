@@ -1,210 +1,144 @@
-using DualNumbers
+using Cassette, BenchmarkTools
+using Cassette: @context, tag, untag, enabletagging, overdub, OverdubInstead, istaggedtype,
+    metadata, untagtype, Tagged
+import Cassette: execute
 
-import Base: push!, length, show, getindex, setindex!, eachindex, isassigned,
-             isapprox, zero, one, lastindex
+import Base: push!
 
-export Leaf, Tape, Node, Branch, ∇
+"""
+    Op{Targs, Tkwargs, Tf, Tvalue}
 
-""" Basic unit on the computational graph."""
-abstract type Node{T} end
-
-""" A topologically ordered collection of Nodes. """
-struct Tape
-    tape::Vector{Any}
-    Tape() = new(Vector{Any}())
-    Tape(N::Int) = new(Vector{Any}(undef, N))
+The totality of a call to a (pure) primtive function `f` at `args` and `kwargs`,
+producing `value`.
+"""
+struct Op{Targs, Tkwargs, Tf, Tvalue}
+    args::Targs
+    kwargs::Tkwargs
+    f::Tf
+    value::Tvalue
+    function Op(f::Tf, args...; kwargs...) where Tf
+        value = f(args...; kwargs...)
+        return new{typeof(args), typeof(kwargs), Tf, typeof(value)}(args, kwargs, f, value)
+    end
 end
-function show(io::IO, tape::Tape)
-    if length(tape) == 0
-        println(io, "Empty tape.")
+
+"""
+    Tape
+
+Used to keep track of operations that happen in a function call in a dynamic manner.
+"""
+const Tape = Vector{Tuple{Any, Tuple{Vararg{Int}}}}
+
+# Fallback definition is false.
+is_atom(args...) = false
+
+# Execution context for ∇.jl (with a default dynamic tape).
+@context ∇Ctx
+const ∇Tagged{T} = Tagged{<:∇Ctx, T}
+Cassette.metadatatype(::Type{<:∇Ctx}, ::Type{<:Any}) = Int
+Cassette.metadatatype(::Type{<:∇Ctx}, ::DataType) = Int
+
+@generated pos(x, ctx) = istaggedtype(x, ctx) ? :(metadata(x, ctx)) : :(-1)
+
+const Arg{n} = Val{n}
+
+"""
+    execute(ctx::∇Ctx, f, args...; kwargs...)
+
+If an operation and it's (non-keyword) argument constitute a primtive, then record it.
+Otherwise just overdub.
+"""
+function execute(ctx::∇Ctx, f, args...; kwargs...)
+    if is_atom(ctx, f, args...)
+        args_, positions = map(x->untag(x, ctx), args), map(x->pos(x, ctx), args)
+        op = Op(f, args_...; kwargs...)
+        push!(ctx.metadata, (op, positions))
+        return tag(op.value, ctx, length(ctx.metadata))
     else
-        for n in eachindex(tape)
-            println(io, n, " ", isassigned(tape.tape, n) ? tape[n] : "#undef")
-        end
+        return OverdubInstead()
     end
 end
-@inline getindex(tape::Tape, n::Int) = Base.getindex(tape.tape, n)
-@inline getindex(tape::Tape, node::Node) = Base.getindex(tape, node.pos)
-@inline lastindex(tape::Tape) = length(tape)
-@inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
-@inline eachindex(tape::Tape) = eachindex(tape.tape)
-@inline length(tape::Tape) = length(tape.tape)
-@inline push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
-@inline isassigned(tape::Tape, n::Int) = isassigned(tape.tape, n)
-@inline isassigned(tape::Tape, node::Node) = isassigned(tape, node.pos)
-
-# Make `Tape`s broadcast as scalars without a warning on 0.7
-Base.Broadcast.broadcastable(tape::Tape) = Ref(tape)
 
 """
-An element at the 'bottom' of the computational graph.
+    forward(tape::Tape, f, args...)
+    forward(f, args...)
 
-Fields:
-val - the value of the node.
-tape - The Tape to which this Leaf is assigned.
-pos - the location of this Leaf in the tape to which it is assigned.
+Execute the function `f` at `args`, returning the result and the trace.
 """
-struct Leaf{T} <: Node{T}
-    val::T
-    tape::Tape
-    pos::Int
+function forward(tape::Tape, f, args...)
+
+    # Push inputs onto the (forward) tape.
+    foreach(arg->push!(tape, (arg, ())), args)
+
+    # Create taggable context and tag stuff.
+    ctx = enabletagging(∇Ctx(metadata=tape), f)
+    tagged_args = map(arg->tag(arg[2], ctx, arg[1]), enumerate(args))
+
+    # Execute the function, tracing all operations, returning the result and trace.
+    y = overdub(ctx, f, tagged_args...)
+    return untag(y, ctx)
 end
-function Leaf(tape::Tape, val)
-    leaf = Leaf(val, tape, length(tape) + 1)
-    push!(tape, leaf)
-    return leaf
+@generated function is_atom(ctx::∇Ctx, ::typeof(forward), ::Tape, f, args...)
+    return any(x->istaggedtype(x, ctx), args)
 end
-show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(tape.val)")
-show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(tape.val))")
+
+# Convenience functionality for the Tape-averse individual.
+forward(f, args...) = forward(Tape(), f, args...)
 
 """
-A Branch is a Node with parents (args).
+    ∇(::typeof(forward), ::Type{Arg{n}}, p::Tape, y, ȳ, tape::Tape, f, args...)
 
-Fields:
-val - the value of this node produced in the forward pass.
-f - the function used to generate this Node.
-args - Values indicating which elements in the tape will require updating by this node.
-tape - The Tape to which this Branch is assigned.
-pos - the location of this Branch in the tape to which it is assigned.
+Reverse-mode sensitivity for `forward` - implemented like any other sensitivity. Only
+applies for `n >= 2`.
 """
-struct Branch{T} <: Node{T}
-    val::T
-    f
-    args::Tuple
-    tape::Tape
-    pos::Int
-end
-function Branch(f, args::Tuple, tape::Tape; kwargs...)
-    unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, tape, length(tape) + 1)
-    push!(tape, branch)
-    return branch
-end
-show(io::IO, branch::Branch{T}) where T =
-    print(io, "Branch{$T} $(branch.val) f=$(branch.f)")
-show(io::IO, branch::Branch{T}) where T<:AbstractArray =
-    print(io, "Branch{$T} $(size(branch.val)) f=$(branch.f)")
+∇(::typeof(forward), ::Type{Arg{n}}, p::Vector, y, ȳ, tape::Tape, f, args...) where n = p[n-2]
 
-"""
-    pos(x::Node)
-    pos(x)
-
-Location of Node on tape. -1 if not a Node object.
-"""
-pos(x::Node) = x.pos
-pos(x) = -1
-
-"""
-    unbox(x::Node)
-    unbox(x)
-
-Get `.val` if `x` is a Node, otherwise is equivalent to `identity`.
-"""
-unbox(x::Node) = x.val
-unbox(x) = x
-
-isapprox(n::Node, f) = unbox(n) ≈ f
-isapprox(f, n::Node) = n ≈ f
-
-zero(n::Node) = zero(unbox(n))
-one(n::Node) = one(unbox(n))
-
-# Leafs do nothing, Branches compute their own sensitivities and update others.
-@inline propagate(y::Leaf, rvs_tape::Tape) = nothing
-function propagate(y::Branch, rvs_tape::Tape)
-    tape = rvs_tape.tape
-    ȳ, f = tape[y.pos], y.f
-    xs, xids = map(unbox, y.args), map(pos, y.args)
-    p = preprocess(f, y.val, ȳ, xs...)
-    for j in eachindex(xs)
-        x, xid = xs[j], xids[j]
-        if xid > 0
-            tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, y.val, ȳ, xs...) :
-                ∇(f, Arg{j}, p, y.val, ȳ, xs...)
+# Perform the reverse pass.
+preprocess(x...) = ()
+function preprocess(::typeof(forward), y, ȳ, fwd_tape, f, args...)
+    rvs_tape = Vector{Any}(undef, length(fwd_tape))
+    rvs_tape[end] = ȳ
+    for n in reverse(eachindex(rvs_tape))
+        if isassigned(fwd_tape, n)
+            ȳ, op, positions = rvs_tape[n], fwd_tape[n][1], fwd_tape[n][2]
+            if op isa Op
+                y, f, args, kwargs = op.value, op.f, op.args, op.kwargs
+                pre = preprocess(f, y, ȳ, args...; kwargs...)
+                for ((p, arg), pos) in zip(enumerate(args), positions)
+                    if pos > 0
+                        rvs_tape[pos] = isassigned(rvs_tape, pos) ?
+                            ∇(rvs_tape[pos], f, Arg{p}, pre, y, ȳ, args...; kwargs...) :
+                            ∇(f, Arg{p}, pre, y, ȳ, args...; kwargs...)
+                    end
+                end
+            end
         end
-    end
-    return nothing
-end
-
-function propagate(fwd_tape::Tape, rvs_tape::Tape)
-    for n in eachindex(rvs_tape)
-        δ = length(rvs_tape) - n + 1
-        isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
     end
     return rvs_tape
 end
 
-
-""" Initialise a Tape appropriately for being used as a reverse-tape. """
-function reverse_tape(y::Node, ȳ)
-    tape = Tape(y.pos)
-    tape[end] = ȳ
-    return tape
-end
-
-""" Used to flag which argument is being specified in x̄. """
-struct Arg{N} end
-
 """
-    ∇(y::Node{<:∇Scalar})
-    ∇(y::Node{T}, ȳ::T) where T
+    ∇(f)
 
-Return a `Tape` object which can be indexed using `Node`s, each element of which contains
-the result of multiplying `ȳ` by the transpose of the Jacobian of the function specified by
-the `Tape` object in `y`. If `y` is a scalar and `ȳ = 1` then this is equivalent to
-computing the gradient of `y` w.r.t. each of the elements in the `Tape`.
-
-
-    ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
-    ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
-
-To implement a new reverse-mode sensitivity for the `N^{th}` argument of function `f`. p
-is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
-output and `ȳ` the reverse-mode sensitivity of `y`.
+Returns a function `∇f = ∇(f)` which returns the gradient of `f` at the location evaluated.
 """
-∇(y::Node, ȳ) = propagate(y.tape, reverse_tape(y, ȳ))
-@inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(y.val))
-
-@inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
-
-"""
-    ∇(f; get_output::Bool=false)
-
-Returns a function which, when evaluated with arguments that are accepted by `f`, will
-return the gradient w.r.t. each of the arguments.
-"""
-function ∇(f, get_output::Bool=false)
+function ∇(f)
     return function(args...)
-        args_ = Leaf.(Tape(), args)
-        y = f(args_...)
-        y isa Node || return zero.(args)
-        ∇f = ∇(y)
-        ∇args = ([isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
-                  for (arg_, arg) in zip(args_, args)]...,)
-        return get_output ? (y, ∇args) : ∇args
+
+        # Perform the forwards-pass.
+        tape = Tape()
+        op = Op(forward, tape, f, args...)
+        y = op.value
+
+        # Perform the reverse-pass.
+        ȳ = one(y)
+        p = preprocess(forward, y, ȳ, tape, f, args...)
+        return map(n->∇(forward, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
     end
 end
 
-# """
-#     ∇(f::Function)
-
-# Returns a function which, when evaluated with arguments that are accepted by `f` (`x`),
-# will return a Tuple, the first element of which is the output of the function `f` and then
-# second element of which is (yet another) function `g`. `g` can either be evaluated with no
-# arguments, in which case it will return the gradient of `f` evaluated at `x`.
-# Alternatively, it can be evaluated with arguments of the same type and shape as the output
-# of `f(x)`, in which case it is equivalent to multiplying them 'from the left' by the
-# Jacobian ∂(f(x)) / ∂x.
-# """
-# function ∇(f::Function)
-#     return function(args...)
-#         args_ = Leaf.(Tape(), args)
-#         y = f(args_...)
-#         ∇fx = (ȳ)->∇
-
-#     end
-# end
+# As good a place as any to define this fallback.
+∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 
 # A collection of methods for initialising nested indexable containers to zero.
 for (f_name, scalar_init, array_init) in
@@ -233,6 +167,8 @@ end
 for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
+
+# CAN I CHANGE THIS TO USE ZYGOTE?
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
 # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.

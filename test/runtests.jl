@@ -1,5 +1,5 @@
 using Nabla
-using Test, LinearAlgebra, Random
+using Test, LinearAlgebra, Random, Cassette
 using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
 
 using Nabla: oneslike, zeroslike

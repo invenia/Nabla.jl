@@ -28,13 +28,23 @@ for (package, f, arity) in diffrules()
     if arity == 1
         push!(unary_sensitivities, (package, f))
         ∂f∂x = diffrule(package, f, :x)
-        @eval @explicit_intercepts $f Tuple{∇Scalar}
+        @eval @generated function is_atom(ctx::∇Ctx, ::typeof($f), x::∇Tagged{<:∇Scalar})
+            return istaggedtype(x, ctx)
+        end
         @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
         @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $∂f∂x
     elseif arity == 2
         push!(binary_sensitivities, (package, f))
         ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
         @eval @explicit_intercepts $f Tuple{∇Scalar, ∇Scalar}
+        @eval @generated function is_atom(
+            ctx::∇Ctx,
+            ::typeof($f),
+            x::∇Tagged{<:∇Scalar},
+            y::∇Tagged{<:∇Scalar},
+        )
+            return istaggedtype(x, ctx) || istaggedtype(y, ctx)
+        end
         @eval ∇(::typeof($f), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂x
         @eval ∇(::typeof($f), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂y
     else
@@ -42,5 +52,5 @@ for (package, f, arity) in diffrules()
     end
 end
 
-# Add method to resolve exponentiation ambiguity.
-^(n::Node{<:Real}, p::Integer) = invoke(^, Tuple{Node{<:Real}, Real}, n, p)
+# # Add method to resolve exponentiation ambiguity.
+# ^(n::Node{<:Real}, p::Integer) = invoke(^, Tuple{Node{<:Real}, Real}, n, p)

@@ -26,7 +26,7 @@ function union_intercepts(f::Symbol, type_tuple::Expr, invoke_type_tuple::Expr; 
 end
 
 """
-    @explicit_intercepts(f::Symbol, type_tuple::Expr, is_node::Expr[, kwargs::Expr])
+    @explicit_intercepts(f::Symbol, type_tuple::Expr[, is_node::Expr, kwargs::Expr])
     @explicit_intercepts(f::Symbol, type_tuple::Expr)
 
 Create a collection of methods which intecept the function calls to `f` in which at least
