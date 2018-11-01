@@ -22,14 +22,14 @@ x, y = randn.(rng, [N, N])
 A = randn(rng, N, N)
 
 # Construct a vector-quadratic function in `x` and `y`.
-f(x, y) = y.' * (A * x)
+f(x, y) = y' * (A * x)
 f(x, y)
 ```
 
 Only a small amount of [matrix calculus](https://en.wikipedia.org/wiki/Matrix_calculus) is required to the find the gradient of `f(x, y)` w.r.t. `x` and `y`, which we denote by `∇x` and `∇y` respectively, to be
 
 ```@example toy
-(∇x, ∇y) = (A.'y, A * x)
+(∇x, ∇y) = (A'y, A * x)
 ```
 
 ## High-Level Interface

@@ -5,7 +5,7 @@
         A = randn(rng, N, N)
         r, d, B2, c = level2partition(A, 4, false)
         R, D, B3, C = level3partition(A, 4, 4, false)
-        @test all(r .== R.')
+        @test all(r .== R')
         @test all(d .== D)
         @test B2[1] == B3[1]
         @test all(c .== C)
@@ -14,7 +14,7 @@
         rᵀ, dᵀ, B2ᵀ, cᵀ = level2partition(transpose(A), 4, true)
         @test r == rᵀ
         @test d == dᵀ
-        @test B2.' == B2ᵀ
+        @test B2' == B2ᵀ
         @test c == cᵀ
 
         # Check that level3partition with 'U' is consistent with 'L'.
@@ -26,10 +26,11 @@
         @test transpose(C) == Cᵀ
     end
 
-    import Nabla: chol_unblocked_rev, chol_blocked_rev
+    import Nabla: chol, chol_unblocked_rev, chol_blocked_rev
     let rng = MersenneTwister(123456), N = 10
-        A, Ā = full.(LowerTriangular.(randn.(rng, [N, N], [N, N])))
-        B, B̄ = transpose.([A, Ā])
+        A, Ā = Matrix.(LowerTriangular.(randn.(Ref(rng), [N, N], [N, N])))
+        # NOTE: BLAS gets angry if we don't materialize the Transpose objects first
+        B, B̄ = Matrix.(transpose.([A, Ā]))
         @test chol_unblocked_rev(Ā, A, false) ≈ chol_blocked_rev(Ā, A, 1, false)
         @test chol_unblocked_rev(Ā, A, false) ≈ chol_blocked_rev(Ā, A, 3, false)
         @test chol_unblocked_rev(Ā, A, false) ≈ chol_blocked_rev(Ā, A, 5, false)
@@ -44,8 +45,8 @@
     # Check sensitivities for lower-triangular version.
     let rng = MersenneTwister(123456), N = 10
         for _ in 1:10
-            B, VB = randn.(rng, [N, N], [N, N])
-            A, VA = B.'B + 1e-6I, VB.'VB + 1e-6I
+            B, VB = randn.(Ref(rng), [N, N], [N, N])
+            A, VA = B'B + 1e-6I, VB'VB + 1e-6I
             Ū = UpperTriangular(randn(rng, N, N))
             @test check_errs(chol, Ū, A, 1e-2 .* VA)
         end

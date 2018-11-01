@@ -1,3 +1,17 @@
+# NOTE: As of https://github.com/JuliaLang/julia/pull/21746, all macro calls have
+# a LineNumberNode. Since our functions that do expression transformation don't have
+# access to the source code locations, we don't insert a LineNumberNode, which means
+# that a transformed expression won't compare equal to an expression literal due to
+# line information. Thus for testing purposes we define a function that removes line
+# information from expressions as well as a custom equality operator that uses this.
+# Note that it's only necessary for comparisons that deal with macro calls.
+function skip_line_info(ex::Expr)
+    map!(arg->arg isa LineNumberNode ? nothing : skip_line_info(arg), ex.args, ex.args)
+    ex
+end
+skip_line_info(ex) = ex
+≃(a, b) = skip_line_info(a) == skip_line_info(b)
+
 @testset "code_transformation/differentiable" begin
 
     import Nabla.Nabla: unionise_type, unionise_arg, unionise_subtype, unionise_eval,
@@ -26,17 +40,17 @@
     @test unionise_subtype(:(T<:V)) == :(T<:$(unionise_type(:V)))
 
     # Test Nabla.unionise_eval.
-    @test unionise_eval(:(eval(:foo))) == :(eval(:(@unionise foo)))
-    @test unionise_eval(:(eval(DiffBase, :foo))) == :(eval(DiffBase, :(@unionise foo)))
-    @test unionise_eval(:(eval(:(println("foo"))))) == :(eval(:(@unionise println("foo"))))
-    @test unionise_eval(:(eval(DiffBase, :(println("foo"))))) ==
+    @test unionise_eval(:(eval(:foo))) ≃ :(eval(:(@unionise foo)))
+    @test unionise_eval(:(eval(DiffBase, :foo))) ≃ :(eval(DiffBase, :(@unionise foo)))
+    @test unionise_eval(:(eval(:(println("foo"))))) ≃ :(eval(:(@unionise println("foo"))))
+    @test unionise_eval(:(eval(DiffBase, :(println("foo"))))) ≃
         :(eval(DiffBase, :(@unionise println("foo"))))
 
     # Test Nabla.unionise_macro_eval.
-    @test unionise_macro_eval(:(@eval foo)) == :(@eval @unionise foo)
-    @test unionise_macro_eval(:(@eval DiffBase foo)) == :(@eval DiffBase @unionise foo)
-    @test unionise_macro_eval(:(@eval println("foo"))) == :(@eval @unionise println("foo"))
-    @test unionise_macro_eval(:(@eval DiffBase println("foo"))) ==
+    @test unionise_macro_eval(:(@eval foo)) ≃ :(@eval @unionise foo)
+    @test unionise_macro_eval(:(@eval DiffBase foo)) ≃ :(@eval DiffBase @unionise foo)
+    @test unionise_macro_eval(:(@eval println("foo"))) ≃ :(@eval @unionise println("foo"))
+    @test unionise_macro_eval(:(@eval DiffBase println("foo"))) ≃
         :(@eval DiffBase @unionise println("foo"))
 
     # Test Nabla.unionise. This depends upon Nabla.unionise_arg, so we express
@@ -95,7 +109,7 @@
         Expr(Symbol("="), unionise_sig(:(foo(x::T, y::T) where T)), :x)
     @test unionise(:(eval(:foo))) == unionise_eval(:(eval(:foo)))
     @test unionise(:(eval(DiffBase, :foo))) == unionise_eval(:(eval(DiffBase, :foo)))
-    @test unionise(:(@eval foo)) == unionise_macro_eval(:(@eval foo))
-    @test unionise(:(@eval DiffBase foo)) == unionise_macro_eval(:(@eval DiffBase foo))
+    @test unionise(:(@eval foo)) ≃ unionise_macro_eval(:(@eval foo))
+    @test unionise(:(@eval DiffBase foo)) ≃ unionise_macro_eval(:(@eval DiffBase foo))
     @test unionise(:(struct Foo{T<:V} end)) == unionise_struct(:(struct Foo{T<:V} end))
 end
