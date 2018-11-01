@@ -6,19 +6,19 @@ import Cassette: execute
 import Base: push!
 
 """
-    Op{Targs, Tkwargs, Tf, Tvalue}
+    Op{Tf, Tvalue, Targs, Tkwargs}
 
 The totality of a call to a (pure) primtive function `f` at `args` and `kwargs`,
 producing `value`.
 """
-struct Op{Targs, Tkwargs, Tf, Tvalue}
-    args::Targs
-    kwargs::Tkwargs
+struct Op{Tf, Tvalue, Targs, Tkwargs}
     f::Tf
     value::Tvalue
+    args::Targs
+    kwargs::Tkwargs
     function Op(f::Tf, args...; kwargs...) where Tf
         value = f(args...; kwargs...)
-        return new{typeof(args), typeof(kwargs), Tf, typeof(value)}(args, kwargs, f, value)
+        return new{Tf, typeof(value), typeof(args), typeof(kwargs)}(f, value, args, kwargs)
     end
 end
 
@@ -34,7 +34,7 @@ is_atom(args...) = false
 
 # Execution context for ∇.jl (with a default dynamic tape).
 @context ∇Ctx
-const ∇Tagged{T} = Tagged{<:∇Ctx, T}
+const ∇MaybeTagged{T} = Union{T, Tagged{C, T} where C}
 Cassette.metadatatype(::Type{<:∇Ctx}, ::Type{<:Any}) = Int
 Cassette.metadatatype(::Type{<:∇Ctx}, ::DataType) = Int
 
@@ -49,6 +49,7 @@ If an operation and it's (non-keyword) argument constitute a primtive, then reco
 Otherwise just overdub.
 """
 function execute(ctx::∇Ctx, f, args...; kwargs...)
+    @show ctx, f, args
     if is_atom(ctx, f, args...)
         args_, positions = map(x->untag(x, ctx), args), map(x->pos(x, ctx), args)
         op = Op(f, args_...; kwargs...)

@@ -1,14 +1,6 @@
 using SpecialFunctions
 using DiffRules: @define_diffrule, diffrule, diffrules, hasdiffrule
 
-# Hand code the identity because it's really fundamental. It doesn't need to generate a new
-# node on the computational graph since it does nothing, but it is useful to have it's
-# gradient implemented for use in higher-order functions.
-import Base.identity
-@explicit_intercepts identity Tuple{Any}
-@inline ∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
-@inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
-
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.
 ignored_fs = [(:SpecialFunctions, :hankelh1),
@@ -28,7 +20,7 @@ for (package, f, arity) in diffrules()
     if arity == 1
         push!(unary_sensitivities, (package, f))
         ∂f∂x = diffrule(package, f, :x)
-        @eval @generated function is_atom(ctx::∇Ctx, ::typeof($f), x::∇Tagged{<:∇Scalar})
+        @eval @generated function is_atom(ctx::∇Ctx, ::typeof($f), x::∇MaybeTagged{<:∇Scalar})
             return istaggedtype(x, ctx)
         end
         @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
@@ -36,12 +28,11 @@ for (package, f, arity) in diffrules()
     elseif arity == 2
         push!(binary_sensitivities, (package, f))
         ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
-        @eval @explicit_intercepts $f Tuple{∇Scalar, ∇Scalar}
         @eval @generated function is_atom(
             ctx::∇Ctx,
             ::typeof($f),
-            x::∇Tagged{<:∇Scalar},
-            y::∇Tagged{<:∇Scalar},
+            x::∇MaybeTagged{<:∇Scalar},
+            y::∇MaybeTagged{<:∇Scalar},
         )
             return istaggedtype(x, ctx) || istaggedtype(y, ctx)
         end
