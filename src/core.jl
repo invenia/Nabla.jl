@@ -49,7 +49,6 @@ If an operation and it's (non-keyword) argument constitute a primtive, then reco
 Otherwise just overdub.
 """
 function execute(ctx::∇Ctx, f, args...; kwargs...)
-    @show ctx, f, args
     if is_atom(ctx, f, args...)
         args_, positions = map(x->untag(x, ctx), args), map(x->pos(x, ctx), args)
         op = Op(f, args_...; kwargs...)
@@ -76,7 +75,7 @@ function forward(tape::Tape, f, args...)
     tagged_args = map(arg->tag(arg[2], ctx, arg[1]), enumerate(args))
 
     # Execute the function, tracing all operations, returning the result and trace.
-    y = overdub(ctx, f, tagged_args...)
+    y = overdub(ctx, x->f(x), tagged_args...)
     return untag(y, ctx)
 end
 @generated function is_atom(ctx::∇Ctx, ::typeof(forward), ::Tape, f, args...)
@@ -94,11 +93,18 @@ applies for `n >= 2`.
 """
 ∇(::typeof(forward), ::Type{Arg{n}}, p::Vector, y, ȳ, tape::Tape, f, args...) where n = p[n-2]
 
-# Perform the reverse pass.
 preprocess(x...) = ()
-function preprocess(::typeof(forward), y, ȳ, fwd_tape, f, args...)
+
+# Perform the reverse pass.
+function get_rvs_tape(fwd_tape, ȳ)
     rvs_tape = Vector{Any}(undef, length(fwd_tape))
     rvs_tape[end] = ȳ
+    return rvs_tape
+end
+function preprocess(::typeof(forward), y, ȳ, fwd_tape, f, args...)
+    return preprocess(get_rvs_tape(fwd_tape, ȳ), forward, y, ȳ, fwd_tape, f, args...)
+end
+function preprocess(rvs_tape::Vector{Any}, ::typeof(forward), y, ȳ, fwd_tape, f, args...)
     for n in reverse(eachindex(rvs_tape))
         if isassigned(fwd_tape, n)
             ȳ, op, positions = rvs_tape[n], fwd_tape[n][1], fwd_tape[n][2]
@@ -191,3 +197,18 @@ function fmad_expr(f, x::Type{<:Tuple})
     return body
 end
 @generated fmad(f, x) = fmad_expr(f, x)
+
+# Ugly function intended for internal use only.
+function __forward(f, args...)
+
+    # Perform forward pass with tracking.
+    tape = Tape()
+    op = Op(forward, tape, f, args...)
+    y = op.value
+
+    # Return result of forwards pass and closure to compute adjoint.
+    return y, function(ȳ)
+        p = preprocess(forward, y, ȳ, tape, f, args...)
+        return map(n->∇(forward, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
+    end
+end

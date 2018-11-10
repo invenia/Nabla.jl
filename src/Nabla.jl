@@ -36,7 +36,7 @@ module Nabla
 
     # Finite differencing functionality - only used in tests. Would be good to move this
     # into a separate module at some point.
-    # include("finite_differencing.jl")
+    include("finite_differencing.jl")
 
     # Sensitivities for the basics.
     # include("sensitivities/indexing.jl")

@@ -27,7 +27,6 @@ central_5_1 = central_fdm(5, 1; M=5e8)
 approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
     approximate_Dv(f, ȳ, (x,), (v,))
 
-
 """
     compute_Dv(
         f,
@@ -47,9 +46,9 @@ function compute_Dv(
     x::Tuple{Vararg{∇ArrayOrScalar}},
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
-    x_ = Leaf.(Tape(), x)
-    ∇f = ∇(f(x_...), ȳ)
-    return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
+    y, back = __forward(f, x)
+    x̄ = back(ȳ)
+    return sum(map((x, v)->sum(x̄ .* v), x_, v))
 end
 compute_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
     compute_Dv(f, ȳ, (x,), (v,))
@@ -66,7 +65,7 @@ function compute_Dv_update(
 
     # Randomly initialise `Leaf`s.
     inits = Vector(undef, length(rtape))
-    for i = 1:length(rtape)
+    for i in eachindex(rtape)
         if isleaf(y.tape[i])
             inits[i] = randned_container(y.tape[i].val)
             rtape[i] = copy(inits[i])
@@ -77,7 +76,7 @@ function compute_Dv_update(
     ∇f = propagate(y.tape, rtape)
 
     # Substract the random initialisations.
-    for i = 1:length(rtape)
+    for i in eachindex(rtape)
         isleaf(y.tape[i]) && (∇f[i] -= inits[i])
     end
 

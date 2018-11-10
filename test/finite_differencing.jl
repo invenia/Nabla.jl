@@ -1,16 +1,16 @@
-import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update
+import Nabla: ∇, compute_Dv, approximate_Dv, compute_Dv_update, is_atom
 @testset "Finite-difference estimates of sensitivities" begin
+
     # Define a dummy test function.
     foo(x::∇Scalar) = 5x
     foo(x::∇Scalar, y::∇Scalar) = 5x + 6y
     foo(x::Vector{<:∇Scalar}, y::Vector{<:∇Scalar}) = 10x + 11y
     foo(x::Matrix{<:∇Scalar}, y::Matrix{<:∇Scalar}) = 15x + 16y
 
-    # Create sensitivity intercepts.
-    @explicit_intercepts foo Tuple{∇Scalar}
-    @explicit_intercepts foo Tuple{∇Scalar, ∇Scalar}
-    @explicit_intercepts foo Tuple{Vector{<:∇Scalar}, Vector{<:∇Scalar}}
-    @explicit_intercepts foo Tuple{Matrix{<:∇Scalar}, Matrix{<:∇Scalar}}
+    is_atom(ctx::∇Ctx, ::typeof(foo), x::∇MaybeTagged{<:∇Scalar}) = istagged(x, ctx)
+    is_atom(ctx::∇Ctx, ::typeof(foo), x::∇MaybeTagged{<:∇Scalar}, y::∇MaybeTagged{<:∇Scalar}) = istagged(x, ctx) || istagged(y, ctx)
+    is_atom(ctx::∇Ctx, ::typeof(foo), x::∇MaybeTagged{<:Vector{<:∇Scalar}}, y::∇MaybeTagged{<:Vector{<:∇Scalar}}) = istagged(x, ctx) || istagged(y, ctx)
+    is_atom(ctx::∇Ctx, ::typeof(foo), x::∇MaybeTagged{<:Matrix{<:∇Scalar}}, y::∇MaybeTagged{<:Matrix{<:∇Scalar}}) = istagged(x, ctx) || istagged(y, ctx)
 
     # Define sensitivity implementations.
     _Vec = Vector{<:∇Scalar}
