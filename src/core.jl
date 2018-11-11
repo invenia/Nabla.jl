@@ -1,4 +1,4 @@
-using Cassette, BenchmarkTools
+using Cassette, BenchmarkTools, InteractiveUtils
 using Cassette: @context, tag, untag, enabletagging, overdub, OverdubInstead, istaggedtype,
     metadata, untagtype, Tagged
 import Cassette: execute
@@ -101,10 +101,10 @@ function get_rvs_tape(fwd_tape, ȳ)
     rvs_tape[end] = ȳ
     return rvs_tape
 end
-function preprocess(::typeof(forward), y, ȳ, fwd_tape, f, args...)
-    return preprocess(get_rvs_tape(fwd_tape, ȳ), forward, y, ȳ, fwd_tape, f, args...)
+function preprocess(::typeof(forward), y, ȳ, fwd_tape::Tape, f, args...)
+    return preprocess!(get_rvs_tape(fwd_tape, ȳ), forward, y, ȳ, fwd_tape, f, args...)
 end
-function preprocess(rvs_tape::Vector{Any}, ::typeof(forward), y, ȳ, fwd_tape, f, args...)
+function preprocess!(rvs_tape::Vector{Any}, ::typeof(forward), y, ȳ, fwd_tape, f, args...)
     for n in reverse(eachindex(rvs_tape))
         if isassigned(fwd_tape, n)
             ȳ, op, positions = rvs_tape[n], fwd_tape[n][1], fwd_tape[n][2]

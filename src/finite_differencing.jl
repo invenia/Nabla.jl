@@ -59,33 +59,35 @@ function compute_Dv_update(
     x::Tuple{Vararg{∇ArrayOrScalar}},
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
-    x_ = Leaf.(Tape(), x)
-    y = f(x_...)
-    rtape = reverse_tape(y, ȳ)
+    fwd_tape = Tape()
+    y = forward(fwd_tape, f, x...)
 
-    # Randomly initialise `Leaf`s.
+    rvs_tape = get_reverse_tape(fwd_tape, ȳ)
+
+    # Randomly initialise leaves.
     inits = Vector(undef, length(rtape))
     for i in eachindex(rtape)
-        if isleaf(y.tape[i])
-            inits[i] = randned_container(y.tape[i].val)
+        if is_leaf(fwd_tape[i])
+            inits[i] = randned_container(fwd_tape[i].value)
             rtape[i] = copy(inits[i])
         end
     end
 
     # Perform the reverse pass.
-    ∇f = propagate(y.tape, rtape)
+    preprocess!(rvs_tape, forward, y, ȳ, fwd_tape, f, args...)
 
     # Substract the random initialisations.
-    for i in eachindex(rtape)
-        isleaf(y.tape[i]) && (∇f[i] -= inits[i])
+    for i in eachindex(rvs_tape)
+        is_leaf(fwd_tape[i]) && (∇f[i] -= inits[i])
     end
 
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
 end
-compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
-    compute_Dv_update(f, ȳ, (x,), (v,))
-isleaf(::Leaf) = true
-isleaf(::Any) = false
+function compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar)
+    return compute_Dv_update(f, ȳ, (x,), (v,))
+end
+is_leaf(::Any) = true
+is_leaf(::Op) = false
 
 """
     check_errs(
