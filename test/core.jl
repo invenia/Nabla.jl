@@ -1,4 +1,4 @@
-using Nabla: Op, forward, Tape, ∇MaybeTagged, ∇Ctx, Arg
+using Nabla: Op, forward, forward!, Tape, ∇MaybeTagged, ∇Ctx, Arg
 import Nabla: ∇, is_atom
 using Cassette: istagged
 
@@ -7,21 +7,45 @@ foo_core(x) = sin(x)
 ∇(::typeof(foo_core), ::Type{Arg{1}}, _, y, ȳ, x) = ȳ * exp(x)
 is_atom(ctx::∇Ctx, ::typeof(foo_core), x::∇MaybeTagged{<:∇Scalar}) = istagged(x, ctx)
 
+foo_core(x, y) = sin(x) + cos(y)
+∇(::typeof(foo_core), ::Type{Arg{1}}, _, z, z̄, x, y) = z̄ * cos(x)
+∇(::typeof(foo_core), ::Type{Arg{2}}, _, z, z̄, x, y) = z̄ * sin(y)
+function is_atom(
+    ctx::∇Ctx,
+    ::typeof(foo_core),
+    x::∇MaybeTagged{<:∇Scalar},
+    y::∇MaybeTagged{<:∇Scalar},
+)
+    return istagged(x, ctx) || istagged(y, ctx)
+end
+
 @testset "core" begin
 
 let
     @test Op(sin, 5).value == sin(5)
     @test Op(sin, 5).f == sin
     @test Op(sin, 5).args == (5,)
+    @test Op(map, x->5x, ones(10)).value == 5 .* ones(10)
+    @test Op(map, (x, y)->5x + 4y, ones(9), ones(9)).value == 9 .* ones(9)
     @test Op(sum, ones(10, 10)).value == sum(ones(10, 10))
     @test Op(sum, ones(10, 10); dims=1).value == sum(ones(10, 10); dims=1)
 end
 
 let
+    # Unary tests
     @test forward(foo_core, 5) == foo_core(5)
-    @test forward(Tape(), foo_core, 5) == foo_core(5)
+    @test forward!(Tape(), foo_core, 5) == foo_core(5)
     @test ∇(foo_core)(5)[1] == ∇(foo_core, Arg{1}, nothing, foo_core(5), 1, 5)
     @test ∇(x->foo_core(x))(5)[1] == ∇(foo_core, Arg{1}, nothing, foo_core(5), 1, 5)
+
+    # Binary tests
+    z = foo_core(5, 4.0)
+    @test forward(foo_core, 5, 4.0) == z
+    @test forward!(Tape(), foo_core, 5, 4.0) == z
+    @test ∇(foo_core)(5, 4.0)[1] == ∇(foo_core, Arg{1}, nothing, z, 1, 5, 4.0)
+    @test ∇(foo_core)(5, 4.0)[2] == ∇(foo_core, Arg{2}, nothing, z, 1, 5, 4.0)
+    @test ∇((x, y)->foo_core(x, y))(5, 4.0)[1] == ∇(foo_core, Arg{1}, nothing, z, 1, 5, 4.0)
+    @test ∇((x, y)->foo_core(x, y))(5, 4.0)[2] == ∇(foo_core, Arg{2}, nothing, z, 1, 5, 4.0)
 end
 
 # # Check that functions involving `isapprox` can be differentiated

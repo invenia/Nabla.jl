@@ -3,12 +3,14 @@ using FDM
 export check_Dv, check_Dv_update, check_errs,
        assert_approx_equal, domain1, domain2, points, in_domain
 
+const central_5_1 = central_fdm(5, 1; M=5e8)
+
 """
     approximate_Dv(
         f,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
-        v::Tuple{Vararg{∇ArrayOrScalar}}
+        v::Tuple{Vararg{∇ArrayOrScalar}},
     )
     approximate_Dv(f::Function, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar)
 
@@ -19,20 +21,20 @@ function approximate_Dv(
     f,
     ȳ::∇ArrayOrScalar,
     x::Tuple{Vararg{∇ArrayOrScalar}},
-    v::Tuple{Vararg{∇ArrayOrScalar}}
+    v::Tuple{Vararg{∇ArrayOrScalar}},
 )
     return central_5_1(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
 end
-central_5_1 = central_fdm(5, 1; M=5e8)
-approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
-    approximate_Dv(f, ȳ, (x,), (v,))
+function approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar)
+    return approximate_Dv(f, ȳ, (x,), (v,))
+end
 
 """
     compute_Dv(
         f,
         ȳ::∇ArrayOrScalar,
         x::Tuple{Vararg{∇ArrayOrScalar}},
-        v::Tuple{Vararg{∇ArrayOrScalar}}
+        v::Tuple{Vararg{∇ArrayOrScalar}},
     )
 
 Compute the directional derivative of `f` at `x` in direction `v` using AD. Use this
@@ -44,44 +46,45 @@ function compute_Dv(
     f,
     ȳ::∇ArrayOrScalar,
     x::Tuple{Vararg{∇ArrayOrScalar}},
-    v::Tuple{Vararg{∇ArrayOrScalar}}
+    v::Tuple{Vararg{∇ArrayOrScalar}},
 )
-    y, back = __forward(f, x)
+    y, back = __forward(f, x...)
     x̄ = back(ȳ)
-    return sum(map((x, v)->sum(x̄ .* v), x_, v))
+    return sum(map((n, v)->sum(x̄[n] .* v), eachindex(x), v))
 end
-compute_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
-    compute_Dv(f, ȳ, (x,), (v,))
+function compute_Dv(f, ȳ::∇ArrayOrScalar , x::∇ArrayOrScalar, v::∇ArrayOrScalar)
+    return compute_Dv(f, ȳ, (x,), (v,))
+end
 
 function compute_Dv_update(
     f,
     ȳ::∇ArrayOrScalar,
     x::Tuple{Vararg{∇ArrayOrScalar}},
-    v::Tuple{Vararg{∇ArrayOrScalar}}
+    v::Tuple{Vararg{∇ArrayOrScalar}},
 )
     fwd_tape = Tape()
-    y = forward(fwd_tape, f, x...)
+    y = forward!(fwd_tape, f, x...)
 
-    rvs_tape = get_reverse_tape(fwd_tape, ȳ)
+    rvs_tape = get_rvs_tape(fwd_tape, ȳ)
 
     # Randomly initialise leaves.
-    inits = Vector(undef, length(rtape))
-    for i in eachindex(rtape)
-        if is_leaf(fwd_tape[i])
-            inits[i] = randned_container(fwd_tape[i].value)
-            rtape[i] = copy(inits[i])
+    inits = Vector(undef, length(rvs_tape))
+    for i in eachindex(rvs_tape)
+        if is_leaf(fwd_tape[i][1])
+            inits[i] = randned_container(value(fwd_tape[i][1]))
+            rvs_tape[i] = copy(inits[i])
         end
     end
 
     # Perform the reverse pass.
-    preprocess!(rvs_tape, forward, y, ȳ, fwd_tape, f, args...)
+    preprocess!(rvs_tape, forward!, y, ȳ, fwd_tape, f, x...)
 
     # Substract the random initialisations.
     for i in eachindex(rvs_tape)
-        is_leaf(fwd_tape[i]) && (∇f[i] -= inits[i])
+        is_leaf(fwd_tape[i][1]) && (rvs_tape[i] -= inits[i])
     end
 
-    return sum(map((x, v)->sum(∇f[x] .* v), x_, v))
+    return sum(map((n, v)->sum(rvs_tape[n] .* v), 1:length(x), v))
 end
 function compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar)
     return compute_Dv_update(f, ȳ, (x,), (v,))
@@ -96,7 +99,7 @@ is_leaf(::Op) = false
         x::T,
         v::T,
         ε_abs::∇Scalar=1e-10,
-        ε_rel::∇Scalar=1e-7
+        ε_rel::∇Scalar=1e-7,
     )::Bool where T
 
 Check that the difference between finite differencing directional derivative estimation and
@@ -110,7 +113,7 @@ function check_errs(
     x::T,
     v::T,
     ε_abs::∇Scalar=1e-10,
-    ε_rel::∇Scalar=1e-7
+    ε_rel::∇Scalar=1e-7,
 )::Bool where T
     ∇x_alloc = compute_Dv(f, ȳ, x, v)
     ∇x_inplace = compute_Dv_update(f, ȳ, x, v)

@@ -1,19 +1,18 @@
-using Nabla
-using Test, LinearAlgebra, Random, Cassette
-using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
+using Nabla, Test, LinearAlgebra, Random, Cassette, Distributions, BenchmarkTools,
+    SpecialFunctions, DualNumbers
 
 using Nabla: oneslike, zeroslike
 
-@testset "Core" begin
-    include("core.jl")
-end
+# @testset "Core" begin
+#     include("core.jl")
+# end
 
 @testset "Sensitivities" begin
-    include("finite_differencing.jl")
+    # include("finite_differencing.jl")
 
     # # Test sensitivities for the basics.
     # include("sensitivities/indexing.jl")
-    # include("sensitivities/scalar.jl")
+    include("sensitivities/scalar.jl")
     # include("sensitivities/array.jl")
 
     # # Test sensitivities for functionals.

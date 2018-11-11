@@ -5,6 +5,8 @@ import Cassette: execute
 
 import Base: push!
 
+export ∇
+
 """
     Op{Tf, Tvalue, Targs, Tkwargs}
 
@@ -22,11 +24,10 @@ struct Op{Tf, Tvalue, Targs, Tkwargs}
     end
 end
 
-"""
-    Tape
+value(op::Op) = op.value
+value(x) = x
 
-Used to keep track of operations that happen in a function call in a dynamic manner.
-"""
+# Used to keep track of operations that happen in a function call in a dynamic manner.
 const Tape = Vector{Tuple{Any, Tuple{Vararg{Int}}}}
 
 # Fallback definition is false.
@@ -52,20 +53,20 @@ function execute(ctx::∇Ctx, f, args...; kwargs...)
     if is_atom(ctx, f, args...)
         args_, positions = map(x->untag(x, ctx), args), map(x->pos(x, ctx), args)
         op = Op(f, args_...; kwargs...)
+        @show positions
         push!(ctx.metadata, (op, positions))
-        return tag(op.value, ctx, length(ctx.metadata))
+        return tag(value(op), ctx, length(ctx.metadata))
     else
         return OverdubInstead()
     end
 end
 
 """
-    forward(tape::Tape, f, args...)
-    forward(f, args...)
+    forward!(tape::Tape, f, args...)
 
 Execute the function `f` at `args`, returning the result and the trace.
 """
-function forward(tape::Tape, f, args...)
+function forward!(tape::Tape, f, args...)
 
     # Push inputs onto the (forward) tape.
     foreach(arg->push!(tape, (arg, ())), args)
@@ -74,24 +75,27 @@ function forward(tape::Tape, f, args...)
     ctx = enabletagging(∇Ctx(metadata=tape), f)
     tagged_args = map(arg->tag(arg[2], ctx, arg[1]), enumerate(args))
 
-    # Execute the function, tracing all operations, returning the result and trace.
-    y = overdub(ctx, x->f(x), tagged_args...)
-    return untag(y, ctx)
+    # Execute the function, tracing all operations, returning the result.
+    return untag(overdub(ctx, (x...)->f(x...), tagged_args...), ctx)
 end
-@generated function is_atom(ctx::∇Ctx, ::typeof(forward), ::Tape, f, args...)
+@generated function is_atom(ctx::∇Ctx, ::typeof(forward!), ::Tape, f, args...)
     return any(x->istaggedtype(x, ctx), args)
 end
 
-# Convenience functionality for the Tape-averse individual.
-forward(f, args...) = forward(Tape(), f, args...)
+"""
+    forward(f, args...)
+
+Execute the function `f` at `args`, tracing each of the operations performed.
+"""
+forward(f, args...) = forward!(Tape(), f, args...)
 
 """
-    ∇(::typeof(forward), ::Type{Arg{n}}, p::Tape, y, ȳ, tape::Tape, f, args...)
+    ∇(::typeof(forward!), ::Type{Arg{n}}, p::Tape, y, ȳ, tape::Tape, f, args...)
 
-Reverse-mode sensitivity for `forward` - implemented like any other sensitivity. Only
+Reverse-mode sensitivity for `forward!` - implemented like any other sensitivity. Only
 applies for `n >= 2`.
 """
-∇(::typeof(forward), ::Type{Arg{n}}, p::Vector, y, ȳ, tape::Tape, f, args...) where n = p[n-2]
+∇(::typeof(forward!), ::Type{Arg{n}}, p::Vector, y, ȳ, tape::Tape, f, args...) where n = p[n-2]
 
 preprocess(x...) = ()
 
@@ -101,15 +105,15 @@ function get_rvs_tape(fwd_tape, ȳ)
     rvs_tape[end] = ȳ
     return rvs_tape
 end
-function preprocess(::typeof(forward), y, ȳ, fwd_tape::Tape, f, args...)
-    return preprocess!(get_rvs_tape(fwd_tape, ȳ), forward, y, ȳ, fwd_tape, f, args...)
+function preprocess(::typeof(forward!), y, ȳ, fwd_tape::Tape, f, args...)
+    return preprocess!(get_rvs_tape(fwd_tape, ȳ), forward!, y, ȳ, fwd_tape, f, args...)
 end
-function preprocess!(rvs_tape::Vector{Any}, ::typeof(forward), y, ȳ, fwd_tape, f, args...)
+function preprocess!(rvs_tape::Vector{Any}, ::typeof(forward!), y, ȳ, fwd_tape, f, args...)
     for n in reverse(eachindex(rvs_tape))
         if isassigned(fwd_tape, n)
             ȳ, op, positions = rvs_tape[n], fwd_tape[n][1], fwd_tape[n][2]
             if op isa Op
-                y, f, args, kwargs = op.value, op.f, op.args, op.kwargs
+                y, f, args, kwargs = value(op), op.f, op.args, op.kwargs
                 pre = preprocess(f, y, ȳ, args...; kwargs...)
                 for ((p, arg), pos) in zip(enumerate(args), positions)
                     if pos > 0
@@ -134,13 +138,28 @@ function ∇(f)
 
         # Perform the forwards-pass.
         tape = Tape()
-        op = Op(forward, tape, f, args...)
-        y = op.value
+        op = Op(forward!, tape, f, args...)
+        y = value(op)
 
         # Perform the reverse-pass.
         ȳ = one(y)
-        p = preprocess(forward, y, ȳ, tape, f, args...)
-        return map(n->∇(forward, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
+        p = preprocess(forward!, y, ȳ, tape, f, args...)
+        return map(n->∇(forward!, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
+    end
+end
+
+# Ugly function intended for internal use only.
+function __forward(f, args...)
+
+    # Perform forward pass with tracking.
+    tape = Tape()
+    op = Op(forward!, tape, f, args...)
+    y = value(op)
+
+    # Return result of forwards pass and closure to compute adjoint.
+    return y, function(ȳ)
+        p = preprocess(forward!, y, ȳ, tape, f, args...)
+        return map(n->∇(forward!, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
     end
 end
 
@@ -175,8 +194,6 @@ for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
-# CAN I CHANGE THIS TO USE ZYGOTE?
-
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
 # a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
 # The coefficient of this scaling could be improved by implementing a version of DualNumbers
@@ -197,18 +214,3 @@ function fmad_expr(f, x::Type{<:Tuple})
     return body
 end
 @generated fmad(f, x) = fmad_expr(f, x)
-
-# Ugly function intended for internal use only.
-function __forward(f, args...)
-
-    # Perform forward pass with tracking.
-    tape = Tape()
-    op = Op(forward, tape, f, args...)
-    y = op.value
-
-    # Return result of forwards pass and closure to compute adjoint.
-    return y, function(ȳ)
-        p = preprocess(forward, y, ȳ, tape, f, args...)
-        return map(n->∇(forward, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
-    end
-end

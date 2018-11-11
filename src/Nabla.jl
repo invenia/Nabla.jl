@@ -24,15 +24,8 @@ module Nabla
         end
     end
 
-    # # Meta-programming utilities specific to Nabla.
-    # include("code_transformation/util.jl")
-    # include("code_transformation/differentiable.jl")
-
     # Functionality for constructing computational graphs.
     include("core.jl")
-
-    # # Functionality for defining new sensitivities.
-    # include("sensitivity.jl")
 
     # Finite differencing functionality - only used in tests. Would be good to move this
     # into a separate module at some point.
@@ -40,7 +33,7 @@ module Nabla
 
     # Sensitivities for the basics.
     # include("sensitivities/indexing.jl")
-    # include("sensitivities/scalar.jl")
+    include("sensitivities/scalar.jl")
     # include("sensitivities/array.jl")
 
     # # Sensitivities for functionals.

@@ -1,4 +1,5 @@
 using DiffRules: diffrule, hasdiffrule
+using Nabla: Arg
 
 @testset "Scalar domains" begin
     @test in_domain(sin, 10.)
@@ -19,11 +20,6 @@ end
 
 @testset "Scalar" begin
     let v = 1.0, ȳ = 5.0, z̄ = 4.0, rng = MersenneTwister(123456)
-        let
-            @test ∇(identity, Arg{1}, 5.0, 4.0, 3.0, 2.0) == 3.0
-            @test ∇(identity, Arg{1}, 5) == 1
-            @test ∇(identity, Arg{1}, 5.0) == 1.0
-        end
 
         unary_check(f, x) = check_errs(eval(f), ȳ, x, v)
         for (package, f) in Nabla.unary_sensitivities
