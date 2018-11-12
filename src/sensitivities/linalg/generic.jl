@@ -18,7 +18,9 @@ for (f, T_In, T_Out, X̄, bounds) in unary_linalg_optimisations
         @eval import LinearAlgebra: $f
     end
     @eval begin
-        @explicit_intercepts $f Tuple{$T_In}
+        @generated function is_atom(ctx::∇Ctx, ::typeof($f), X::∇MaybeTagged{<:$T_In})
+            return istaggedtype(X, ctx)
+        end
         ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Out, Ȳ::$T_Out, X::$T_In) = $X̄
     end
 end
@@ -105,7 +107,14 @@ import Base: *, /, \
 import LinearAlgebra: norm
 for (f, T_A, T_B, T_Y, Ā, B̄) in binary_linalg_optimisations
     @eval begin
-        @explicit_intercepts $f Tuple{$T_A, $T_B}
+        @generated function is_atom(
+            ctx::∇Ctx,
+            ::typeof($f),
+            A::∇MaybeTagged{<:$T_A},
+            B::∇MaybeTagged{<:$T_B},
+        )
+            return istaggedtype(A, ctx) || istaggedtype(B, ctx)
+        end
         ∇(::typeof($f), ::Type{Arg{1}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $Ā
         ∇(::typeof($f), ::Type{Arg{2}}, p, Y::$T_Y, Ȳ::$T_Y, A::$T_A, B::$T_B) = $B̄
     end
@@ -113,13 +122,21 @@ end
 
 # Sensitivities for the Kronecker product:
 import LinearAlgebra: kron
-@explicit_intercepts kron Tuple{A, A}
+@generated function is_atom(
+    ctx::∇Ctx, ::typeof(kron),
+    A::∇MaybeTagged{<:A},
+    B::∇MaybeTagged{<:A},
+)
+    return istaggedtype(A, ctx) || istaggedtype(B, ctx)
+end
 
 # The allocating versions simply allocate and then call the in-place versions.
-∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A) =
-    ∇(zeroslike(A), kron, Arg{1}, p, Y, Ȳ, A, B)
-∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A) =
-    ∇(zeroslike(B), kron, Arg{2}, p, Y, Ȳ, A, B)
+function ∇(::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
+    return ∇(zeroslike(A), kron, Arg{1}, p, Y, Ȳ, A, B)
+end
+function ∇(::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A)
+    return ∇(zeroslike(B), kron, Arg{2}, p, Y, Ȳ, A, B)
+end
 
 function ∇(Ā::A, ::typeof(kron), ::Type{Arg{1}}, p, Y::A, Ȳ::A, A::A, B::A)
     (I, J), (K, L), m = size(A), size(B), length(Y)

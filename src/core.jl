@@ -3,7 +3,7 @@ using Cassette: @context, tag, untag, enabletagging, overdub, OverdubInstead, is
     metadata, untagtype, Tagged
 import Cassette: execute
 
-import Base: push!
+import Base: push!, show
 
 export ∇
 
@@ -22,15 +22,55 @@ struct Op{Tf, Tvalue, Targs, Tkwargs}
         value = f(args...; kwargs...)
         return new{Tf, typeof(value), typeof(args), typeof(kwargs)}(f, value, args, kwargs)
     end
+    function Op(value::T) where T
+        return new{Nothing, T, Nothing, Nothing}(nothing, value, nothing, nothing)
+    end
 end
 
+# Alias for distinguishing between leaves and branches.
+const Leaf = Op{Nothing}
+is_leaf(::Leaf) = true
+is_leaf(::Op) = false
+
 value(op::Op) = op.value
-value(x) = x
 
-# Used to keep track of operations that happen in a function call in a dynamic manner.
-const Tape = Vector{Tuple{Any, Tuple{Vararg{Int}}}}
+function show(io::IO, op::Op)
+    print(io, "$(op.f) (Op)")
+end
+function show(io::IO, mime::MIME"text/plain", op::Op)
+    println("Op where")
+    println("f = $(op.f)")
+    println("y = $(value(op))")
+    println("args = $(op.args)")
+    print("kwargs = $(op.kwargs)")
+end
 
-# Fallback definition is false.
+function show(io::IO, op::Leaf)
+    print(io, "$(value(op)) (Leaf)")
+end
+
+struct TapePair
+    op::Op
+    positions::Tuple{Vararg{Int}}
+end
+operation(pair::TapePair) = pair.op
+positions(pair::TapePair) = pair.positions
+
+const Tape = Vector{TapePair}
+
+function show(io::IO, mime::MIME"text/plain", tape::Tape)
+    if length(tape) == 0
+        print("0-element Tape")
+    else
+        println("$(length(tape))-element Tape:")
+        for (n, pair) in enumerate(tape)
+            str = " %$n = $pair"
+            (n == length(tape) ? print : println)(str)
+        end
+    end
+end
+
+# Fallback definition is false
 is_atom(args...) = false
 
 # Execution context for ∇.jl (with a default dynamic tape).
@@ -39,7 +79,7 @@ const ∇MaybeTagged{T} = Union{T, Tagged{C, T} where C}
 Cassette.metadatatype(::Type{<:∇Ctx}, ::Type{<:Any}) = Int
 Cassette.metadatatype(::Type{<:∇Ctx}, ::DataType) = Int
 
-@generated pos(x, ctx) = istaggedtype(x, ctx) ? :(metadata(x, ctx)) : :(-1)
+@generated position(x, ctx) = istaggedtype(x, ctx) ? :(metadata(x, ctx)) : :(-1)
 
 const Arg{n} = Val{n}
 
@@ -51,10 +91,9 @@ Otherwise just overdub.
 """
 function execute(ctx::∇Ctx, f, args...; kwargs...)
     if is_atom(ctx, f, args...)
-        args_, positions = map(x->untag(x, ctx), args), map(x->pos(x, ctx), args)
+        args_, positions = map(x->untag(x, ctx), args), map(x->position(x, ctx), args)
         op = Op(f, args_...; kwargs...)
-        @show positions
-        push!(ctx.metadata, (op, positions))
+        push!(ctx.metadata, TapePair(op, positions))
         return tag(value(op), ctx, length(ctx.metadata))
     else
         return OverdubInstead()
@@ -69,14 +108,16 @@ Execute the function `f` at `args`, returning the result and the trace.
 function forward!(tape::Tape, f, args...)
 
     # Push inputs onto the (forward) tape.
-    foreach(arg->push!(tape, (arg, ())), args)
+    l0 = length(tape)
+    foreach(arg->push!(tape, TapePair(Op(arg), ())), args)
 
     # Create taggable context and tag stuff.
     ctx = enabletagging(∇Ctx(metadata=tape), f)
-    tagged_args = map(arg->tag(arg[2], ctx, arg[1]), enumerate(args))
+    tagged_args = (map(arg->tag(arg[2], ctx, l0 + arg[1]), enumerate(args))...,)
 
     # Execute the function, tracing all operations, returning the result.
-    return untag(overdub(ctx, (x...)->f(x...), tagged_args...), ctx)
+    tmp = execute(ctx, f, tagged_args...)
+    return untag(tmp isa OverdubInstead ? overdub(ctx, f, tagged_args...) : tmp, ctx)
 end
 @generated function is_atom(ctx::∇Ctx, ::typeof(forward!), ::Tape, f, args...)
     return any(x->istaggedtype(x, ctx), args)
@@ -111,11 +152,11 @@ end
 function preprocess!(rvs_tape::Vector{Any}, ::typeof(forward!), y, ȳ, fwd_tape, f, args...)
     for n in reverse(eachindex(rvs_tape))
         if isassigned(fwd_tape, n)
-            ȳ, op, positions = rvs_tape[n], fwd_tape[n][1], fwd_tape[n][2]
-            if op isa Op
+            ȳ, op, pos = rvs_tape[n], operation(fwd_tape[n]), positions(fwd_tape[n])
+            if !isa(op, Leaf)
                 y, f, args, kwargs = value(op), op.f, op.args, op.kwargs
                 pre = preprocess(f, y, ȳ, args...; kwargs...)
-                for ((p, arg), pos) in zip(enumerate(args), positions)
+                for ((p, arg), pos) in zip(enumerate(args), pos)
                     if pos > 0
                         rvs_tape[pos] = isassigned(rvs_tape, pos) ?
                             ∇(rvs_tape[pos], f, Arg{p}, pre, y, ȳ, args...; kwargs...) :
@@ -144,7 +185,7 @@ function ∇(f)
         # Perform the reverse-pass.
         ȳ = one(y)
         p = preprocess(forward!, y, ȳ, tape, f, args...)
-        return map(n->∇(forward!, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
+        return (map(n->∇(forward!, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))...,)
     end
 end
 
@@ -159,7 +200,7 @@ function __forward(f, args...)
     # Return result of forwards pass and closure to compute adjoint.
     return y, function(ȳ)
         p = preprocess(forward!, y, ȳ, tape, f, args...)
-        return map(n->∇(forward!, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))
+        return (map(n->∇(forward!, Arg{n + 2}, p, y, ȳ, tape, f, args...), eachindex(args))...,)
     end
 end
 

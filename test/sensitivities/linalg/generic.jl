@@ -1,6 +1,7 @@
 @testset "Generic" begin
 
-    let N = 5, rng = MersenneTwister(123456)
+    let
+        N, rng = 5, MersenneTwister(123456)
 
         # Generate random test quantities for specific types.
         ∇Arrays = Union{Type{∇Array}, Type{∇ArrayOrScalar}, Type{<:Transpose}, Type{<:Adjoint}}
@@ -27,6 +28,5 @@
             A, B, VA, VB = trandn.(Ref(rng), (∇Array, ∇Array, ∇Array, ∇Array))
             @test check_errs(kron, kron(A, B), (A, B), (VA, VB))
         end
-
     end
 end

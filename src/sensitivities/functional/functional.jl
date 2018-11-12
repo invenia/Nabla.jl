@@ -1,22 +1,26 @@
-# Implementation of functionals (i.e. higher-order functions).
-
 # Implementation of sensitivities w.r.t. `map`.
-import Base.map
-@explicit_intercepts map Tuple{Any, ∇Array} [false, true]
-@union_intercepts map Tuple{Any, Vararg{∇Array}} Tuple{Any, Vararg}
+import Base: map, BroadcastStyle
+
+@generated function is_atom(ctx::∇Ctx, ::typeof(map), ::Any, A::∇MaybeTagged{<:∇Array}...)
+    return any(a->istaggedtype(a, Ref(ctx)), A)
+end
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
-    _∇(map, Arg{N-1}, p, y, ȳ, f, A...)
-_∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
-    hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
-        map((yn, ȳn, An...)->∇(f, Arg{N}, p, yn, ȳn, An...), y, ȳ, A...) :
-        map((ȳn, An...)->ȳn * fmad(f, An, Val{N}), ȳ, A...)
+function ∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N
+    return _∇(map, Arg{N-1}, p, y, ȳ, f, A...)
+end
+function _∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N
+    if hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...})
+        return map((yn, ȳn, An...)->∇(f, Arg{N}, p, yn, ȳn, An...), y, ȳ, A...)
+    else
+        return map((ȳn, An...)->ȳn * fmad(f, An, Val{N}), ȳ, A...)
+    end
+end
 
-# Deal with ambiguities introduced by `map`.
-map(f, x::AbstractArray{<:Number}...) = invoke(map, Tuple{Any, Vararg{Any}}, f, x...)
-map(f, x::AbstractArray{<:Number}) =
-    invoke(map, Tuple{Any, Union{AbstractArray, AbstractSet, AbstractDict}}, f, x)
+# # Deal with ambiguities introduced by `map`.
+# map(f, x::AbstractArray{<:Number}...) = invoke(map, Tuple{Any, Vararg{Any}}, f, x...)
+# map(f, x::AbstractArray{<:Number}) =
+#     invoke(map, Tuple{Any, Union{AbstractArray, AbstractSet, AbstractDict}}, f, x)
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 using Base.Broadcast
@@ -24,12 +28,12 @@ using Base.Broadcast: Broadcasted, broadcastable, broadcast_axes, broadcast_shap
 
 struct NodeStyle{S} <: BroadcastStyle end
 
-Base.BroadcastStyle(::Type{<:Node{T}}) where {T} = NodeStyle{BroadcastStyle(T)}()
+BroadcastStyle(::Type{<:Node{T}}) where {T} = NodeStyle{BroadcastStyle(T)}()
 
-Base.BroadcastStyle(::NodeStyle{S}, ::NodeStyle{S}) where {S} = NodeStyle{S}()
-Base.BroadcastStyle(::NodeStyle{S1}, ::NodeStyle{S2}) where {S1,S2} =
+BroadcastStyle(::NodeStyle{S}, ::NodeStyle{S}) where {S} = NodeStyle{S}()
+BroadcastStyle(::NodeStyle{S1}, ::NodeStyle{S2}) where {S1,S2} =
     NodeStyle{BroadcastStyle(S1, S2)}()
-Base.BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S} =
+BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S} =
     NodeStyle{BroadcastStyle(S, B)}()
 
 Broadcast.broadcast_axes(x::Node) = broadcast_axes(x.val)

@@ -1,8 +1,12 @@
 import LinearAlgebra: det, logdet, diagm, Diagonal, diag
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
+const ∇MaybeTaggedVec = ∇MaybeTagged{<:∇AbstractVector}
+const ∇MaybeTaggedMat = ∇MaybeTagged{<:∇AbstractMatrix}
 
-@explicit_intercepts diag Tuple{∇AbstractMatrix}
+@generated function is_atom(ctx::∇Ctx, ::typeof(diag), X::∇MaybeTaggedMat)
+    return istaggedtype(X, ctx)
+end
 function ∇(
     ::typeof(diag),
     ::Type{Arg{1}},
@@ -29,7 +33,9 @@ function ∇(
     return x̄
 end
 
-@explicit_intercepts diag Tuple{∇AbstractMatrix, Integer} [true, false]
+@generated function is_atom(ctx::∇Ctx, ::typeof(diag), X::∇MaybeTaggedMat, k::Integer)
+    return istaggedtype(X, ctx)
+end
 function ∇(
     ::typeof(diag),
     ::Type{Arg{1}},
@@ -58,7 +64,9 @@ function ∇(
     return x̄
 end
 
-@explicit_intercepts Diagonal Tuple{∇AbstractVector}
+@generated function is_atom(ctx::∇Ctx, ::typeof(Diagonal), x::∇MaybeTaggedVec)
+    return istaggedtype(x, ctx)
+end
 function ∇(
     ::Type{Diagonal},
     ::Type{Arg{1}},
@@ -81,7 +89,9 @@ function ∇(
     return broadcast!(+, x̄, x̄, Ȳ.diag)
 end
 
-@explicit_intercepts Diagonal Tuple{∇AbstractMatrix}
+@generated function is_atom(ctx::∇Ctx, ::typeof(Diagonal), X::∇MaybeTaggedMat)
+    return istaggedtype(X, ctx)
+end
 function ∇(
     ::Type{Diagonal},
     ::Type{Arg{1}},
@@ -108,9 +118,16 @@ function ∇(
     return X̄
 end
 
-@explicit_intercepts det Tuple{Diagonal{<:∇Scalar}}
-∇(::typeof(det), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::∇ScalarDiag) =
-    Diagonal(ȳ .* y ./ X.diag)
+@generated function is_atom(
+    ctx::∇Ctx,
+    ::typeof(det),
+    X::∇MaybeTagged{<:Diagonal{<:∇Scalar}},
+)
+    return istaggedtype(X, ctx)
+end
+function ∇(::typeof(det), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::∇ScalarDiag)
+    return Diagonal(ȳ .* y ./ X.diag)
+end
 function ∇(
     X̄::∇ScalarDiag,
     ::typeof(det),
@@ -124,9 +141,16 @@ function ∇(
     return X̄
 end
 
-@explicit_intercepts logdet Tuple{Diagonal{<:∇Scalar}}
-∇(::typeof(logdet), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::∇ScalarDiag) =
-    Diagonal(ȳ ./ X.diag)
+@generated function is_atom(
+    ctx::∇Ctx,
+    ::typeof(logdet),
+    X::∇MaybeTagged{<:Diagonal{<:∇Scalar}},
+)
+    return istaggedtype(X, ctx)
+end
+function ∇(::typeof(logdet), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::∇ScalarDiag)
+    return Diagonal(ȳ ./ X.diag)
+end
 function ∇(
     X̄::∇ScalarDiag,
     ::typeof(logdet),
@@ -149,9 +173,22 @@ end
 # machinery, so it knows how to deal.
 
 _diagm(x::∇AbstractVector, k::Integer=0) = diagm(k => x)
-LinearAlgebra.diagm(x::Pair{<:Integer, <:Node{<:∇AbstractVector}}) = _diagm(last(x), first(x))
+diagm(x::Pair{<:Integer, Tagged{C, <:∇AbstractVector} where C}) = _diagm(last(x), first(x))
+function execute(ctx::∇Ctx, ::typeof(diagm), x::Pair{<:Integer, <:∇AbstractVector})
+    return OverdubInstead()
+end
+function execute(ctx::∇Ctx, ::typeof(diagm), x::Pair{<:Integer, <:∇MaybeTaggedVec})
+    @show first(x), last(x), typeof(first(x)), typeof(last(x))
+    return execute(ctx, _diagm, last(x), first(x))
+end
 
-@explicit_intercepts _diagm Tuple{∇AbstractVector}
+@generated function is_atom(
+    ctx::∇Ctx,
+    ::typeof(_diagm),
+    x::∇MaybeTaggedVec,
+)
+    return istaggedtype(x, ctx)
+end
 function ∇(
     ::typeof(_diagm),
     ::Type{Arg{1}},
@@ -173,7 +210,15 @@ function ∇(
 )
     return broadcast!(+, x̄, x̄, view(Ȳ, diagind(Ȳ)))
 end
-@explicit_intercepts _diagm Tuple{∇AbstractVector, Integer} [true, false]
+
+@generated function is_atom(
+    ctx::∇Ctx,
+    ::typeof(_diagm),
+    x::∇MaybeTaggedVec,
+    k::Integer,
+)
+    return istaggedtype(x, ctx)
+end
 function ∇(
     ::typeof(_diagm),
     ::Type{Arg{1}},

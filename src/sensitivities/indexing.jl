@@ -1,9 +1,4 @@
-# Implementation of reverse-mode sensitivities for `getindex`.
-import Base.getindex
-for i = 1:7
-    T = Expr(:curly, :Tuple, fill(:Any, i)...)
-    @eval @explicit_intercepts getindex $T [[true]; fill(false, $i - 1)]
-end
+@generated is_atom(ctx::∇Ctx, ::typeof(getindex), A, inds...) = istaggedtype(A, ctx)
 
 function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
     Ā[inds...] += ȳ

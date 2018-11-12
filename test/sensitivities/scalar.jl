@@ -19,7 +19,7 @@ using Nabla: Arg
 end
 
 @testset "Scalar" begin
-    let v = 1.0, ȳ = 5.0, z̄ = 4.0, rng = MersenneTwister(123456)
+    let v = 1.0, ȳ = 5.0, z̄ = 4.0, rng = MersenneTwister(123456), S = 10
 
         unary_check(f, x) = check_errs(eval(f), ȳ, x, v)
         for (package, f) in Nabla.unary_sensitivities
@@ -28,7 +28,7 @@ end
             lb, ub = domain
             randx = () -> rand(rng) * (ub - lb) + lb
 
-            for _ in 1:10
+            for _ in 1:S
                 @test unary_check(f, randx())
             end
         end
@@ -53,7 +53,7 @@ end
                 randx = () -> rand(rng, 0:5)
                 randy = () -> rand(rng) * (ub - lb) + lb
 
-                for _ in 1:10
+                for _ in 1:S
                     x = randx()
                     @test check_errs(y -> eval(f)(x, y), ȳ, randy(), v)
                 end
@@ -65,7 +65,7 @@ end
                 randx = () -> rand(rng) * (ub - lb) + lb
                 randy = () -> rand(rng, 0:5)
 
-                for _ in 1:10
+                for _ in 1:S
                     y = randy()
                     @test check_errs(x -> eval(f)(x, y), randx(), ȳ, v)
                 end
@@ -76,7 +76,7 @@ end
                 randx = () -> rand(rng) * (x_ub - x_lb) + x_lb
                 randy = () -> rand(rng) * (y_ub - y_lb) + y_lb
 
-                for _ in 1:10
+                for _ in 1:S
                     @test check_errs(eval(f), z̄, (randx(), randy()), (v, v))
                 end
             else

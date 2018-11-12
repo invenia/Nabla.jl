@@ -70,8 +70,8 @@ function compute_Dv_update(
     # Randomly initialise leaves.
     inits = Vector(undef, length(rvs_tape))
     for i in eachindex(rvs_tape)
-        if is_leaf(fwd_tape[i][1])
-            inits[i] = randned_container(value(fwd_tape[i][1]))
+        if is_leaf(operation(fwd_tape[i]))
+            inits[i] = randned_container(value(operation(fwd_tape[i])))
             rvs_tape[i] = copy(inits[i])
         end
     end
@@ -81,7 +81,7 @@ function compute_Dv_update(
 
     # Substract the random initialisations.
     for i in eachindex(rvs_tape)
-        is_leaf(fwd_tape[i][1]) && (rvs_tape[i] -= inits[i])
+        is_leaf(operation(fwd_tape[i])) && (rvs_tape[i] -= inits[i])
     end
 
     return sum(map((n, v)->sum(rvs_tape[n] .* v), 1:length(x), v))
@@ -89,8 +89,6 @@ end
 function compute_Dv_update(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar)
     return compute_Dv_update(f, ȳ, (x,), (v,))
 end
-is_leaf(::Any) = true
-is_leaf(::Op) = false
 
 """
     check_errs(
