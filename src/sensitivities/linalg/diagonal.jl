@@ -1,8 +1,6 @@
 import LinearAlgebra: det, logdet, diagm, Diagonal, diag
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
-const ∇MaybeTaggedVec = ∇MaybeTagged{<:∇AbstractVector}
-const ∇MaybeTaggedMat = ∇MaybeTagged{<:∇AbstractMatrix}
 
 @generated function is_atom(ctx::∇Ctx, ::typeof(diag), X::∇MaybeTaggedMat)
     return istaggedtype(X, ctx)
@@ -175,9 +173,14 @@ end
 _diagm(x::∇AbstractVector, k::Integer=0) = diagm(k => x)
 diagm(x::Pair{<:Integer, Tagged{C, <:∇AbstractVector} where C}) = _diagm(last(x), first(x))
 function execute(ctx::∇Ctx, ::typeof(diagm), x::Pair{<:Integer, <:∇AbstractVector})
+    @show "aha, we're untagged"
     return OverdubInstead()
 end
-function execute(ctx::∇Ctx, ::typeof(diagm), x::Pair{<:Integer, <:∇MaybeTaggedVec})
+function execute(
+    ctx::∇Ctx,
+    ::typeof(diagm),
+    x::Pair{<:∇MaybeTagged{<:Integer}, <:∇MaybeTaggedVec},
+)
     @show first(x), last(x), typeof(first(x)), typeof(last(x))
     return execute(ctx, _diagm, last(x), first(x))
 end
@@ -215,7 +218,7 @@ end
     ctx::∇Ctx,
     ::typeof(_diagm),
     x::∇MaybeTaggedVec,
-    k::Integer,
+    k::∇MaybeTagged{<:Integer},
 )
     return istaggedtype(x, ctx)
 end

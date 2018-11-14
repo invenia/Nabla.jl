@@ -20,7 +20,9 @@ Julia.
 
 const AM = AbstractMatrix
 const UT = UpperTriangular
-@explicit_intercepts chol Tuple{AbstractMatrix{<:∇Scalar}}
+@generated function is_atom(ctx::∇Ctx, ::typeof(chol), X::∇MaybeTaggedMat{<:∇Scalar})
+    return istaggedtype(X, ctx)
+end
 ∇(::typeof(chol), ::Type{Arg{1}}, p, U::UT{T}, Ū::AM{T}, Σ::AM{T}) where T<:∇Scalar =
     chol_blocked_rev(Matrix(Ū), Matrix(U), 25, true)
 

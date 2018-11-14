@@ -28,13 +28,13 @@ using Nabla: oneslike, zeroslike
         # include("sensitivities/linalg/symmetric.jl")
         # include("sensitivities/linalg/uniformscaling.jl")
     #     include("sensitivities/linalg/blas.jl")
-        include("sensitivities/linalg/diagonal.jl")
-    #     include("sensitivities/linalg/triangular.jl")
+        # include("sensitivities/linalg/diagonal.jl")
+        # include("sensitivities/linalg/triangular.jl")
     #     include("sensitivities/linalg/strided.jl")
 
 
-    #     @testset "Factorisations" begin
-    #         include("sensitivities/linalg/factorization/cholesky.jl")
-    #     end
+        @testset "Factorisations" begin
+            include("sensitivities/linalg/factorization/cholesky.jl")
+        end
     end
 end

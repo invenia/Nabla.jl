@@ -5,7 +5,9 @@ const ∇ScalarUT = UpperTriangular{<:∇Scalar}
 
 for (ctor, T) in zip([:LowerTriangular, :UpperTriangular], [:∇ScalarLT, :∇ScalarUT])
 
-    @eval @explicit_intercepts $ctor Tuple{∇AbstractMatrix}
+    @eval @generated function is_atom(ctx::∇Ctx, ::typeof($ctor), X::∇MaybeTaggedMat)
+        return istaggedtype(X, ctx)
+    end
     @eval ∇(::Type{$ctor}, ::Type{Arg{1}}, p, Y::$T, Ȳ::$T, X::∇AbstractMatrix) = Matrix(Ȳ)
     @eval ∇(
         X̄::∇AbstractMatrix,
@@ -17,7 +19,9 @@ for (ctor, T) in zip([:LowerTriangular, :UpperTriangular], [:∇ScalarLT, :∇Sc
         X::∇AbstractMatrix,
     ) = broadcast!(+, X̄, X̄, Ȳ)
 
-    @eval @explicit_intercepts det Tuple{$T}
+    @eval @generated function is_atom(ctx::∇Ctx, ::typeof(det), X::∇MaybeTagged{<:$T})
+        return istaggedtype(X, ctx)
+    end
     @eval ∇(::typeof(det), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::$T) =
         Diagonal(ȳ .* y ./ view(X, diagind(X)))
 
@@ -51,7 +55,9 @@ for (ctor, T) in zip([:LowerTriangular, :UpperTriangular], [:∇ScalarLT, :∇Sc
         return X̄
     end
 
-    @eval @explicit_intercepts logdet Tuple{$T}
+    @eval @generated function is_atom(ctx::∇Ctx, ::typeof(logdet), X::∇MaybeTagged{<:$T})
+        return istaggedtype(X, ctx)
+    end
     @eval ∇(::typeof(logdet), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::$T) =
         Diagonal(ȳ ./ view(X, diagind(X)))
 

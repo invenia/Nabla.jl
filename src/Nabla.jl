@@ -27,13 +27,16 @@ module Nabla
     # Functionality for constructing computational graphs.
     include("core.jl")
 
+    const ∇MaybeTaggedVec = ∇MaybeTagged{<:∇AbstractVector}
+    const ∇MaybeTaggedMat = ∇MaybeTagged{<:∇AbstractMatrix}
+
     # Finite differencing functionality - only used in tests. Would be good to move this
     # into a separate module at some point.
     include("finite_differencing.jl")
 
     # Sensitivities for the basics.
     # include("sensitivities/indexing.jl")
-    # include("sensitivities/scalar.jl")
+    include("sensitivities/scalar.jl")
     # include("sensitivities/array.jl")
 
     # Sensitivities for functionals.
@@ -46,8 +49,8 @@ module Nabla
     # include("sensitivities/linalg/symmetric.jl")
     # include("sensitivities/linalg/strided.jl")
     # include("sensitivities/linalg/blas.jl")
-    include("sensitivities/linalg/diagonal.jl")
-    # include("sensitivities/linalg/triangular.jl")
+    # include("sensitivities/linalg/diagonal.jl")
+    include("sensitivities/linalg/triangular.jl")
     # include("sensitivities/linalg/factorization/cholesky.jl")
 
 end # module Nabla

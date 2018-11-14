@@ -46,8 +46,8 @@
         A = UpperTriangular(exp.(randn(rng, 10, 10)))
 
         @test ∇(det)(A)[1] isa Diagonal
-        @test ∇(A->det(A) + det(A))(A)[1] isa Diagonal
+        @test ∇(A->det(A) + det(A))(A)[1] isa Diagonal # Requires scalar.jl
         @test ∇(logdet)(A)[1] isa Diagonal
-        @test ∇(A->logdet(A) + det(A))(A)[1] isa Diagonal
+        @test ∇(A->logdet(A) + det(A))(A)[1] isa Diagonal # Requires scalar.jl
     end
 end

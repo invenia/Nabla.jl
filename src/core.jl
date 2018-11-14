@@ -35,7 +35,7 @@ is_leaf(::Op) = false
 value(op::Op) = op.value
 
 function show(io::IO, op::Op)
-    print(io, "$(op.f) (Op)")
+    print(io, "(Op  ) $(op.f)")
 end
 function show(io::IO, mime::MIME"text/plain", op::Op)
     println("Op where")
@@ -46,7 +46,7 @@ function show(io::IO, mime::MIME"text/plain", op::Op)
 end
 
 function show(io::IO, op::Leaf)
-    print(io, "$(value(op)) (Leaf)")
+    print(io, "(Leaf) $(typeof(op.value))")
 end
 
 struct TapePair
@@ -64,7 +64,13 @@ function show(io::IO, mime::MIME"text/plain", tape::Tape)
     else
         println("$(length(tape))-element Tape:")
         for (n, pair) in enumerate(tape)
-            str = " %$n = $pair"
+            if operation(pair) isa Leaf
+                str = " %$n = $(operation(pair))"
+            else
+                args = ["%" .* string.(positions(pair)) .* ", "...]
+                args[end] = args[end][1:end-2]
+                str = " %$n = $(operation(pair))($(args...))"
+            end
             (n == length(tape) ? print : println)(str)
         end
     end
