@@ -2,7 +2,8 @@
 import Base.getindex
 for i = 1:7
     T = Expr(:curly, :Tuple, fill(:Any, i)...)
-    @eval @explicit_intercepts getindex $T [[true]; fill(false, $i - 1)]
+    is_node = Expr(:vect, true, fill(false, i - 1)...)
+    @eval @explicit_intercepts getindex $T $is_node
 end
 
 function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)

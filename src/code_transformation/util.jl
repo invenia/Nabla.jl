@@ -143,3 +143,18 @@ function parse_kwargs_parameters(param_tuple_expr)
     # (:kw vs :())
     return parse_kwargs_tuple(param_tuple_expr.args[1])
 end
+
+"""
+    parse_is_node(bool_array_expr) -> Vector{Bool}
+
+Accepts an expression containing a `Vector{Bool}` literal and parses it into a
+`Vector{Bool}`.
+"""
+function parse_is_node(bool_array_expr)
+    if bool_array_expr.head != :vect
+        throw(ArgumentError("Unsupported expression $bool_array_expr for is_node; "
+            * "it must be passed as a `Vector{Bool}` literal (e.g., `[true, false]`)"))
+    end
+
+    return collect(Bool, bool_array_expr.args)
+end

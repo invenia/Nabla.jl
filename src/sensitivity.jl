@@ -39,10 +39,12 @@ to add to the function signature can be specified in `kwargs`, which must be a `
 macro explicit_intercepts(
     f::SymOrExpr,
     type_tuple::Expr,
-    is_node::Expr=:([true for _ in $(get_types(get_body(type_tuple)))]),
+    is_node::Expr=Expr(:vect, (true for _ in get_types(get_body(type_tuple)))...),
     kwargs::Expr=:(()),
 )
-    return esc(explicit_intercepts(f, type_tuple, eval(is_node); parse_kwargs(kwargs)...))
+    return esc(
+        explicit_intercepts(f, type_tuple, parse_is_node(is_node); parse_kwargs(kwargs)...)
+    )
 end
 
 """

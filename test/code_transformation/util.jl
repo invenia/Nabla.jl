@@ -68,4 +68,11 @@
             NamedTuple{(:a, :b)}((:(sum(1:10)), :(:c)))
         @test_throws ArgumentError Nabla.parse_kwargs(:([a => 2]))
     end
+
+    @testset "parse_is_node" begin
+        @test Nabla.parse_is_node(:([])) == Bool[]
+        @test Nabla.parse_is_node(:([true])) == [true]
+        @test Nabla.parse_is_node(:([true, false])) == [true, false]
+        @test_throws ArgumentError Nabla.parse_is_node(:((true, false)))
+    end
 end
