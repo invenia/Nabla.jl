@@ -56,4 +56,23 @@
     @test Nabla.replace_vararg(:(T where T), (:T, :2)) == :(Vararg{T, 2} where T)
     @test Nabla.replace_vararg(:(U{T} where T), (:T, :N)) == :(Vararg{U{T}, N} where T)
     @test Nabla.replace_vararg(:(U{T} where N), (:T, :N)) == :(Vararg{U{T}, N} where N)
+
+    @testset "parse_kwargs" begin
+        @test Nabla.parse_kwargs(:(())) == NamedTuple()
+        @test Nabla.parse_kwargs(:(NamedTuple())) == NamedTuple()
+        @test Nabla.parse_kwargs(:((a = 1, b = 2))) == NamedTuple{(:a, :b)}((1, 2))
+        @test Nabla.parse_kwargs(:((; a = 1, b = 2))) == NamedTuple{(:a, :b)}((1, 2))
+        @test Nabla.parse_kwargs(:((a = sum(1:10), b = :c))) ==
+            NamedTuple{(:a, :b)}((:(sum(1:10)), :(:c)))
+        @test Nabla.parse_kwargs(:((; a = sum(1:10), b = :c))) ==
+            NamedTuple{(:a, :b)}((:(sum(1:10)), :(:c)))
+        @test_throws ArgumentError Nabla.parse_kwargs(:([a => 2]))
+    end
+
+    @testset "parse_is_node" begin
+        @test Nabla.parse_is_node(:([])) == Bool[]
+        @test Nabla.parse_is_node(:([true])) == [true]
+        @test Nabla.parse_is_node(:([true, false])) == [true, false]
+        @test_throws ArgumentError Nabla.parse_is_node(:((true, false)))
+    end
 end

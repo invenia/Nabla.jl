@@ -11,7 +11,7 @@ should be provided as a `NamedTuple` and be added to the generated function's si
 """
 macro union_intercepts(f::Symbol, type_tuple::Expr, invoke_type_tuple::Expr, kwargs::Expr=:(()))
     kwargs.head === :tuple || throw(ArgumentError("malformed keyword argument specification"))
-    return esc(union_intercepts(f, type_tuple, invoke_type_tuple; eval(kwargs)...))
+    return esc(union_intercepts(f, type_tuple, invoke_type_tuple; parse_kwargs(kwargs)...))
 end
 
 """
@@ -39,10 +39,12 @@ to add to the function signature can be specified in `kwargs`, which must be a `
 macro explicit_intercepts(
     f::SymOrExpr,
     type_tuple::Expr,
-    is_node::Expr=:([true for _ in $(get_types(get_body(type_tuple)))]),
+    is_node::Expr=Expr(:vect, (true for _ in get_types(get_body(type_tuple)))...),
     kwargs::Expr=:(()),
 )
-    return esc(explicit_intercepts(f, type_tuple, eval(is_node); eval(kwargs)...))
+    return esc(
+        explicit_intercepts(f, type_tuple, parse_is_node(is_node); parse_kwargs(kwargs)...)
+    )
 end
 
 """

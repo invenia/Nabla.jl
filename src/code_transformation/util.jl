@@ -110,3 +110,51 @@ replace_vararg(typ::SymOrExpr, vararg_info::Tuple) =
         vararg_info[2] == :no_N || vararg_info[2] == :Vararg ?
             replace_body(typ, :(Vararg{$(get_body(typ))})) :
             replace_body(typ, :(Vararg{$(get_body(typ)), $(vararg_info[2])}))
+
+"""
+    parse_kwargs(nt_expr) -> NamedTuple
+
+Accepts an expression containing a `NamedTuple` literal and parses it into a `NamedTuple`
+with expressions as values.
+"""
+function parse_kwargs(nt_expr)
+    if isempty(nt_expr.args) || nt_expr == Expr(:call, :NamedTuple)
+        return NamedTuple()
+    end
+
+    first_arg = first(nt_expr.args)
+    if first_arg isa Expr && first_arg.head == :parameters
+        return parse_kwargs_parameters(nt_expr)
+    elseif first_arg isa Expr && first_arg.head == :(=)
+        return parse_kwargs_tuple(nt_expr)
+    else
+        throw(ArgumentError("Unsupported expression $nt_expr for kwargs;"
+            * " they must be passed as a NamedTuple literal"))
+    end
+end
+
+function parse_kwargs_tuple(tup_expr)
+    nt_names = Tuple(first(ex.args) for ex in tup_expr.args)
+    return NamedTuple{nt_names}(last(ex.args) for ex in tup_expr.args)
+end
+
+function parse_kwargs_parameters(param_tuple_expr)
+    # code is the same even though the inner args are also different expression types
+    # (:kw vs :())
+    return parse_kwargs_tuple(param_tuple_expr.args[1])
+end
+
+"""
+    parse_is_node(bool_array_expr) -> Vector{Bool}
+
+Accepts an expression containing a `Vector{Bool}` literal and parses it into a
+`Vector{Bool}`.
+"""
+function parse_is_node(bool_array_expr)
+    if bool_array_expr.head != :vect
+        throw(ArgumentError("Unsupported expression $bool_array_expr for is_node; "
+            * "it must be passed as a `Vector{Bool}` literal (e.g., `[true, false]`)"))
+    end
+
+    return collect(Bool, bool_array_expr.args)
+end
