@@ -144,3 +144,9 @@ function ∇(B̄::A, ::typeof(kron), ::Type{Arg{2}}, p, Y::A, Ȳ::A, A::A, B::A
     end
     return B̄
 end
+
+@explicit_intercepts Base.:+ Tuple{A, UniformScaling}
+∇(::typeof(+), ::Type{Arg{1}}, p, Y::∇Array, Ȳ::∇Array, A::∇Array, B::UniformScaling) = Ȳ
+
+@explicit_intercepts Base.:+ Tuple{UniformScaling, A}
+∇(::typeof(+), ::Type{Arg{2}}, p, Y::∇Array, Ȳ::∇Array, A::UniformScaling, B::∇Array) = Ȳ
