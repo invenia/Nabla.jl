@@ -8,6 +8,7 @@ unary_linalg_optimisations = [
     (:logdet,     ∇Array,  ∇Scalar, :(Ȳ * transpose(inv(X))),            (_ϵ, ub)),
     (:transpose,  ∇Array,  ∇Array,  :(transpose(Ȳ)),                     (lb, ub)),
     (:adjoint,    ∇Array,  ∇Array,  :(adjoint(Ȳ)),                       (lb, ub)),
+    (:adjoint,    ∇Scalar,  ∇Scalar,  :(adjoint(Ȳ)),                     (lb, ub)),
     (:norm,       ∇Array,  ∇Scalar, :(Ȳ ./ Y .* abs2.(X) ./ X),          (lb, ub)),
     (:norm,       ∇Scalar, ∇Scalar, :(Ȳ * sign(X)),                      (lb, ub))
 ]
