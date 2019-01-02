@@ -174,7 +174,7 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 Returns a function which, when evaluated with arguments that are accepted by `f`, will
 return the gradient w.r.t. each of the arguments.
 """
-function ∇(f, get_output::Bool=false)
+function ∇(f; get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
