@@ -231,4 +231,12 @@ using DiffRules: diffrule, hasdiffrule
             @test allocs(@benchmark ∇(foo_small())) == allocs(@benchmark ∇(foo_large()))
         end
     end
+
+    # #111
+    let
+        f(x) = sum(Float64[1,2,3] .* (x .+ Float64[3,2,1]))
+        ∇f = ∇(f)
+        @test ∇(f)(Float64[1,2,3]) isa Tuple{Vector{Float64}}
+        @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+    end
 end
