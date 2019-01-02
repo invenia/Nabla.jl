@@ -151,7 +151,7 @@ end
 let
     f(x, y) = 2x + y
     ∇f = ∇(f)
-    ∇f_out = ∇(f, true)
+    ∇f_out = ∇(f; get_output=true)
 
     @test_throws MethodError ∇f(randn(5), randn(5))
     x, y = randn(), randn()

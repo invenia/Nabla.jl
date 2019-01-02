@@ -41,7 +41,7 @@ This interface is implemented in `core.jl`, and is a thin wrapper of the low-lev
 
 We may provide an optional argument to also return the value `f(x, y)`:
 ```@example toy
-(z, (∇x, ∇y)) = ∇(f, true)(x, y)
+(z, (∇x, ∇y)) = ∇(f; get_output=true)(x, y)
 ```
 
 If the gradient w.r.t. a single argument is all that is required, or a subset of the arguments for an N-ary function, we recommend closing over the arguments which respect to which you do not wish to take gradients. For example, to take the gradient w.r.t. just `x`, one could do the following:
