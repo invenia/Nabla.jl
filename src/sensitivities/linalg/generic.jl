@@ -151,3 +151,10 @@ end
 
 @explicit_intercepts Base.:+ Tuple{UniformScaling, A}
 ∇(::typeof(+), ::Type{Arg{2}}, p, Y::∇Array, Ȳ::∇Array, A::UniformScaling, B::∇Array) = Ȳ
+
+# Short-form `dot`.
+@explicit_intercepts LinearAlgebra.dot Tuple{∇Array, ∇Array}
+∇(::typeof(LinearAlgebra.dot), ::Type{Arg{1}}, p, z, z̄, x::A, y::A) = z̄ .* y
+∇(::typeof(LinearAlgebra.dot), ::Type{Arg{2}}, p, z, z̄, x::A, y::A) = z̄ .* x
+∇(x̄, ::typeof(LinearAlgebra.dot), ::Type{Arg{1}}, p, z, z̄, x::A, y::A) = (x̄ .= x̄ .+ z̄ .* y)
+∇(ȳ, ::typeof(LinearAlgebra.dot), ::Type{Arg{2}}, p, z, z̄, x::A, y::A) = (ȳ .= ȳ .+ z̄ .* x)

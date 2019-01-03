@@ -3,13 +3,6 @@ import LinearAlgebra.BLAS: asum, dot, blascopy!, nrm2, scal, scal!, gemm, gemm!,
 
 const SA = StridedArray
 
-# Short-form `dot`.
-@explicit_intercepts dot Tuple{StridedArray, StridedArray}
-∇(::typeof(dot), ::Type{Arg{1}}, p, z, z̄, x::SA, y::SA) = z̄ .* y
-∇(::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = z̄ .* x
-∇(x̄, ::typeof(dot), ::Type{Arg{1}}, p, z, z̄, x::SA, y::SA) = (x̄ .= x̄ .+ z̄ .* y)
-∇(ȳ, ::typeof(dot), ::Type{Arg{2}}, p, z, z̄, x::SA, y::SA) = (ȳ .= ȳ .+ z̄ .* x)
-
 # Long-form `dot`.
 @explicit_intercepts(
     dot,

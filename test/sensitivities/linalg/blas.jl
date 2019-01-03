@@ -3,12 +3,6 @@ using LinearAlgebra.BLAS
 @testset "BLAS" begin
     let rng = MersenneTwister(123456)
         for _ in 1:10
-            x, y, vx, vy = randn.(Ref(rng), [5, 5, 5, 5])
-            @test check_errs(BLAS.dot, BLAS.dot(x, y), (x, y), (vx, vy))
-        end
-    end
-    let rng = MersenneTwister(123456)
-        for _ in 1:10
             x, y, vx, vy = randn.(Ref(rng), [10, 6, 10, 6])
             _dot = (x, y)->BLAS.dot(5, x, 2, y, 1)
             @test check_errs(_dot, _dot(x, y), (x, y), (vx, vy))
