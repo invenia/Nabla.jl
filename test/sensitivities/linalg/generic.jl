@@ -35,4 +35,12 @@
         end
 
     end
+
+    # dot
+    let rng = MersenneTwister(123456)
+        for _ in 1:10
+            x, y, vx, vy = randn.(Ref(rng), [5, 5, 5, 5])
+            @test check_errs(LinearAlgebra.dot, LinearAlgebra.dot(x, y), (x, y), (vx, vy))
+        end
+    end
 end
