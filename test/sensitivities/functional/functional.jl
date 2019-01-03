@@ -216,6 +216,8 @@ using DiffRules: diffrule, hasdiffrule
             check_binary_dot(eval(f), x, y)
             check_binary_dot(eval(f), rand(rng, x_distr), y)
             check_binary_dot(eval(f), x, rand(rng, y_distr))
+            check_binary_dot(eval(f), Ref(rand(rng, x_distr)), y)
+            check_binary_dot(eval(f), x, Ref(rand(rng, y_distr)))
             check_binary_dot(eval(f), rand(rng, x_distr), rand(rng, y_distr))
         end
     end

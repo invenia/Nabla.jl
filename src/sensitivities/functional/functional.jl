@@ -77,8 +77,11 @@ function broadcastsum(f, add::Bool, z::Number, As...)
     return sum(broadcast!(f, tmp, As...)) + (add ? z : zero(z))
 end
 
+broadcastsum(f, add::Bool, z::Ref{<:Number}, As...) = broadcastsum(f, add, z[], As...)
+
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A::∇ArrayOrScalar...) where N =
+const ∇Broadcastable = Union{∇ArrayOrScalar, Ref{<:∇Scalar}}
+∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A::∇Broadcastable...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
