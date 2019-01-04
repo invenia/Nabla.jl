@@ -237,7 +237,6 @@ using DiffRules: diffrule, hasdiffrule
     # #111
     let
         f(x) = sum(Float64[1,2,3] .* (x .+ Float64[3,2,1]))
-        ∇f = ∇(f)
         @test ∇(f)(Float64[1,2,3]) isa Tuple{Vector{Float64}}
         @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
     end
@@ -245,8 +244,14 @@ using DiffRules: diffrule, hasdiffrule
     # #117
     let
         f(x) = sum(x .+ [1,2,4] .* [4,2,1])
-        ∇f = ∇(f)
         @test ∇(f)(Float64[1,2,3])[1] == ones(Float64, 3)
+        @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+    end
+
+    # broadcasting literal_pow
+    let
+        f(x) = sum(x .^ 2)
+        @test ∇(f)(Float64[1,2,3])[1] == Float64[2,4,6]
         @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
     end
 end
