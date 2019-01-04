@@ -80,8 +80,7 @@ end
 broadcastsum(f, add::Bool, z::Ref{<:Number}, As...) = broadcastsum(f, add, z[], As...)
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-const ∇Broadcastable = Union{∇ArrayOrScalar, Ref{<:∇Scalar}, Broadcasted}
-∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A::∇Broadcastable...) where N =
+∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
