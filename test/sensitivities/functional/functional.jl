@@ -241,4 +241,12 @@ using DiffRules: diffrule, hasdiffrule
         @test ∇(f)(Float64[1,2,3]) isa Tuple{Vector{Float64}}
         @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
     end
+
+    # #117
+    let
+        f(x) = sum(x .+ [1,2,4] .* [4,2,1])
+        ∇f = ∇(f)
+        @test ∇(f)(Float64[1,2,3])[1] == ones(Float64, 3)
+        @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+    end
 end

@@ -20,7 +20,7 @@ map(f, x::AbstractArray{<:Number}) =
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 using Base.Broadcast
-using Base.Broadcast: Broadcasted, broadcastable, broadcast_axes, broadcast_shape
+using Base.Broadcast: Broadcasted, broadcastable, broadcast_axes, combine_axes
 
 struct NodeStyle{S} <: BroadcastStyle end
 
@@ -48,7 +48,7 @@ Broadcast f over As and reduce to z by summing. If add is true, then the result 
 the current value of z, otherwise it is overwritten.
 """
 function broadcastsum!(f::Function, add::Bool, z, As...)
-    tmp_shape = broadcast_shape(map(size, As)...)
+    tmp_shape = map(length, combine_axes(As...))
     if size(z) != tmp_shape
         tmp = Array{eltype(z)}(undef, tmp_shape)
         return sum!(z, broadcast!(f, tmp, As...), init=!add)
@@ -73,14 +73,14 @@ broadcastsum(f, add::Bool, z::AbstractArray, As...) =
 Specialisation of broadcastsum to Number-sized outputs.
 """
 function broadcastsum(f, add::Bool, z::Number, As...)
-    tmp = Array{eltype(z)}(undef, broadcast_shape(map(size, As)...))
+    tmp = Array{eltype(z)}(undef, map(length, combine_axes(As...)))
     return sum(broadcast!(f, tmp, As...)) + (add ? z : zero(z))
 end
 
 broadcastsum(f, add::Bool, z::Ref{<:Number}, As...) = broadcastsum(f, add, z[], As...)
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
-const ∇Broadcastable = Union{∇ArrayOrScalar, Ref{<:∇Scalar}}
+const ∇Broadcastable = Union{∇ArrayOrScalar, Ref{<:∇Scalar}, Broadcasted}
 ∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A::∇Broadcastable...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
