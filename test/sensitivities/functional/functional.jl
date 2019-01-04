@@ -220,6 +220,15 @@ using DiffRules: diffrule, hasdiffrule
             check_binary_dot(eval(f), x, Ref(rand(rng, y_distr)))
             check_binary_dot(eval(f), rand(rng, x_distr), rand(rng, y_distr))
         end
+
+        # test with other broadcast styles
+        let
+            a = Diagonal(ones(3))
+            b = ones(3, 3)
+            check_binary_dot(+, a, b)
+            check_binary_dot(+, b, a)
+            check_binary_dot(+, a, a)
+        end
     end
 
     # Check that the number of allocations which happen in the reverse pass of `map` and
@@ -253,5 +262,14 @@ using DiffRules: diffrule, hasdiffrule
         f(x) = sum(x .^ 2)
         @test ∇(f)(Float64[1,2,3])[1] == Float64[2,4,6]
         @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+    end
+
+    # fused broadcasting with different styles
+    let
+        f(x) = sum(Symmetric(x) .+ 0.0001 .* Diagonal(ones(size(x, 1))))
+        a = rand(3, 3)
+        a += transpose(a)
+        @test ∇(f)(a)[1] == Float64[1 2 2; 0 1 2; 0 0 1]
+        @test ∇(f; get_output=true)(a)[1].val == f(a)
     end
 end
