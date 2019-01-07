@@ -20,17 +20,21 @@ map(f, x::AbstractArray{<:Number}) =
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 using Base.Broadcast
-using Base.Broadcast: Broadcasted, broadcastable, broadcast_axes, combine_axes
+using Base.Broadcast: Broadcasted, broadcastable, broadcast_axes, combine_axes, result_style
 
 struct NodeStyle{S} <: BroadcastStyle end
 
 Base.BroadcastStyle(::Type{<:Node{T}}) where {T} = NodeStyle{BroadcastStyle(T)}()
 
 Base.BroadcastStyle(::NodeStyle{S}, ::NodeStyle{S}) where {S} = NodeStyle{S}()
-Base.BroadcastStyle(::NodeStyle{S1}, ::NodeStyle{S2}) where {S1,S2} =
-    NodeStyle{BroadcastStyle(S1, S2)}()
-Base.BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S} =
-    NodeStyle{BroadcastStyle(S, B)}()
+function Base.BroadcastStyle(::NodeStyle{S1}, ::NodeStyle{S2}) where {S1,S2}
+    promoted = result_style(S1, S2)
+    promoted isa Broadcast.Unknown ? promoted : NodeStyle{promoted}()
+end
+function Base.BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S}
+    promoted = result_style(S, B)
+    promoted isa Broadcast.Unknown ? promoted : NodeStyle{promoted}()
+end
 
 Broadcast.broadcast_axes(x::Node) = broadcast_axes(x.val)
 Broadcast.broadcastable(x::Node) = x
