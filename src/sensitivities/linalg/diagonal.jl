@@ -126,10 +126,10 @@ function ∇(
     ::Type{Arg{1}},
     p,
     Y::∇ScalarDiag,
-    Ȳ::∇ScalarDiag,
+    Ȳ::∇AbstractMatrix,
     x::∇AbstractVector,
 )
-    return copy!(similar(x), Ȳ.diag)
+    return copy!(similar(x), diag(Ȳ))
 end
 function ∇(
     x̄::∇AbstractVector,
@@ -137,10 +137,10 @@ function ∇(
     ::Type{Arg{1}},
     p,
     Y::∇ScalarDiag,
-    Ȳ::∇ScalarDiag,
+    Ȳ::∇AbstractMatrix,
     x::∇AbstractVector,
 )
-    return broadcast!(+, x̄, x̄, Ȳ.diag)
+    return broadcast!(+, x̄, x̄, diag(Ȳ))
 end
 
 @explicit_intercepts Diagonal Tuple{∇AbstractMatrix}

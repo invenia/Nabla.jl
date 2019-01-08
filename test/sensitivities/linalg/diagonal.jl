@@ -62,4 +62,13 @@
             @test check_errs(logdet, 10.0, A, VA)
         end
     end
+
+    # test that both diagonal implementations are correct and the same
+    let
+        f1(x) = sum(Diagonal(x))
+        f2(x) = sum(diagm(x))
+
+        @test ∇(f1)(ones(4))[1] == ones(4)
+        @test ∇(f2)(ones(4))[1] == ones(4)
+    end
 end
