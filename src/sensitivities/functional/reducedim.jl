@@ -5,16 +5,15 @@ import Base: mapreduce, sum
         mapreduce,
         Tuple{Function, $plustype, AbstractArray{<:∇Scalar}},
         [false, false, true],
-        (dims=:, init=nothing),
+        (dims=:,),
     )
     function ∇(
-        ::typeof(mapreduce),
+        ::typeof($(kwfname(mapreduce))),
         ::Type{Arg{3}},
         p, y, ȳ, f,
         ::$plustype,
-        A::AbstractArray{<:∇Scalar};
+        A::AbstractArray{<:∇Scalar},
         dims=:,
-        init=nothing,
     )
         hasmethod(∇, Tuple{typeof(f), Type{Arg{1}}, ∇Scalar}) ?
             broadcast((An, ȳn)->ȳn * ∇(f, Arg{1}, An), A, ȳ) :
