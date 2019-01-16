@@ -1,7 +1,7 @@
 using MNIST, Nabla
 
 """ Implementation of the Adam optimiser. """
-type Adam{T<:AbstractArray}
+mutable struct Adam{T<:AbstractArray}
     α::Float64
     β1::Float64
     β2::Float64
@@ -11,7 +11,7 @@ type Adam{T<:AbstractArray}
     β2_acc::Float64
     ϵ::Float64
 end
-function Adam{T<:AbstractArray}(θ0::T, α::Float64, β1::Float64, β2::Float64, ϵ::Float64)
+function Adam(θ0::AbstractArray, α::Float64, β1::Float64, β2::Float64, ϵ::Float64)
     return Adam(α, β1, β2, zeros(θ0), zeros(θ0), β1, β2, ϵ)
 end
 
@@ -30,7 +30,7 @@ function iterate!(θ::AbstractArray{Float64}, ∇θ::AbstractArray{Float64}, opt
 end
 
 function to1hot(y_::Vector)
-    y = Matrix{Int}(10, length(y_))
+    y = Matrix{Int}(undef, 10, length(y_))
     for n in eachindex(y_)
         for j in 1:10
             y[j, n] = y_[n] == j - 1 ? 1 : 0
@@ -38,7 +38,7 @@ function to1hot(y_::Vector)
     end
     return y
 end
-accuracy(Y, Ypr) = mean(all(Y .== Ypr, 1))
+accuracy(Y, Ypr) = mean(all(Y .== Ypr, dims=1))
 @inline logistic(x) = 1 ./ (1 .+ exp.(-x))
 
 """
@@ -66,7 +66,7 @@ function mlp_log_joint(X, Y, W, b, λ)
 
     # Compute the output of the MLP.
     f = logistic.(apply_transforms(X, W, b, tanh))
-    f = f ./ sum(f, 1)
+    f = f ./ sum(f, dims=1)
 
     # Compute the log likelihood of the observations given the outputs of the MLP. We assume
     ϵ = 1e-15
@@ -102,7 +102,7 @@ function demo_mlp(itrs::Int, sz::Int)
     # Initialise the Adam optimiser.
     α, β1, β2, ϵ = 1e-3, 0.9, 0.999, 1e-8
     optW, optb = Adam.(W_, α, β1, β2, ϵ), Adam.(b_, α, β1, β2, ϵ)
- 
+
     # Iterate to learn the parameters.
     println("Starting learning.")
     scal = size(xtr, 2) / sz
@@ -124,15 +124,15 @@ function demo_mlp(itrs::Int, sz::Int)
         # Compute most probably classification for each observation in the batch.
         ypr = zeros(d3, sz)
         for n in 1:sz
-            ypr[indmax(f.val[:, n]), n] = 1.
+            ypr[argmax(Nabla.unbox(f)[:, n]), n] = 1.
         end
         acc = accuracy(ytr_batch, ypr)
 
         # Update the parameters using AdaGrad by indexing into the ∇logp tape.
         iterate!.(W_, getindex.(∇logp, W), optW)
         iterate!.(b_, getindex.(∇logp, b), optb)
-        println("logp is $(logp.val) at iteration $itr. Mean loglik is ",
-            "$(logp.val / size(xtr, 2)). Accuracy is $acc")
+        println("logp is $(Nabla.unbox(logp)) at iteration $itr. Mean loglik is ",
+            "$(Nabla.unbox(logp) / size(xtr, 2)). Accuracy is $acc")
     end
 end
 

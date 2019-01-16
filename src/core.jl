@@ -14,24 +14,24 @@ struct Tape
     Tape() = new(Vector{Any}())
     Tape(N::Int) = new(Vector{Any}(undef, N))
 end
-function show(io::IO, tape::Tape)
-    if length(tape) == 0
+function show(io::IO, t::Tape)
+    if length(t) == 0
         println(io, "Empty tape.")
     else
-        for n in eachindex(tape)
-            println(io, n, " ", isassigned(tape.tape, n) ? tape[n] : "#undef")
+        for n in eachindex(t)
+            println(io, n, " ", isassigned(tape(t), n) ? t[n] : "#undef")
         end
     end
 end
-@inline getindex(tape::Tape, n::Int) = Base.getindex(tape.tape, n)
-@inline getindex(tape::Tape, node::Node) = Base.getindex(tape, node.pos)
-@inline lastindex(tape::Tape) = length(tape)
-@inline setindex!(tape::Tape, x, n::Int) = (tape.tape[n] = x; tape)
-@inline eachindex(tape::Tape) = eachindex(tape.tape)
-@inline length(tape::Tape) = length(tape.tape)
-@inline push!(tape::Tape, node::Node) = (push!(tape.tape, node); tape)
-@inline isassigned(tape::Tape, n::Int) = isassigned(tape.tape, n)
-@inline isassigned(tape::Tape, node::Node) = isassigned(tape, node.pos)
+@inline getindex(t::Tape, n::Int) = getindex(tape(t), n)
+@inline getindex(t::Tape, node::Node) = getindex(t, pos(node))
+@inline lastindex(t::Tape) = length(t)
+@inline setindex!(t::Tape, x, n::Int) = (tape(t)[n] = x; t)
+@inline eachindex(t::Tape) = eachindex(tape(t))
+@inline length(t::Tape) = length(tape(t))
+@inline push!(t::Tape, node::Node) = (push!(tape(t), node); t)
+@inline isassigned(t::Tape, n::Int) = isassigned(tape(t), n)
+@inline isassigned(t::Tape, node::Node) = isassigned(t, pos(node))
 
 # Make `Tape`s broadcast as scalars without a warning on 0.7
 Base.Broadcast.broadcastable(tape::Tape) = Ref(tape)
@@ -54,8 +54,8 @@ function Leaf(tape::Tape, val)
     push!(tape, leaf)
     return leaf
 end
-show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(tape.val)")
-show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(tape.val))")
+show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(unbox(tape))")
+show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(unbox(tape)))")
 
 """
 A Branch is a Node with parents (args).
@@ -81,9 +81,17 @@ function Branch(f, args::Tuple, tape::Tape; kwargs...)
     return branch
 end
 show(io::IO, branch::Branch{T}) where T =
-    print(io, "Branch{$T} $(branch.val) f=$(branch.f)")
+    print(io, "Branch{$T} $(unbox(branch)) f=$(getfield(branch, :f))")
 show(io::IO, branch::Branch{T}) where T<:AbstractArray =
-    print(io, "Branch{$T} $(size(branch.val)) f=$(branch.f)")
+    print(io, "Branch{$T} $(size(unbox(branch))) f=$(getfield(branch, :f))")
+
+"""
+    tape(x::Node)
+    tape(x::Tape)
+
+Retrieve the `Tape` in a `Node`, or the underyling vector in a `Tape`.
+"""
+tape(x::Union{Node,Tape}) = getfield(x, :tape)
 
 """
     pos(x::Node)
@@ -91,7 +99,7 @@ show(io::IO, branch::Branch{T}) where T<:AbstractArray =
 
 Location of Node on tape. -1 if not a Node object.
 """
-pos(x::Node) = x.pos
+pos(x::Node) = getfield(x, :pos)
 pos(x) = -1
 
 """
@@ -100,7 +108,7 @@ pos(x) = -1
 
 Get `.val` if `x` is a Node, otherwise is equivalent to `identity`.
 """
-unbox(x::Node) = x.val
+unbox(x::Node) = getfield(x, :val)
 unbox(x) = x
 
 isapprox(n::Node, f) = unbox(n) ≈ f
@@ -112,16 +120,17 @@ one(n::Node) = one(unbox(n))
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
-    tape = rvs_tape.tape
-    ȳ, f = tape[y.pos], y.f
-    xs, xids = map(unbox, y.args), map(pos, y.args)
-    p = preprocess(f, y.val, ȳ, xs...)
+    tape = Nabla.tape(rvs_tape)
+    ȳ, f = tape[pos(y)], getfield(y, :f)
+    args = getfield(y, :args)
+    xs, xids = map(unbox, args), map(pos, args)
+    p = preprocess(f, unbox(y), ȳ, xs...)
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
         if xid > 0
             tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, y.val, ȳ, xs...) :
-                ∇(f, Arg{j}, p, y.val, ȳ, xs...)
+                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...) :
+                ∇(f, Arg{j}, p, unbox(y), ȳ, xs...)
         end
     end
     return nothing
@@ -130,7 +139,7 @@ end
 function propagate(fwd_tape::Tape, rvs_tape::Tape)
     for n in eachindex(rvs_tape)
         δ = length(rvs_tape) - n + 1
-        isassigned(rvs_tape.tape, δ) && propagate(fwd_tape[δ], rvs_tape)
+        isassigned(tape(rvs_tape), δ) && propagate(fwd_tape[δ], rvs_tape)
     end
     return rvs_tape
 end
@@ -138,7 +147,7 @@ end
 
 """ Initialise a Tape appropriately for being used as a reverse-tape. """
 function reverse_tape(y::Node, ȳ)
-    tape = Tape(y.pos)
+    tape = Tape(pos(y))
     tape[end] = ȳ
     return tape
 end
@@ -163,8 +172,8 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
-∇(y::Node, ȳ) = propagate(y.tape, reverse_tape(y, ȳ))
-@inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(y.val))
+∇(y::Node, ȳ) = propagate(tape(y), reverse_tape(y, ȳ))
+@inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(unbox(y)))
 
 @inline ∇(x̄, f, ::Type{Arg{N}}, args...) where N = x̄ + ∇(f, Arg{N}, args...)
 

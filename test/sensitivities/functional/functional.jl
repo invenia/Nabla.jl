@@ -22,7 +22,7 @@ using DiffRules: diffrule, hasdiffrule
         function check_unary_broadcast(f, x)
             x_ = Leaf(Tape(), x)
             s = broadcast(f, x_)
-            return ∇(s, oneslike(s.val))[x_] ≈ ∇.(f, Arg{1}, x)
+            return ∇(s, oneslike(unbox(s)))[x_] ≈ ∇.(f, Arg{1}, x)
         end
         for (package, f) in Nabla.unary_sensitivities
             domain = domain1(eval(f))
@@ -38,13 +38,13 @@ using DiffRules: diffrule, hasdiffrule
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             s = broadcast(f, x_, y_)
-            o = oneslike(s.val)
+            o = oneslike(unbox(s))
             ∇s = ∇(s, o)
             ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
-                           s.val, o, x, y)
+                           unbox(s), o, x, y)
             ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
-                           s.val, o, x, y)
-            @test broadcast(f, x, y) == s.val
+                           unbox(s), o, x, y)
+            @test broadcast(f, x, y) == unbox(s)
             @test ∇s[x_] ≈ ∇x
             @test ∇s[y_] ≈ ∇y
         end
@@ -52,13 +52,13 @@ using DiffRules: diffrule, hasdiffrule
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             s = broadcast(f, x_, y_)
-            o = oneslike(s.val)
+            o = oneslike(unbox(s))
             ∇s = ∇(s, o)
             ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
-                               s.val, o, x, y))
+                               unbox(s), o, x, y))
             ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
-                           s.val, o, x, y)
-            @test broadcast(f, x, y) == s.val
+                           unbox(s), o, x, y)
+            @test broadcast(f, x, y) == unbox(s)
             @test ∇s[x_] ≈ ∇x
             @test ∇s[y_] ≈ ∇y
         end
@@ -66,13 +66,13 @@ using DiffRules: diffrule, hasdiffrule
             tape = Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             s = broadcast(f, x_, y_)
-            o = oneslike(s.val)
+            o = oneslike(unbox(s))
             ∇s = ∇(s, o)
             ∇x = broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y),
-                           s.val, o, x, y)
+                           unbox(s), o, x, y)
             ∇y = sum(broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y),
-                               s.val, o, x, y))
-            @test broadcast(f, x, y) == s.val
+                               unbox(s), o, x, y))
+            @test broadcast(f, x, y) == unbox(s)
             @test ∇s[x_] ≈ ∇x
             @test ∇s[y_] ≈ ∇y
         end
@@ -103,8 +103,8 @@ using DiffRules: diffrule, hasdiffrule
             x, y, z = randn(rng, 5), randn(rng, 5), randn(rng, 5)
             x_, y_, z_ = Leaf.(Tape(), (x, y, z))
             s_ = broadcast(f, x_, y_, z_)
-            ∇s = ∇(s_, oneslike(s_.val))
-            @test s_.val == broadcast(f, x, y, z)
+            ∇s = ∇(s_, oneslike(unbox(s_)))
+            @test unbox(s_) == broadcast(f, x, y, z)
             @test ∇s[x_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 1)
             @test ∇s[y_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 2)
             @test ∇s[z_] == getindex.(broadcast((x, y, z)->fmad(f, (x, y, z)), x, y, z), 3)
@@ -115,45 +115,45 @@ using DiffRules: diffrule, hasdiffrule
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ .+ y_
             z2_ = broadcast(+, x_, y_)
-            @test z_.val == x .+ y
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
-            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
+            @test unbox(z_) == x .+ y
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ * y_
             z2_ = broadcast(*, x_, y_)
-            @test z_.val == x .* y
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
-            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
+            @test unbox(z_) == x .* y
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ .- y_
             z2_ = broadcast(-, x_, y_)
-            @test z_.val == x .- y
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
-            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
+            @test unbox(z_) == x .- y
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ / y_
             z2_ = broadcast(/, x_, y_)
-            @test z_.val == x ./ y
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
-            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
+            @test unbox(z_) == x ./ y
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = 5.0, randn(rng, 5), Tape()
             x_, y_ = Leaf(tape, x), Leaf(tape, y)
             z_ = x_ \ y_
             z2_ = broadcast(\, x_, y_)
-            @test z_.val == x .\ y
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
-            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
+            @test unbox(z_) == x .\ y
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
 
         # Check that dot notation works as expected for all unary function in Nabla for both
@@ -162,13 +162,13 @@ using DiffRules: diffrule, hasdiffrule
             x_ = Leaf(Tape(), x)
             z_ = f.(x_)
             z2_ = broadcast(f, x_)
-            @test z_.val == f.(x)
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
+            @test unbox(z_) == f.(x)
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
         end
         function check_unary_dot(f, x::∇Scalar)
             x_ = Leaf(Tape(), x)
             z_ = f.(x_)
-            @test z_.val == f.(x)
+            @test unbox(z_) == f.(x)
             @test ∇(z_)[x_] == ∇(broadcast(f, x_))[x_]
         end
         for (package, f) in Nabla.unary_sensitivities
@@ -185,9 +185,9 @@ using DiffRules: diffrule, hasdiffrule
             x_, y_ = Leaf.(Tape(), (x, y))
             z_ = f.(x_, y_)
             z2_ = broadcast(f, x_, y_)
-            @test z_.val == f.(x, y)
-            @test ∇(z_, oneslike(z_.val))[x_] == ∇(z2_, oneslike(z2_.val))[x_]
-            @test ∇(z_, oneslike(z_.val))[y_] == ∇(z2_, oneslike(z2_.val))[y_]
+            @test unbox(z_) == f.(x, y)
+            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         function check_binary_dot(f, x::∇Scalar, y::∇Scalar)
             x_, y_ = Leaf.(Tape(), (x, y))
@@ -247,21 +247,21 @@ using DiffRules: diffrule, hasdiffrule
     let
         f(x) = sum(Float64[1,2,3] .* (x .+ Float64[3,2,1]))
         @test ∇(f)(Float64[1,2,3]) isa Tuple{Vector{Float64}}
-        @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+        @test unbox(∇(f; get_output=true)(Float64[1,2,3])[1]) == f(Float64[1,2,3])
     end
 
     # #117
     let
         f(x) = sum(x .+ [1,2,4] .* [4,2,1])
         @test ∇(f)(Float64[1,2,3])[1] == ones(Float64, 3)
-        @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+        @test unbox(∇(f; get_output=true)(Float64[1,2,3])[1]) == f(Float64[1,2,3])
     end
 
     # broadcasting literal_pow
     let
         f(x) = sum(x .^ 2)
         @test ∇(f)(Float64[1,2,3])[1] == Float64[2,4,6]
-        @test ∇(f; get_output=true)(Float64[1,2,3])[1].val == f(Float64[1,2,3])
+        @test unbox(∇(f; get_output=true)(Float64[1,2,3])[1]) == f(Float64[1,2,3])
     end
 
     # fused broadcasting with different styles
@@ -270,6 +270,6 @@ using DiffRules: diffrule, hasdiffrule
         a = rand(3, 3)
         a += transpose(a)
         @test ∇(f)(a)[1] == Float64[1 2 2; 0 1 2; 0 0 1]
-        @test ∇(f; get_output=true)(a)[1].val == f(a)
+        @test unbox(∇(f; get_output=true)(a)[1]) == f(a)
     end
 end

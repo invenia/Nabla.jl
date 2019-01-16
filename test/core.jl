@@ -28,45 +28,45 @@ let
     end
     let
         buffer = IOBuffer()
-        tape = Tape(1)
-        tape[1] = 5
-        show(buffer, tape)
+        tape_ = Tape(1)
+        tape_[1] = 5
+        show(buffer, tape_)
         @test String(take!(buffer)) == "1 5\n"
     end
 
     # Check isassigned consistency.
     leaf = Leaf(Tape(), 5)
-    @test isassigned(leaf.tape.tape, leaf.pos) == isassigned(leaf.tape, leaf)
+    @test isassigned(tape(tape(leaf)), pos(leaf)) == isassigned(tape(leaf), leaf)
 
     # Simple tests for `Leaf`.
     tp1, tp2 = Tape(), Tape(50)
-    @test Leaf(tp1, 5.0).tape == tp1
-    @test Leaf(tp1, 5.0).val == 5.0
-    @test Leaf(tp1, 5.0).pos == 3
-    @test Leaf(tp2, 5).pos == 51
-    @test Leaf(tp2, 5).val == 5
-    @test Leaf(tp2, 5).tape == tp2
+    @test tape(Leaf(tp1, 5.0)) == tp1
+    @test unbox(Leaf(tp1, 5.0)) == 5.0
+    @test pos(Leaf(tp1, 5.0)) == 3
+    @test pos(Leaf(tp2, 5)) == 51
+    @test unbox(Leaf(tp2, 5)) == 5
+    @test tape(Leaf(tp2, 5)) == tp2
 
     # Simple tests for `Branch`.
     foo_coeff = 10
     foo(x::Real) = foo_coeff * x
-    foo(x::Node{T} where T<:Real) = Branch(foo, (x,), x.tape)
+    foo(x::Node{T} where T<:Real) = Branch(foo, (x,), tape(x))
     Nabla.∇(::typeof(foo), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ * foo_coeff
     function get_new_branch()
         leaf = Leaf(Tape(), 5)
         return foo(leaf)
     end
     @test isa(get_new_branch(), Branch)
-    @test get_new_branch().val == 50
-    @test get_new_branch().f == foo
-    @test length(get_new_branch().args) == 1
-    @test isa(get_new_branch().args[1], Leaf)
-    @test get_new_branch().args[1].val == 5
-    @test get_new_branch().args[1].pos == 1
-    @test get_new_branch().pos == 2
-    @test get_new_branch().args[1].tape != get_new_branch().tape
+    @test unbox(get_new_branch()) == 50
+    @test getfield(get_new_branch(), :f) == foo
+    @test length(getfield(get_new_branch(), :args)) == 1
+    @test isa(getfield(get_new_branch(), :args)[1], Leaf)
+    @test unbox(getfield(get_new_branch(), :args)[1]) == 5
+    @test pos(getfield(get_new_branch(), :args)[1]) == 1
+    @test pos(get_new_branch()) == 2
+    @test tape(getfield(get_new_branch(), :args)[1]) != tape(get_new_branch())
     branch = get_new_branch()
-    @test branch.tape == branch.args[1].tape
+    @test tape(branch) == tape(getfield(branch, :args)[1])
 
     # Simple test for `pos`.
     @test Nabla.pos(1) == -1
@@ -158,7 +158,7 @@ let
     ∇z = ∇(f(Leaf.(Tape(), (x, y))...))
     @test ∇f(x, y) == (∇z[1], ∇z[2])
     z, (∇x, ∇y) = ∇f_out(x, y)
-    @test z.val == f(x, y)
+    @test unbox(z) == f(x, y)
     @test (∇x, ∇y) == ∇f(x, y)
 end
 

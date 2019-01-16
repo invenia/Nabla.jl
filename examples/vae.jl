@@ -1,7 +1,7 @@
 using MNIST, Nabla
 
 """ Implementation of the Adam optimiser. """
-type Adam{T<:AbstractArray}
+mutable struct Adam{T<:AbstractArray}
     α::Float64
     β1::Float64
     β2::Float64
@@ -11,7 +11,7 @@ type Adam{T<:AbstractArray}
     β2_acc::Float64
     ϵ::Float64
 end
-function Adam{T<:AbstractArray}(θ0::T, α::Float64, β1::Float64, β2::Float64, ϵ::Float64)
+function Adam(θ0::AbstractArray, α::Float64, β1::Float64, β2::Float64, ϵ::Float64)
     return Adam(α, β1, β2, zeros(θ0), zeros(θ0), β1, β2, ϵ)
 end
 
@@ -56,7 +56,7 @@ function demo_vae(itrs::Int, sz::Int, L::Int)
     optWh, optWμ, optWσ, optVh, optVf = Adam.((Wh, Wμ, Wσ, Vh, Vf), α, β1, β2, ϵ)
 
     # Iterate to learn the parameters.
-    scal, ϵ, elbos = size(xtr, 2) / sz, 1e-12, Vector{Float64}(itrs)
+    scal, ϵ, elbos = size(xtr, 2) / sz, 1e-12, Vector{Float64}(undef, itrs)
     for itr in 1:itrs
 
         # Pick the mini batch.
@@ -86,7 +86,7 @@ function demo_vae(itrs::Int, sz::Int, L::Int)
 
         # Compute gradient of log-joint w.r.t. each of the parameters.
         elbo = loglik - klqp
-        elbos[itr] = elbo.val / sz
+        elbos[itr] = Nabla.unbox(elbo) / sz
         logp = scal * elbo + logprior
         ∇logp = ∇(logp)
 
@@ -96,7 +96,7 @@ function demo_vae(itrs::Int, sz::Int, L::Int)
         iterate!(Wσ, ∇logp[Wσ_], optWσ)
         iterate!(Vh, ∇logp[Vh_], optVh)
         iterate!(Vf, ∇logp[Vf_], optVf)
-        println("logp is $(logp.val) at iterate $itr. Mean elbo is $(elbos[itr])")
+        println("logp is $(Nabla.unbox(logp)) at iterate $itr. Mean elbo is $(elbos[itr])")
     end
 
     function reconstruct(x)
