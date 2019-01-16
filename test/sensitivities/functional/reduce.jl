@@ -33,7 +33,7 @@
                     # Test +.
                     x_ = Leaf(Tape(), x)
                     s = functional(f, +, x_)
-                    @test s.val == functional(f, +, x)
+                    @test s.val ≈ functional(f, +, x)
                     @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
                 end
             end
