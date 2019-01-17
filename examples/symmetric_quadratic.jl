@@ -16,7 +16,7 @@ y = x.' * (A * x) # Temporary bracketting because we don't support RowVectors ye
 println("Output of the forward pass is:")
 println(y)
 println()
-println("y.val is $(y.val).")
+println("y is $(Nabla.unbox(y)).")
 println()
 
 # Get the reverse tape.
@@ -27,7 +27,7 @@ println()
 
 # Index into the reverse tape using x to get the gradient of `y` w.r.t. `x`.
 x̄ = ȳ[x]
-println("Gradient of y w.r.t. x at $(x.val) is $x̄.")
+println("Gradient of y w.r.t. x at $(Nabla.unbox(x)) is $x̄.")
 println()
 
 # (Current) High-Level API computation of derivatives. I will probably maintain this

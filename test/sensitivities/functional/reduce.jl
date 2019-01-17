@@ -33,7 +33,7 @@
                     # Test +.
                     x_ = Leaf(Tape(), x)
                     s = functional(f, +, x_)
-                    @test s.val ≈ functional(f, +, x)
+                    @test unbox(s) ≈ functional(f, +, x)
                     @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
                 end
             end
@@ -52,7 +52,7 @@
                 x = randn(rng, 100)
                 x_ = Leaf(Tape(), x)
                 s = functional(+, x_)
-                @test s.val == functional(+, x)
+                @test unbox(s) == functional(+, x)
                 @test ∇(s)[x_] ≈ oneslike(100)
             end
         end
@@ -73,7 +73,7 @@
                 # Test +.
                 x_ = Leaf(Tape(), x)
                 s = sum(f, x_)
-                @test s.val == sum(f, x)
+                @test unbox(s) == sum(f, x)
                 @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
             end
 
@@ -87,7 +87,7 @@
                 # Test +.
                 x_ = Leaf(Tape(), x)
                 s = sum(f, x_)
-                @test s.val == sum(f, x)
+                @test unbox(s) == sum(f, x)
                 @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
             end
         end

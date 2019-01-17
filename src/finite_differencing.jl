@@ -67,18 +67,18 @@ function compute_Dv_update(
     # Randomly initialise `Leaf`s.
     inits = Vector(undef, length(rtape))
     for i = 1:length(rtape)
-        if isleaf(y.tape[i])
-            inits[i] = randned_container(y.tape[i].val)
+        if isleaf(tape(y)[i])
+            inits[i] = randned_container(unbox(tape(y)[i]))
             rtape[i] = copy(inits[i])
         end
     end
 
     # Perform the reverse pass.
-    ∇f = propagate(y.tape, rtape)
+    ∇f = propagate(tape(y), rtape)
 
     # Substract the random initialisations.
     for i = 1:length(rtape)
-        isleaf(y.tape[i]) && (∇f[i] -= inits[i])
+        isleaf(tape(y)[i]) && (∇f[i] -= inits[i])
     end
 
     return sum(map((x, v)->sum(∇f[x] .* v), x_, v))

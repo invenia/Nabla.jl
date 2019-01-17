@@ -1,8 +1,8 @@
 import Base: size, length, reshape, hcat, vcat
 
 # Let the user get the `size` and `length` of `Node`s.
-Base.size(x::Node, dims...) = size(x.val, dims...)
-Base.length(x::Node) = length(x.val)
+Base.size(x::Node, dims...) = size(unbox(x), dims...)
+Base.length(x::Node) = length(unbox(x))
 
 # Sensitivity for the first argument of `reshape`.
 @explicit_intercepts reshape Tuple{∇Array, Vararg{Int}} [true, false]

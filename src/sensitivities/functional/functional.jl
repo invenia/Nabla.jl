@@ -36,7 +36,7 @@ function Base.BroadcastStyle(::NodeStyle{S}, B::BroadcastStyle) where {S}
     promoted isa Broadcast.Unknown ? promoted : NodeStyle{promoted}()
 end
 
-Broadcast.broadcast_axes(x::Node) = broadcast_axes(x.val)
+Broadcast.broadcast_axes(x::Node) = broadcast_axes(unbox(x))
 Broadcast.broadcastable(x::Node) = x
 
 # eagerly construct a Branch when encountering a Node in broadcasting

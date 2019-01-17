@@ -2,7 +2,7 @@ using Nabla
 using Test, LinearAlgebra, Statistics, Random
 using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
 
-using Nabla: oneslike, zeroslike
+using Nabla: unbox, pos, tape, oneslike, zeroslike
 
 @testset "Core" begin
     include("core.jl")

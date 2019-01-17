@@ -3,4 +3,5 @@
 *.jl.mem
 *.pdf
 *.DS_Store
+Manifest.toml
 docs/build/

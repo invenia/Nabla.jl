@@ -17,7 +17,7 @@ z = x.' * (A * y) # Temporary bracketting because we don't support RowVectors ye
 println("Output of the forward pass is:")
 println(z)
 println()
-println("y.val is $(z.val).")
+println("y is $(Nabla.unbox(z)).")
 println()
 
 # Get the reverse tape.
