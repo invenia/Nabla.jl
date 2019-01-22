@@ -26,7 +26,7 @@
         @test transpose(C) == Cᵀ
     end
 
-    import Nabla: chol, chol_unblocked_rev, chol_blocked_rev
+    import Nabla: chol_unblocked_rev, chol_blocked_rev
     let rng = MersenneTwister(123456), N = 10
         A, Ā = Matrix.(LowerTriangular.(randn.(Ref(rng), [N, N], [N, N])))
         # NOTE: BLAS gets angry if we don't materialize the Transpose objects first
@@ -48,7 +48,21 @@
             B, VB = randn.(Ref(rng), [N, N], [N, N])
             A, VA = B'B + 1e-6I, VB'VB + 1e-6I
             Ū = UpperTriangular(randn(rng, N, N))
-            @test check_errs(chol, Ū, A, 1e-2 .* VA)
+            @test check_errs(X->cholesky(X).U, Ū, A, 1e-2 .* VA)
         end
+    end
+
+    let
+        X_ = Matrix{Float64}(I, 5, 5)
+        X = Leaf(Tape(), X_)
+        C = cholesky(X)
+        @test C isa Branch{<:Cholesky}
+        @test getfield(C, :f) == LinearAlgebra.cholesky
+        U = C.U
+        @test U isa Branch{<:UpperTriangular}
+        @test getfield(U, :f) == Base.getproperty
+        @test unbox(U) ≈ cholesky(X_).U
+
+        @test_throws ArgumentError ∇(X->cholesky(X).info)(X_)
     end
 end
