@@ -1,5 +1,5 @@
 import LinearAlgebra.BLAS: gemv, gemv!, gemm!, trsm!, axpy!, ger!
-import LinearAlgebra: cholesky
+import LinearAlgebra: cholesky, Cholesky
 import Base: getproperty
 
 Base.@deprecate chol(X) cholesky(X).U
@@ -29,6 +29,26 @@ function ∇(::typeof(getproperty), ::Type{Arg{1}}, p, y, ȳ, C::Cholesky, x::S
     else
         throw(ArgumentError("unrecognized field $x; use U or L"))
     end
+end
+
+@explicit_intercepts(
+    Cholesky,
+    Tuple{AbstractMatrix{<:∇Scalar}, Union{Char, Symbol}, Integer},
+    [true, false, false],
+)
+function ∇(
+    ::Type{Cholesky},
+    ::Type{Arg{1}},
+    p,
+    C::Cholesky,
+    X̄::Union{UpperTriangular, LowerTriangular},
+    X::Union{UpperTriangular, LowerTriangular},
+    uplo::Union{Char, Symbol},
+    info::Integer,
+)
+    # We aren't doing any actual computation if we've constructed a Cholesky object
+    # directly, so just pass through this call and return the sensitivies
+    return X̄
 end
 
 """
