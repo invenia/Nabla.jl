@@ -38,6 +38,7 @@ end
 
         @testset "Factorisations" begin
             include("sensitivities/linalg/factorization/cholesky.jl")
+            include("sensitivities/linalg/factorization/svd.jl")
         end
     end
 end
