@@ -4,15 +4,15 @@ import Base: getproperty
 @explicit_intercepts svd Tuple{AbstractMatrix{<:Real}}
 
 ∇(::typeof(svd), ::Type{Arg{1}}, p, USV::SVD, S̄::AbstractVector, A::AbstractMatrix) =
-    svd_rev(USV, zeroslike(USV.U), S̄, zeroslike(USV.V))
+    svd_rev(USV, zeroslike(USV.U), S̄, zeroslike(USV.V))::AbstractMatrix
 ∇(::typeof(svd), ::Type{Arg{1}}, p, USV::SVD, V̄::Adjoint, A::AbstractMatrix) =
-    svd_rev(USV, zeroslike(USV.U), zeroslike(USV.S), V̄)
+    svd_rev(USV, zeroslike(USV.U), zeroslike(USV.S), V̄)::AbstractMatrix
 ∇(::typeof(svd), ::Type{Arg{1}}, p, USV::SVD, Ū::AbstractMatrix, A::AbstractMatrix) =
-    svd_rev(USV, Ū, zeroslike(USV.S), zeroslike(USV.V))
+    svd_rev(USV, Ū, zeroslike(USV.S), zeroslike(USV.V))::AbstractMatrix
 
 @explicit_intercepts getproperty Tuple{SVD, Symbol} [true, false]
 
-function ∇(::typeof(getproperty), ::Type{Arg{1}}, p, y, ȳ, USV::SVD, x::Symbol)
+function ∇(::typeof(getproperty), ::Type{Arg{1}}, p, y, ȳ, USV::SVD, x::Symbol)::AbstractMatrix
     if x === :S
         return vec(ȳ)
     elseif x === :U
@@ -35,7 +35,7 @@ Compute the reverse mode sensitivities of the singular value decomposition (SVD)
 an `SVD` factorization object produced by a call to `svd`, and `Ū`, `S̄`, and `V̄` are the
 respective sensitivities of the `U`, `S`, and `V` factors.
 """
-function svd_rev(USV::SVD, Ū::AbstractMatrix, s̄::AbstractVector, V̄::AbstractMatrix)
+function svd_rev(USV::SVD, Ū::AbstractMatrix, s̄::AbstractVector, V̄::AbstractMatrix)::AbstractMatrix
     # Note: assuming a thin factorization, i.e. svd(A, full=false), which is the default
     U = USV.U
     s = USV.S
