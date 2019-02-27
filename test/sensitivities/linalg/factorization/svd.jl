@@ -28,6 +28,11 @@
         @test unbox(USV.U) ≈ Matrix{Float64}(I, 3, 3)
         @test unbox(USV.S) ≈ ones(Float64, 3)
         @test unbox(USV.V) ≈ Matrix{Float64}(I, 5, 3)
+        # Destructuring via iteration
+        U, S, V = USV
+        @test U isa Branch{<:Matrix}
+        @test S isa Branch{<:Vector}
+        @test V isa Branch{<:Adjoint}
     end
 
     @testset "Helper functions" begin
