@@ -7,12 +7,20 @@ Return an expression in which the argument expression `arg` is replaced with an 
 whos type admits `Node`s.
 """
 unionise_arg(arg::Symbol) = arg
-unionise_arg(arg::Expr) =
-    arg.head == Symbol("::") ?
-        Expr(Symbol("::"), arg.args[1:end-1]..., unionise_type(arg.args[end])) :
-        arg.head == Symbol("...") ?
-            Expr(Symbol("..."), unionise_arg(arg.args[1])) :
-            throw(ArgumentError("Unrecognised argument in Symbol ($arg)."))
+
+function unionise_arg(arg::Expr)
+    if arg.head === :(::)
+        Expr(:(::), arg.args[1:end-1]..., unionise_type(arg.args[end]))
+    elseif arg.head === :...
+        Expr(:..., unionise_arg(arg.args[1]))
+    elseif arg.head === :kw
+        Expr(:kw, unionise_arg(arg.args[1]), arg.args[2])
+    elseif arg.head === :parameters
+        arg  # Ignore keyword arguments and leave them untouched for now
+    else
+        throw(ArgumentError("Unrecognized argument in Symbol ($arg)."))
+    end
+end
 
 """
     unionise_subtype(arg::Union{Symbol, Expr})

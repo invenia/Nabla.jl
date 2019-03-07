@@ -112,4 +112,13 @@ skip_line_info(ex) = ex
     @test unionise(:(@eval foo)) ≃ unionise_macro_eval(:(@eval foo))
     @test unionise(:(@eval DiffBase foo)) ≃ unionise_macro_eval(:(@eval DiffBase foo))
     @test unionise(:(struct Foo{T<:V} end)) == unionise_struct(:(struct Foo{T<:V} end))
+
+    # @unionise with default values and keywords
+    UT = unionise_type(:T)
+    raw = unionise(:(f(x::T, y::T=2; z::T=4) = x + y + z))
+    new = :(f(x::$UT, y::$UT=2; z::T=4) = x + y + z)
+    @test raw ≃ new
+
+    # @unionise error conditions
+    @test_throws ArgumentError unionise(:(f(@nospecialize x) = x))
 end
