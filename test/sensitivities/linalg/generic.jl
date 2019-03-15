@@ -43,4 +43,26 @@
             @test check_errs(LinearAlgebra.dot, LinearAlgebra.dot(x, y), (x, y), (vx, vy))
         end
     end
+
+    @testset "copy" begin
+        rng = MersenneTwister(12345)
+
+        # Scalars (no-op)
+        x = randn(rng)
+        y = randn(rng)
+        @test check_errs(copy, x, x, y)
+        x_ = Leaf(Tape(), x)
+        c = copy(x_)
+        @test c isa Branch{Float64}
+        @test getfield(c, :f) === Base.copy
+
+        # Unwrapping adjoint/transposes
+        X = randn(rng, 6, 6)'
+        Y = randn(rng, 6, 6)
+        @test check_errs(copy, X, copy(X), Y)
+        X_ = Leaf(Tape(), X)
+        C = copy(X_)
+        @test C isa Branch{Matrix{Float64}}
+        @test getfield(c, :f) === Base.copy
+    end
 end
