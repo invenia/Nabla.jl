@@ -158,3 +158,8 @@ end
 ∇(::typeof(LinearAlgebra.dot), ::Type{Arg{2}}, p, z, z̄, x::A, y::A) = z̄ .* x
 ∇(x̄, ::typeof(LinearAlgebra.dot), ::Type{Arg{1}}, p, z, z̄, x::A, y::A) = (x̄ .= x̄ .+ z̄ .* y)
 ∇(ȳ, ::typeof(LinearAlgebra.dot), ::Type{Arg{2}}, p, z, z̄, x::A, y::A) = (ȳ .= ȳ .+ z̄ .* x)
+
+# `copy` materializes `Adjoint` and `Transpose` wrappers but can be called on anything
+import Base: copy
+@explicit_intercepts copy Tuple{Any}
+∇(::typeof(copy), ::Type{Arg{1}}, p, Y, Ȳ, A) = copy(Ȳ)
