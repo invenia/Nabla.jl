@@ -11,7 +11,7 @@ function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
     return Ā
 end
 function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y::AbstractArray, ȳ::AbstractArray, A, inds...)
-    Ā[inds...] .+= reshape(ȳ, size(y)...)
+    @views Ā[inds...] .+= reshape(ȳ, size(y)...)
     return Ā
 end
 function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
