@@ -2,10 +2,6 @@ using SpecialFunctions
 using DiffRules: diffrule, hasdiffrule
 
 @testset "Functional" begin
-    # Apparently Distributions.jl doesn't implement the following, so we'll have to do it.
-    Random.rand(rng::AbstractRNG, a::Distribution, n::Integer) =
-        [rand(rng, a) for _ in 1:n]
-
     let rng = MersenneTwister(123456)
         import Nabla.fmad
 

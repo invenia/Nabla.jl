@@ -93,10 +93,10 @@ _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
 
 # Addition.
 import Base: +
-@eval @explicit_intercepts $(Symbol("+")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
-@inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
+@eval @explicit_intercepts $(Symbol("+")) Tuple{∇Array, ∇Array}
+@inline ∇(::typeof(+), ::Type{Arg{1}}, p, z, z̄, x::∇Array, y::∇Array) =
     ∇(broadcast, Arg{2}, p, z, z̄, +, x, y)
-@inline ∇(::typeof(+), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
+@inline ∇(::typeof(+), ::Type{Arg{2}}, p, z, z̄, x::∇Array, y::∇Array) =
     ∇(broadcast, Arg{3}, p, z, z̄, +, x, y)
 
 # Multiplication.
@@ -109,10 +109,10 @@ import Base: *
 
 # Subtraction.
 import Base: -
-@eval @explicit_intercepts $(Symbol("-")) Tuple{∇ArrayOrScalar, ∇ArrayOrScalar}
-@inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
+@eval @explicit_intercepts $(Symbol("-")) Tuple{∇Array, ∇Array}
+@inline ∇(::typeof(-), ::Type{Arg{1}}, p, z, z̄, x::∇Array, y::∇Array) =
     ∇(broadcast, Arg{2}, p, z, z̄, -, x, y)
-@inline ∇(::typeof(-), ::Type{Arg{2}}, p, z, z̄, x::∇ArrayOrScalar, y::∇ArrayOrScalar) =
+@inline ∇(::typeof(-), ::Type{Arg{2}}, p, z, z̄, x::∇Array, y::∇Array) =
     ∇(broadcast, Arg{3}, p, z, z̄, -, x, y)
 
 # Division from the right by a scalar.
