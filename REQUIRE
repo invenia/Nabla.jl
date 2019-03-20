@@ -1,4 +1,4 @@
-julia 0.7
+julia 1.0
 DualNumbers 0.6.0
 DiffRules 0.0.1
 FDM 0.1.0
