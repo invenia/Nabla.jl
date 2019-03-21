@@ -185,13 +185,19 @@ return the gradient w.r.t. each of the arguments.
 """
 function ∇(f; get_output::Bool=false)
     return function(args...)
+        @warn "In Nabla function(args...)"
         args_ = Leaf.(Tape(), args)
+        @warn "In NAbla function(args...) done getting args "
         y = f(args_...)
+        @warn "Might be about to return Nabla function(args...)"
         y isa Node || return zero.(args)
+        @warn "Did not return Nabla function(args...)"
         ∇f = ∇(y)
         ∇args = ([isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
                   for (arg_, arg) in zip(args_, args)]...,)
-        return get_output ? (y, ∇args) : ∇args
+        result =  get_output ? (y, ∇args) : ∇args
+        @warn "Done Nabla function(args...)"
+        return result
     end
 end
 
