@@ -91,4 +91,24 @@ end
         # Test whether the exponentiation amibiguity is resolved.
         @test ∇(x -> x^2)(1) == (2.0,)
     end
+
+    @testset "float" begin
+        # Scalars
+        x_ = 4
+        x = Leaf(Tape(), x_)
+        y = float(x)
+        @test y isa Branch{Float64}
+        @test unbox(y) == 4.0
+
+        # Arrays
+        X_ = [1,2,3,4]
+        X = Leaf(Tape(), X_)
+        Y = float(X)
+        @test Y isa Branch{Vector{Float64}}
+        @test unbox(Y) == Float64[1,2,3,4]
+
+        # In expressions
+        @test ∇(x->2x)(1) === (2,)
+        @test ∇(x->2*float(x))(1) === (2.0,)
+    end
 end
