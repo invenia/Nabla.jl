@@ -49,8 +49,8 @@ get_quote_body(code::QuoteNode) = code.value
 Unionise the code inside a call to `eval`, such that when the `eval` call actually occurs
 the code inside will be unionised.
 """
-function unionise_eval(code::Expr)
-    body = Expr(:macrocall, Symbol("@unionise"), nothing, deepcopy(get_quote_body(code.args[end])))
+function unionise_eval(code::Expr, linfo::LineNumberNode=LineNumberNode(0))
+    body = Expr(:macrocall, Symbol("@unionise"), linfo, deepcopy(get_quote_body(code.args[end])))
     return length(code.args) == 3 ?
         Expr(:call, :eval, deepcopy(code.args[2]), quot(body)) :
         Expr(:call, :eval, quot(body))
@@ -62,11 +62,11 @@ end
 Unionise the code in a call to @eval, such that when the `eval` call actually occurs, the
 code inside will be unionised.
 """
-function unionise_macro_eval(code::Expr)
-    body = Expr(:macrocall, Symbol("@unionise"), nothing, deepcopy(code.args[end]))
+function unionise_macro_eval(code::Expr, linfo::LineNumberNode=LineNumberNode(0))
+    body = Expr(:macrocall, Symbol("@unionise"), linfo, deepcopy(code.args[end]))
     return length(code.args) == 4 ?
-        Expr(:macrocall, Symbol("@eval"), nothing, deepcopy(code.args[3]), body) :
-        Expr(:macrocall, Symbol("@eval"), nothing, body)
+        Expr(:macrocall, Symbol("@eval"), linfo, deepcopy(code.args[3]), body) :
+        Expr(:macrocall, Symbol("@eval"), linfo, body)
 end
 
 """
@@ -125,24 +125,24 @@ arguments. This should not affect the existing functionality of the code.
 function unionise end
 
 # If we get a symbol then we cannot have found a function definition, so ignore it.
-unionise(code) = code
+unionise(code, linfo::LineNumberNode=LineNumberNode(0)) = code
 
 # Recurse through an expression, bottoming out if we find a function definition or a
 # quoted expression to be `eval`-ed.
-function unionise(code::Expr)
+function unionise(code::Expr, linfo::LineNumberNode=LineNumberNode(0))
     if code.head in (:function, Symbol("->"))
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
     elseif code.head == Symbol("=") && !isa(code.args[1], Symbol) &&
         (get_body(code.args[1]).head == :tuple || get_body(code.args[1]).head isa Symbol)
         return Expr(code.head, unionise_sig(code.args[1]), code.args[2])
     elseif code.head == :call && code.args[1] == :eval
-        return unionise_eval(code)
+        return unionise_eval(code, linfo)
     elseif code.head == :macrocall && code.args[1] == Symbol("@eval")
-        return unionise_macro_eval(code)
+        return unionise_macro_eval(code, linfo)
     elseif code.head == :struct
         return unionise_struct(code)
     else
-        return Expr(code.head, [unionise(arg) for arg in code.args]...)
+        return Expr(code.head, [unionise(arg, linfo) for arg in code.args]...)
     end
 end
 
@@ -153,5 +153,5 @@ Transform code such that each function definition accepts `Node` objects as argu
 without effecting dispatch in other ways.
 """
 macro unionise(code)
-    return esc(unionise(code))
+    return esc(unionise(code, __source__))
 end

@@ -76,11 +76,11 @@ macro explicit_intercepts(
         end
         insert!(oldcall.args, 2, params)
         # The actual function definition
-        def = Expr(:function, newcall, oldcall)
+        def = Expr(:function, newcall, Expr(:block, __source__, oldcall))
     end
     # NOTE: If kws is nonempty, explicit_intercepts will add methods to both f and _f
     # See boxed_method
-    ex = explicit_intercepts(f, type_tuple, isnode; kws...)
+    ex = explicit_intercepts(f, type_tuple, isnode, __source__; kws...)
     # The result contains all method definitions generated for f (and _f if applicable)
     return esc(Expr(:block, def, ex))
 end
@@ -92,10 +92,10 @@ Return a `:block` expression which evaluates to declare all of the combinations 
 that could be required to catch if a `Node` is ever passed to the function specified in
 `expr`.
 """
-function explicit_intercepts(f::SymOrExpr, types::Expr, is_node::Vector{Bool}; kwargs...)
+function explicit_intercepts(f::SymOrExpr, types::Expr, is_node::Vector{Bool}, linfo::LineNumberNode; kwargs...)
     function explicit_intercepts_(states::Vector{Bool})
         if length(states) == length(is_node)
-            return any(states) ? boxed_method(f, types, states; kwargs...) : []
+            return any(states) ? boxed_method(f, types, states, linfo; kwargs...) : []
         else
             return vcat(
                 explicit_intercepts_(vcat(states, false)),
@@ -145,7 +145,8 @@ function boxed_method(
     f::SymOrExpr,
     type_tuple::Expr,
     is_node::Vector{Bool},
-    arg_names::Vector{Symbol};
+    arg_names::Vector{Symbol}=[gensym() for _ in is_node],
+    linfo::LineNumberNode=LineNumberNode(0);
     kwargs...
 )
     # Get the argument types and create the function call.
@@ -161,7 +162,7 @@ function boxed_method(
         body = Expr(:call, :Branch, f, tuple_expr, tape_expr)
 
         # Combine call signature with the body to create a new function.
-        return Expr(:(=), call, body)
+        return Expr(:function, call, Expr(:block, linfo, body))
     else
         _type_tuple = copy(type_tuple)
         _is_node = copy(is_node)
@@ -171,15 +172,15 @@ function boxed_method(
             push!(_is_node, false)
             push!(_arg_names, k)
         end
-        kw_def = Expr(:function, call, Expr(:call, kwfname(f), _arg_names...))
+        kw_def = Expr(:function, call, Expr(:block, linfo, Expr(:call, kwfname(f), _arg_names...)))
 
         # Recurse on the internal function to get a Branch call
-        branch_def = boxed_method(kwfname(f), _type_tuple, _is_node, _arg_names)
+        branch_def = boxed_method(kwfname(f), _type_tuple, _is_node, _arg_names, linfo)
 
         return Expr(:block, kw_def, branch_def)
     end
 end
-boxed_method(f, t, n; kwargs...) = boxed_method(f, t, n, [gensym() for _ in n]; kwargs...)
+boxed_method(f, t, n, l; kwargs...) = boxed_method(f, t, n, [gensym() for _ in n], l; kwargs...)
 
 """
     get_sig(f::SymOrExpr, arg_names::Vector{Symbol}, types::Vector; kwargs...)
