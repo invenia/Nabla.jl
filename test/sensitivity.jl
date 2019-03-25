@@ -1,7 +1,11 @@
+using Base.Meta
+using Nabla: boxed_method
+
+function expected_func(sig::Expr, body::Expr)
+    return Expr(:function, sig, Expr(:block, LineNumberNode(0), body))
+end
+
 @testset "sensitivity" begin
-
-    import Base.Meta.quot
-
     # # "Test" `Nabla.get_body`. (Not currently unit testing this as it is awkward. Will
     # # change this at some point in the future to be more unit-testable.)
     # let
@@ -23,60 +27,52 @@
     #     println(full_expr)
     # end
 
-    # Test `Nabla.boxed_method`.
-    import Nabla.Nabla.boxed_method
-    let
-        from_func = boxed_method(:foo, :(Tuple{Any}), [true], [:x1])
-        expected = Expr(Symbol("="),
-                        :(foo(x1::Node{<:Any})),
-                        :(Branch(foo, (x1,), getfield(x1, $(quot(:tape))))))
-        @test from_func == expected
-    end
-    let
-        from_func = boxed_method(:foo, :(Tuple{T{V}}), [true], [:x1])
-        expected = Expr(Symbol("="),
-                        :(foo(x1::Node{<:T{V}})),
-                        :(Branch(foo, (x1,), getfield(x1, $(quot(:tape))))))
-        @test from_func == expected
-    end
-    let
-        from_func = boxed_method(:foo, :(Tuple{Any, Any}), [true, false], [:x1, :x2])
-        expected = Expr(Symbol("="),
-                        :(foo(x1::Node{<:Any}, x2::Any)),
-                        :(Branch(foo, (x1, x2), getfield(x1, $(quot(:tape))))))
-        @test from_func == expected
-    end
-    let
-        from_func = boxed_method(:foo, :(Tuple{Any, Any}), [true, true], [:x1, :x2])
-        expected = Expr(Symbol("="),
-                        :(foo(x1::Node{<:Any}, x2::Node{<:Any})),
-                        :(Branch(foo, (x1, x2), getfield(x1, $(quot(:tape))))))
-        @test from_func == expected
-    end
-    let
-        from_func = boxed_method(:foo, :(Tuple{Any, Any}), [false, true], [:x1, :x2])
-        expected = Expr(Symbol("="),
-                        :(foo(x1::Any, x2::Node{<:Any})),
-                        :(Branch(foo, (x1, x2), getfield(x2, $(quot(:tape))))))
-        @test from_func == expected
-    end
-    let
-        from_func = boxed_method(:foo, :(Tuple{T} where T), [true], [:x1])
-        expected = Expr(Symbol("="),
-                        :(foo(x1::Node{<:T}) where T),
-                        :(Branch(foo, (x1,), getfield(x1, $(quot(:tape))))))
-        @test from_func == expected
-    end
-    let
-        from_func = boxed_method(:foo, :(Tuple{Any, Any}), [false, true], [:x1, :x2]; a=1, b=2)
-        expected = Expr(:block,
-                        Expr(:function,
-                             :(foo(x1::Any, x2::Node{<:Any}; a=1, b=2)),
-                             :(_foo(x1, x2, a, b))),
-                        Expr(:(=),
-                             :(_foo(x1::Any, x2::Node{<:Any}, a::Any, b::Any)),
-                             :(Branch(_foo, (x1, x2, a, b), getfield(x2, $(quot(:tape)))))))
-        @test from_func == expected
+    @testset "boxed_method" begin
+        let
+            from_func = boxed_method(:foo, :(Tuple{Any}), [true], [:x1])
+            expected = expected_func(:(foo(x1::Node{<:Any})),
+                                     :(Branch(foo, (x1,), getfield(x1, $(quot(:tape))))))
+            @test from_func == expected
+        end
+        let
+            from_func = boxed_method(:foo, :(Tuple{T{V}}), [true], [:x1])
+            expected = expected_func(:(foo(x1::Node{<:T{V}})),
+                                     :(Branch(foo, (x1,), getfield(x1, $(quot(:tape))))))
+            @test from_func == expected
+        end
+        let
+            from_func = boxed_method(:foo, :(Tuple{Any, Any}), [true, false], [:x1, :x2])
+            expected = expected_func(:(foo(x1::Node{<:Any}, x2::Any)),
+                                     :(Branch(foo, (x1, x2), getfield(x1, $(quot(:tape))))))
+            @test from_func == expected
+        end
+        let
+            from_func = boxed_method(:foo, :(Tuple{Any, Any}), [true, true], [:x1, :x2])
+            expected = expected_func(:(foo(x1::Node{<:Any}, x2::Node{<:Any})),
+                                     :(Branch(foo, (x1, x2), getfield(x1, $(quot(:tape))))))
+            @test from_func == expected
+        end
+        let
+            from_func = boxed_method(:foo, :(Tuple{Any, Any}), [false, true], [:x1, :x2])
+            expected = expected_func(:(foo(x1::Any, x2::Node{<:Any})),
+                                     :(Branch(foo, (x1, x2), getfield(x2, $(quot(:tape))))))
+            @test from_func == expected
+        end
+        let
+            from_func = boxed_method(:foo, :(Tuple{T} where T), [true], [:x1])
+            expected = expected_func(:(foo(x1::Node{<:T}) where T),
+                                     :(Branch(foo, (x1,), getfield(x1, $(quot(:tape))))))
+            @test from_func == expected
+        end
+        let
+            from_func = boxed_method(:foo, :(Tuple{Any, Any}), [false, true], [:x1, :x2]; a=1, b=2)
+            expected = Expr(:block,
+                            expected_func(:(foo(x1::Any, x2::Node{<:Any}; a=1, b=2)),
+                                          :(_foo(x1, x2, a, b))),
+                            expected_func(:(_foo(x1::Any, x2::Node{<:Any}, a::Any, b::Any)),
+                                          :(Branch(_foo, (x1, x2, a, b), getfield(x2, $(quot(:tape)))))))
+            @test from_func == expected
+        end
     end
 
     # Test `Nabla.branch_expr`.
