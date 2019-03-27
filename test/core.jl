@@ -190,4 +190,26 @@ let
     @test oned_container(Dict("a"=>5.0, "b"=>randn(3))) == Dict("a"=>1.0, "b"=>ones(3))
 end
 
+# To ensure we end up using the fallback machinery for ∇(x̄, f, ...) we'll define a new
+# function and setup for it to use in the testset below
+quad(A::Matrix, B::Matrix) = B'A*B
+@explicit_intercepts quad Tuple{Matrix, Matrix}
+Nabla.∇(::typeof(quad), ::Type{Arg{1}}, p, Y, Ȳ, A::Matrix, B::Matrix) = B*Ȳ*B'
+Nabla.∇(::typeof(quad), ::Type{Arg{2}}, p, Y, Ȳ, A::Matrix, B::Matrix) = A*B*Ȳ' + A'B*Ȳ
+
+@testset "Mutating values in the tape" begin
+    rng = MersenneTwister(123456)
+    n = 5
+    A = Leaf(Tape(), randn(rng, n, n))
+    B = randn(rng, n, n)
+    Q = quad(A, B)
+    QQ = quad(Q, B)
+    rt = ∇(QQ, Matrix(1.0I, n, n))
+    oldvals = map(deepcopy∘unbox, getfield(rt, :tape))
+    Nabla.propagate(Q, rt)  # This triggers a mutating addition
+    newvals = map(unbox, getfield(rt, :tape))
+    @test !(oldvals[1] ≈ newvals[1])
+    @test oldvals[2:end] ≈ newvals[2:end]
+end
+
 end # testset "core"
