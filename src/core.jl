@@ -15,11 +15,14 @@ struct Tape
     Tape(N::Int) = new(Vector{Any}(undef, N))
 end
 function show(io::IO, t::Tape)
-    if length(t) == 0
-        println(io, "Empty tape.")
-    else
-        for n in eachindex(t)
-            println(io, n, " ", isassigned(tape(t), n) ? t[n] : "#undef")
+    n = length(t)
+    print(io, "Tape with ", n, " element", n == 1 ? "" : "s", n > 0 ? ":" : "")
+    for i in eachindex(t)
+        print(io, "\n  [", i, "]: ")
+        if isassigned(tape(t), i)
+            show(io, t[i])
+        else
+            print(io, "#undef")
         end
     end
 end

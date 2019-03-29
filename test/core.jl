@@ -1,6 +1,6 @@
 @testset "core" begin
 
-let
+@testset "Tape" begin
     # Simple tests for `Tape`.
     @test getindex(setindex!(Tape(5), "hi", 5), 5) == "hi"
     @test lastindex(Tape(50)) == 50
@@ -11,27 +11,24 @@ let
     @test !isassigned(Tape(26), 26)
 
     # Check that printing works as expected.
-    let
+    @testset "printing" begin
         buffer = IOBuffer()
         show(buffer, Tape())
-        @test String(take!(buffer)) == "Empty tape.\n"
-    end
-    let
+        @test String(take!(buffer)) == "Tape with 0 elements"
+
         buffer = IOBuffer()
         show(buffer, Tape(1))
-        @test String(take!(buffer)) == "1 #undef\n"
-    end
-    let
+        @test String(take!(buffer)) == "Tape with 1 element:\n  [1]: #undef"
+
         buffer = IOBuffer()
         show(buffer, Tape(2))
-        @test String(take!(buffer)) == "1 #undef\n2 #undef\n"
-    end
-    let
+        @test String(take!(buffer)) == "Tape with 2 elements:\n  [1]: #undef\n  [2]: #undef"
+
         buffer = IOBuffer()
         tape_ = Tape(1)
         tape_[1] = 5
         show(buffer, tape_)
-        @test String(take!(buffer)) == "1 5\n"
+        @test String(take!(buffer)) == "Tape with 1 element:\n  [1]: 5"
     end
 
     # Check isassigned consistency.
@@ -101,7 +98,7 @@ let
     @test ∇(br, 3)[br] == 3
     @test ∇(br, 2)[br.args[1]] == 2 * foo_coeff
 
-end # let
+end # testset Tape
 
 # Check that functions involving `isapprox` can be differentiated
 let
