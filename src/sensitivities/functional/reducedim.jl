@@ -1,4 +1,5 @@
 import Base: mapreduce, sum
+import Statistics: mean
 
 @eval begin
     @explicit_intercepts(
@@ -63,5 +64,43 @@ import Base: mapreduce, sum
         dims=:,
     )
         return 2ȳ .* A
+    end
+end
+
+@explicit_intercepts(
+    mean,
+    Tuple{Function, AbstractArray{<:∇Scalar}},
+    [false, true],
+    #(dims=:,)  # https://github.com/JuliaLang/julia/issues/31412
+)
+@explicit_intercepts(
+    mean,
+    Tuple{AbstractArray{<:∇Scalar}},
+    [true],
+    (dims=:,)
+)
+
+_denom(x, dims::Colon) = length(x)
+_denom(x, dims::Integer) = size(x, dims)
+_denom(x, dims) = mapreduce(i->size(x, i), Base.mul_prod, unique(dims), init=1)
+
+@eval begin
+    function ∇(
+        ::typeof(mean),
+        ::Type{Arg{2}},
+        p, y, ȳ,
+        f::Function,
+        x::AbstractArray{<:∇Scalar},
+    )
+        return ∇($(kwfname(sum)), Arg{2}, p, y, ȳ, f, x, :) / _denom(x, :)
+    end
+    function ∇(
+        ::typeof($(kwfname(mean))),
+        ::Type{Arg{1}},
+        p, y, ȳ,
+        x::AbstractArray{<:∇Scalar},
+        dims=:,
+    )
+        return ∇($(kwfname(sum)), Arg{1}, p, y, ȳ, x, dims) ./ _denom(x, dims)
     end
 end

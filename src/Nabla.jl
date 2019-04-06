@@ -4,6 +4,7 @@ module Nabla
 
     using SpecialFunctions
     using LinearAlgebra
+    using Statistics
 
     # Some aliases used repeatedly throughout the package.
     export ∇Scalar, ∇Array, SymOrExpr, ∇ArrayOrScalar
