@@ -116,6 +116,7 @@ unbox(x) = x
 
 isapprox(n::Node, f) = unbox(n) ≈ f
 isapprox(f, n::Node) = n ≈ f
+isapprox(n::Node, f::Node) = unbox(n) ≈ unbox(f)
 
 zero(n::Node) = zero(unbox(n))
 one(n::Node) = one(unbox(n))

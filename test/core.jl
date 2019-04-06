@@ -115,6 +115,10 @@ let
     ∇f = ∇(f)
     @test ∇f([5.0]) == ([0.0],)
     @test ∇f([6.0]) == ([3.0],)
+    f(x, y) = x ≈ y ? 2y : 3x
+    ∇f = ∇(f)
+    @test ∇f(5.0, 5.0) == (0.0, 2.0)
+    @test ∇f(6.0, 5.0) == (3.0, 0.0)
 end
 
 # Check that functions with extra, unused variables can be differentiated
