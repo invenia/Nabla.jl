@@ -1,4 +1,4 @@
-import Base: size, length, reshape, hcat, vcat
+import Base: size, length, reshape, hcat, vcat, fill
 
 # Let the user get the `size` and `length` of `Node`s.
 Base.size(x::Node, dims...) = size(unbox(x), dims...)
@@ -38,3 +38,6 @@ function Nabla.∇(
     u = l + size(A[i], 1)
     return copy(selectdim(ȳ, 1, (l+1):u))
 end
+
+@explicit_intercepts fill Tuple{Any, Tuple{Vararg{Integer}}} [true, false]
+∇(::typeof(fill), ::Type{Arg{1}}, p, y, ȳ, value, dims...) = sum(ȳ)

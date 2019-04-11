@@ -16,4 +16,11 @@
     a = rand(2, 4); b = rand(1, 4); c = rand(3, 4);
     f(a, b, c) = sum(vcat(2*a, 3*b, 4*c))
     @test ∇(f)(a,b,c) == (2*ones(2, 4), 3*ones(1, 4), 4*ones(3, 4))
+
+    @test check_errs(x->fill(x, 4, 4), randn(4, 4), randn(), randn())
+    @test check_errs(x->fill(x, (4, 4)), randn(4, 4), randn(), randn())
+    x = Leaf(Tape(), 6)
+    y = fill(x, 3)
+    @test y isa Branch{Vector{Int}}
+    @test getfield(y, :f) === Base.fill
 end
