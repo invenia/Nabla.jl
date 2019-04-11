@@ -1,12 +1,3 @@
-# Extend mean naively for the purposes of testing
-function Statistics.mean(x::Node{<:AbstractArray}; dims=:)
-    if dims === Colon()
-        mapfoldl(identity, Base.add_sum, x) / length(x)
-    else
-        mapreduce(identity, Base.add_sum, x; dims=dims) / size(x, dims)
-    end
-end
-
 @testset "Reduce dim" begin
     let rng = MersenneTwister(123456)
         # mapreducedim on a single-dimensional array should be consistent with mapreduce.
@@ -33,9 +24,10 @@ end
         s = mapreduce(x->x*x, +, x4, dims=2)
         @test ∇(s, oneslike(unbox(s)))[x4] == 2x4_
 
-        # Check that `sum` works correctly with `Node`s.
+        # Check that `sum` and `mean` work correctly with `Node`s.
         x_sum = Leaf(Tape(), randn(rng, 5, 4, 3))
         @test unbox(sum(x_sum, dims=[2, 3])) == unbox(mapreduce(identity, +, x_sum, dims=[2, 3]))
+        @test unbox(mean(x_sum, dims=[2, 3])) == mean(unbox(x_sum), dims=[2, 3])
 
         # Ensure that the underlying value is correct in the presence of keyword arguments
         x5_ = ones(5, 4, 3)
@@ -45,11 +37,21 @@ end
         @test unbox(sum(x5, dims=3)) == sum(x5_, dims=3) == fill(3.0, (5, 4, 1))
         @test unbox(sum(x5)) == 60.0
         @test getfield(sum(x5), :f) === Nabla._sum
+
+        x5_ = ones(5, 4, 3)
+        x5 = Leaf(Tape(), x5_)
         @test unbox(mean(x5, dims=1)) == mean(x5_, dims=1) == fill(1.0, (1, 4, 3))
         @test unbox(mean(x5, dims=2)) == mean(x5_, dims=2) == fill(1.0, (5, 1, 3))
         @test unbox(mean(x5, dims=3)) == mean(x5_, dims=3) == fill(1.0, (5, 4, 1))
         @test unbox(mean(x5)) == 1.0
-        @test getfield(mean(x5), :f) === Base.:/
+        @test getfield(mean(x5), :f) === Nabla._mean
+        @test getfield(mean(x5, dims=1), :f) === Nabla._mean
+        @test check_errs(mean, randn(rng), randn(rng, 10), randn(rng, 10))
+        @test check_errs(x->mean(abs2, x), randn(rng), randn(rng, 10), randn(rng, 10))
+        @test check_errs(x->mean(x, dims=2), randn(rng, 10, 1),
+                         randn(rng, 10, 10), randn(rng, 10, 10))
+        @test check_errs(x->mean(x, dims=(2,3)), randn(rng, 10, 1, 1),
+                         randn(rng, 10, 10, 10), randn(rng, 10, 10, 10))
 
         # Issue #123
         x6_ = collect(1:10)
