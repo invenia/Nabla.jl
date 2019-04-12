@@ -269,3 +269,23 @@ using DiffRules: diffrule, hasdiffrule
         @test unbox(∇(f; get_output=true)(a)[1]) == f(a)
     end
 end
+
+struct CoolArray{T} <: AbstractVector{T}
+    x::Vector{T}
+end
+Base.map(f, x::CoolArray, y::AbstractArray) = map(f, x.x, y)
+@testset "Issue #136" begin
+    # This doesn't even involve Nabla at all; we're just making sure that we aren't
+    # introducing method ambiguities with our `map` overloading that can interfere with
+    # other packages that extend `map`, e.g. StaticArrays
+    @test map(-, CoolArray([1,2,3]), [1,2,3]) == [0,0,0]
+
+    # `map` with lots of inputs
+    for i = 1:10
+        args = Any[1:3 for _ = 1:20]
+        args[i] = Leaf(Tape(), 1:3)
+        x = map(+, args...)
+        @test x isa Branch{Vector{Int}}
+        @test unbox(x) == [20,40,60]
+    end
+end
