@@ -141,7 +141,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "Nabla.∇",
     "category": "method",
-    "text": "∇(f; get_output::Bool=false)\n\nReturns a function which, when evaluated with arguments that are accepted by f, will return the gradient w.r.t. each of the arguments.\n\n\n\n\n\n"
+    "text": "∇(f; get_output::Bool=false)\n\nReturns a function which, when evaluated with arguments that are accepted by f, will return the gradient w.r.t. each of the arguments. If get_output is true, the result of calling f on the given arguments is also returned.\n\n\n\n\n\n"
 },
 
 {
