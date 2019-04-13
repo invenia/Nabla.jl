@@ -185,16 +185,21 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
     ∇(f; get_output::Bool=false)
 
 Returns a function which, when evaluated with arguments that are accepted by `f`, will
-return the gradient w.r.t. each of the arguments.
+return the gradient w.r.t. each of the arguments. If `get_output` is `true`, the result
+of calling `f` on the given arguments is also returned.
 """
 function ∇(f; get_output::Bool=false)
     return function(args...)
         args_ = Leaf.(Tape(), args)
         y = f(args_...)
-        y isa Node || return zero.(args)
-        ∇f = ∇(y)
-        ∇args = ([isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
-                  for (arg_, arg) in zip(args_, args)]...,)
+        if y isa Node
+            ∇f = ∇(y)
+            ∇args = map(args_, args) do arg_, arg
+                isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
+            end
+        else
+            ∇args = zero.(args)
+        end
         return get_output ? (y, ∇args) : ∇args
     end
 end
