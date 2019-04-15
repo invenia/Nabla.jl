@@ -1,9 +1,21 @@
 # Implementation of functionals (i.e. higher-order functions).
 
 # Implementation of sensitivities w.r.t. `map`.
-import Base.map
-@explicit_intercepts map Tuple{Any, ∇Array} [false, true]
-@union_intercepts map Tuple{Any, Vararg{∇Array}} Tuple{Any, Vararg}
+
+# Build `@explicit_intercepts`-like calls for `map` with a variable number of arguments.
+# We set an arbitrary cutoff of 10 input arrays, which should be sufficient, as mapping
+# over more than 3 arrays simultaneously is (anecdotally) pretty uncommon. Imposing this
+# cutoff alleviates the need to overwrite a Base method to call `invoke` due to method
+# ambiguities, though even that can be insufficient to resolve them, as in issue #136.
+const ArrayOrNode = Union{AbstractArray, Node{<:AbstractArray}}
+for nargs = 1:10
+    name = Symbol(:A, nargs)
+    args = Expr[:($(Symbol(:A, i))::$ArrayOrNode) for i = 1:nargs-1]
+    push!(args, :($name::Node{<:AbstractArray}))
+    @eval function Base.map(f, $(args...), As::$ArrayOrNode...)
+        Branch(map, (f, $(map(i->Symbol(:A, i), 1:nargs)...), As...), getfield($name, :tape))
+    end
+end
 
 # Compute sensitivity w.r.t. the N^{th} input, N > 1.
 ∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
@@ -12,11 +24,6 @@ _∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) w
     hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
         map((yn, ȳn, An...)->∇(f, Arg{N}, p, yn, ȳn, An...), y, ȳ, A...) :
         map((ȳn, An...)->ȳn * fmad(f, An, Val{N}), ȳ, A...)
-
-# Deal with ambiguities introduced by `map`.
-map(f, x::AbstractArray{<:Number}...) = invoke(map, Tuple{Any, Vararg{Any}}, f, x...)
-map(f, x::AbstractArray{<:Number}) =
-    invoke(map, Tuple{Any, Union{AbstractArray, AbstractSet, AbstractDict}}, f, x)
 
 # Implementation of sensitivities w.r.t. `broadcast`.
 using Base.Broadcast
