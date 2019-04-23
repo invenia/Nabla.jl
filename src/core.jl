@@ -26,15 +26,15 @@ function show(io::IO, t::Tape)
         end
     end
 end
-@inline getindex(t::Tape, n::Int) = getindex(tape(t), n)
-@inline getindex(t::Tape, node::Node) = getindex(t, pos(node))
-@inline lastindex(t::Tape) = length(t)
-@inline setindex!(t::Tape, x, n::Int) = (tape(t)[n] = x; t)
-@inline eachindex(t::Tape) = eachindex(tape(t))
-@inline length(t::Tape) = length(tape(t))
-@inline push!(t::Tape, node::Node) = (push!(tape(t), node); t)
-@inline isassigned(t::Tape, n::Int) = isassigned(tape(t), n)
-@inline isassigned(t::Tape, node::Node) = isassigned(t, pos(node))
+getindex(t::Tape, n::Int) = getindex(tape(t), n)
+getindex(t::Tape, node::Node) = getindex(t, pos(node))
+lastindex(t::Tape) = length(t)
+setindex!(t::Tape, x, n::Int) = (tape(t)[n] = x; t)
+eachindex(t::Tape) = eachindex(tape(t))
+length(t::Tape) = length(tape(t))
+push!(t::Tape, node::Node) = (push!(tape(t), node); t)
+isassigned(t::Tape, n::Int) = isassigned(tape(t), n)
+isassigned(t::Tape, node::Node) = isassigned(t, pos(node))
 
 # Make `Tape`s broadcast as scalars without a warning on 0.7
 Base.Broadcast.broadcastable(tape::Tape) = Ref(tape)
@@ -122,7 +122,7 @@ zero(n::Node) = zero(unbox(n))
 one(n::Node) = one(unbox(n))
 
 # Leafs do nothing, Branches compute their own sensitivities and update others.
-@inline propagate(y::Leaf, rvs_tape::Tape) = nothing
+propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
     tape = Nabla.tape(rvs_tape)
     ȳ, f = tape[pos(y)], getfield(y, :f)
@@ -177,11 +177,11 @@ is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y
 output and `ȳ` the reverse-mode sensitivity of `y`.
 """
 ∇(y::Node, ȳ) = propagate(tape(y), reverse_tape(y, ȳ))
-@inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(unbox(y)))
+∇(y::Node{<:∇Scalar}) = ∇(y, one(unbox(y)))
 
 # This is a fallback method where we don't necessarily know what we'll be adding and whether
 # we can update the value in-place, so we'll try to be clever and dispatch.
-@inline ∇(x̄, f, ::Type{Arg{N}}, args...) where {N} = update!(x̄, ∇(f, Arg{N}, args...))
+∇(x̄, f, ::Type{Arg{N}}, args...) where {N} = update!(x̄, ∇(f, Arg{N}, args...))
 
 # Update regular arrays in-place. Structured array types should not be updated in-place,
 # even though it technically "works" (https://github.com/JuliaLang/julia/issues/31674),
@@ -242,14 +242,14 @@ for (f_name, scalar_init, array_init) in
         (:zero, :one, nothing),
         (:zeros, :ones, nothing))
     if scalar_init !== nothing
-        @eval @inline $f_name(x::Number) = $scalar_init(x)
+        @eval $f_name(x::Number) = $scalar_init(x)
     end
     if array_init !== nothing
-        @eval @inline $f_name(x::AbstractArray{<:Real}) = $array_init(eltype(x), size(x))
+        @eval $f_name(x::AbstractArray{<:Real}) = $array_init(eltype(x), size(x))
     end
     eval(quote
-        @inline $f_name(x::Tuple) = map($f_name, x)
-        @inline function $f_name(x)
+        $f_name(x::Tuple) = map($f_name, x)
+        function $f_name(x)
             y = Base.copy(x)
             for n in eachindex(y)
                 @inbounds y[n] = $f_name(y[n])
@@ -258,10 +258,10 @@ for (f_name, scalar_init, array_init) in
         end
     end)
 end
-@inline randned_container(x::Number) = randn(typeof(x))
-@inline randned_container(x::AbstractArray{<:Real}) = randn(eltype(x), size(x)...)
+randned_container(x::Number) = randn(typeof(x))
+randned_container(x::AbstractArray{<:Real}) = randn(eltype(x), size(x)...)
 for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
-    @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
+    @eval randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
 # Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns

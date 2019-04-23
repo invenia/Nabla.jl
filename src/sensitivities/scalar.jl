@@ -6,8 +6,8 @@ using DiffRules: DiffRules, @define_diffrule, diffrule, diffrules, hasdiffrule
 # gradient implemented for use in higher-order functions.
 import Base.identity
 @explicit_intercepts identity Tuple{Any}
-@inline ∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
-@inline ∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
+∇(::typeof(identity), ::Type{Arg{1}}, p, y, ȳ, x) = ȳ
+∇(::typeof(identity), ::Type{Arg{1}}, x::Real) = one(x)
 
 # Ignore functions that have complex ranges. This may change when Nabla supports complex
 # numbers.
@@ -29,8 +29,8 @@ for (package, f, arity) in diffrules()
         push!(unary_sensitivities, (package, f))
         ∂f∂x = diffrule(package, f, :x)
         @eval @explicit_intercepts $f Tuple{∇Scalar}
-        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
-        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $∂f∂x
+        @eval ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
+        @eval ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $∂f∂x
     elseif arity == 2
         push!(binary_sensitivities, (package, f))
         ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
