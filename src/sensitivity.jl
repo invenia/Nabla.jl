@@ -277,4 +277,4 @@ Default implementation of preprocess returns an empty Tuple. Individual sensitiv
 implementations should add methods specific to their use case. The output is passed
 in to `∇` as the 3rd or 4th argument in the new-x̄ and update-x̄ cases respectively.
 """
-@inline preprocess(::Any, args...) = ()
+preprocess(::Any, args...) = ()
