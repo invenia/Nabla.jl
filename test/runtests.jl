@@ -4,6 +4,10 @@ using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
 
 using Nabla: unbox, pos, tape, oneslike, zeroslike
 
+# Helper function for comparing `Ref`s, since they don't compare equal under `==`
+ref_equal(a::Ref{T}, b::Ref{T}) where {T} = a[] == b[]
+ref_equal(a::Ref, b::Ref) = false
+
 @testset "Core" begin
     include("core.jl")
     include("code_transformation/util.jl")

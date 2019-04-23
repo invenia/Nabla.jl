@@ -256,6 +256,7 @@ for (f_name, scalar_init, array_init) in
             end
             return y
         end
+        $f_name(x::Ref) = Ref($f_name(x[]))
     end)
 end
 @inline randned_container(x::Number) = randn(typeof(x))

@@ -195,6 +195,9 @@ let
 
     @test zerod_container(Dict("a"=>5.0, "b"=>randn(3))) == Dict("a"=>0.0, "b"=>zeros(3))
     @test oned_container(Dict("a"=>5.0, "b"=>randn(3))) == Dict("a"=>1.0, "b"=>ones(3))
+
+    @test ref_equal(zerod_container(Ref(4)), Ref(0))
+    @test ref_equal(oned_container(Ref(4)), Ref(1))
 end
 
 # To ensure we end up using the fallback machinery for ∇(x̄, f, ...) we'll define a new

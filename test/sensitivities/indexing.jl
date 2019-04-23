@@ -19,4 +19,8 @@
         @test unbox(y) == [10, 10, 10]
         @test ∇(y, oneslike(unbox(y)))[x] == [0, 1, 2]
     end
+
+    @testset "Ref" begin
+        @test ref_equal(∇(getindex)(Ref(4))[1], Ref(1))
+    end
 end
