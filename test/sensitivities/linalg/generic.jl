@@ -74,4 +74,16 @@
         @test C isa Branch{Matrix{Float64}}
         @test getfield(c, :f) === Base.copy
     end
+
+    @testset "exp" begin
+        rng = MersenneTwister(12345)
+        n = 10
+        symm!(X) = (X .= (X .+ X') ./ 2; X)
+        X = symm!(randn(rng, n, n))
+        VX = symm!(randn(rng, n, n))
+        @test check_errs(exp, randn(rng, n, n), X, VX)
+        A = randn(rng, n, n)
+        VA = randn(rng, n, n)
+        @test_throws ArgumentError check_errs(exp, randn(rng, n, n), A, VA)
+    end
 end
