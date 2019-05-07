@@ -3,12 +3,21 @@
     let N = 5, rng = MersenneTwister(123456)
 
         # Generate random test quantities for specific types.
-        ∇Arrays = Union{Type{∇Array}, Type{∇ArrayOrScalar}, Type{<:Transpose}, Type{<:Adjoint}}
+        ∇Arrays = Union{Type{∇Array}, Type{∇ArrayOrScalar}}
+
         trandn(rng::AbstractRNG, ::∇Arrays) = randn(rng, N, N)
-        trandn2(rng::AbstractRNG, ::∇Arrays) = randn(rng, N^2, N^2)
         trandn(rng::AbstractRNG, ::Type{∇Scalar}) = randn(rng)
+        trandn(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(randn(rng, N, N))
+        trandn(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(randn(rng, N, N))
+
+        trandn2(rng::AbstractRNG, ::∇Arrays) = randn(rng, N^2, N^2)
+        trandn2(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(randn(rng, N^2, N^2))
+        trandn2(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(randn(rng, N^2, N^2))
+
         trand(rng::AbstractRNG, ::∇Arrays) = rand(rng, N, N)
         trand(rng::AbstractRNG, ::Type{∇Scalar}) = rand(rng)
+        trand(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(rand(rng, N, N))
+        trand(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(rand(rng, N, N))
 
         for _ in 1:5
             # Test unary linalg sensitivities.
