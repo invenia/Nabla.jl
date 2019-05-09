@@ -3,24 +3,22 @@ import Base: getproperty
 
 @explicit_intercepts svd Tuple{AbstractMatrix{<:Real}}
 
-∇(::typeof(svd), ::Type{Arg{1}}, p, USV::SVD, S̄::AbstractVector, A::AbstractMatrix) =
-    svd_rev(USV, zeroslike(USV.U), S̄, zeroslike(USV.V))
-∇(::typeof(svd), ::Type{Arg{1}}, p, USV::SVD, V̄::Adjoint, A::AbstractMatrix) =
-    svd_rev(USV, zeroslike(USV.U), zeroslike(USV.S), V̄)
-∇(::typeof(svd), ::Type{Arg{1}}, p, USV::SVD, Ū::AbstractMatrix, A::AbstractMatrix) =
-    svd_rev(USV, Ū, zeroslike(USV.S), zeroslike(USV.V))
+∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:U,)}, A::AbstractMatrix) =
+    svd_rev(Y, Ȳ.U, zeroslike(Y.S), zeroslike(Y.V))
+∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:S,)}, A::AbstractMatrix) =
+    svd_rev(Y, zeroslike(Y.U), Ȳ.S, zeroslike(Y.V))
+∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:V,)}, A::AbstractMatrix) =
+    svd_rev(Y, zeroslike(Y.U), zeroslike(Y.S), Ȳ.V)
 
 @explicit_intercepts getproperty Tuple{SVD, Symbol} [true, false]
 
 function ∇(::typeof(getproperty), ::Type{Arg{1}}, p, y, ȳ, USV::SVD, x::Symbol)
     if x === :S
-        return vec(ȳ)
+        return (S=vec(ȳ),)
     elseif x === :U
-        return reshape(ȳ, size(USV.U))
+        return (U=reshape(ȳ, size(USV.U)),)
     elseif x === :V
-        # This is so we can ensure that the result is an Adjoint, otherwise dispatch
-        # won't work properly
-        return copy(ȳ')'
+        return (V=reshape(ȳ, size(USV.V)),)
     elseif x === :Vt
         throw(ArgumentError("Vt is unsupported; use V and transpose the result"))
     else
