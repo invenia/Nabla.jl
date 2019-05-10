@@ -1,52 +1,64 @@
 @testset "Generic" begin
+    N = 5
 
-    let N = 5, rng = MersenneTwister(123456)
+    # Generate random test quantities for specific types.
+    ∇Arrays = Union{Type{∇Array}, Type{∇ArrayOrScalar}}
 
-        # Generate random test quantities for specific types.
-        ∇Arrays = Union{Type{∇Array}, Type{∇ArrayOrScalar}}
+    trandn(rng::AbstractRNG, ::∇Arrays) = randn(rng, N, N)
+    trandn(rng::AbstractRNG, ::Type{∇Scalar}) = randn(rng)
+    trandn(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(randn(rng, N, N))
+    trandn(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(randn(rng, N, N))
 
-        trandn(rng::AbstractRNG, ::∇Arrays) = randn(rng, N, N)
-        trandn(rng::AbstractRNG, ::Type{∇Scalar}) = randn(rng)
-        trandn(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(randn(rng, N, N))
-        trandn(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(randn(rng, N, N))
+    trandn2(rng::AbstractRNG, ::∇Arrays) = randn(rng, N^2, N^2)
+    trandn2(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(randn(rng, N^2, N^2))
+    trandn2(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(randn(rng, N^2, N^2))
 
-        trandn2(rng::AbstractRNG, ::∇Arrays) = randn(rng, N^2, N^2)
-        trandn2(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(randn(rng, N^2, N^2))
-        trandn2(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(randn(rng, N^2, N^2))
+    trand(rng::AbstractRNG, ::∇Arrays) = rand(rng, N, N)
+    trand(rng::AbstractRNG, ::Type{∇Scalar}) = rand(rng)
+    trand(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(rand(rng, N, N))
+    trand(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(rand(rng, N, N))
 
-        trand(rng::AbstractRNG, ::∇Arrays) = rand(rng, N, N)
-        trand(rng::AbstractRNG, ::Type{∇Scalar}) = rand(rng)
-        trand(rng::AbstractRNG, ::Type{<:Transpose}) = Transpose(rand(rng, N, N))
-        trand(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(rand(rng, N, N))
-
-        for _ in 1:5
-            # Test unary linalg sensitivities.
-            for (f, T_In, T_Out, X̄, bounds) in Nabla.unary_linalg_optimisations
+    @testset "Unary sensitivities" begin
+        rng = MersenneTwister(123)
+        @testset "$f" for (f, T_In, T_Out, X̄, bounds) in Nabla.unary_linalg_optimisations
+            for _ in 1:5
                 Z = trand(rng, T_In) .* (bounds[2] .- bounds[1]) .+ bounds[1]
                 X = Z'Z + 1e-6 * one(Z)
                 Ȳ, V = eval(f)(X), trandn(rng, T_In)
                 @test check_errs(eval(f), Ȳ, X, 1e-1 .* V)
             end
+        end
+    end
 
-            # Test binary linalg sensitivities.
-            for (f, T_A, T_B, T_Y, Ā, B̄) in Nabla.binary_linalg_optimisations
+    @testset "Binary sensitivities" begin
+        rng = MersenneTwister(2)
+        @testset "$f" for (f, T_A, T_B, T_Y, Ā, B̄) in Nabla.binary_linalg_optimisations
+            for _ in 1:5
                 A, B, VA, VB = trandn.(Ref(rng), (T_A, T_B, T_A, T_B))
                 @test check_errs(eval(f), eval(f)(A, B), (A, B), (VA, VB))
             end
+        end
+    end
+
+    @testset "kron" begin
+        rng = MersenneTwister(3)
+        for _ in 1:5
             A, B, VA, VB = trandn.(Ref(rng), (∇Array, ∇Array, ∇Array, ∇Array))
             @test check_errs(kron, kron(A, B), (A, B), (VA, VB))
         end
+    end
 
+    @testset "I" begin
+        rng = MersenneTwister(4)
         for _ in 1:5
             A, VA, tI = randn(rng, 5, 5), randn(rng, 5, 5), 0.65 * I
             @test check_errs(X->X + tI, VA, A, 1e-1 * randn(rng, 5, 5))
             @test check_errs(X->tI + X, VA, A, 1e-1 * randn(rng, 5, 5))
         end
-
     end
 
-    # dot
-    let rng = MersenneTwister(123456)
+    @testset "dot" begin
+        rng = MersenneTwister(123456)
         for _ in 1:10
             x, y, vx, vy = randn.(Ref(rng), [5, 5, 5, 5])
             @test check_errs(LinearAlgebra.dot, LinearAlgebra.dot(x, y), (x, y), (vx, vy))
