@@ -58,5 +58,6 @@ module Nabla
     include("sensitivities/linalg/triangular.jl")
     include("sensitivities/linalg/factorization/cholesky.jl")
     include("sensitivities/linalg/factorization/svd.jl")
+    include("sensitivities/linalg/factorization/qr.jl")
 
 end # module Nabla
