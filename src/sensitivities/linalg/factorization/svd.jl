@@ -3,26 +3,41 @@ import Base: getproperty
 
 @explicit_intercepts svd Tuple{AbstractMatrix{<:Real}}
 
-∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:U,)}, A::AbstractMatrix) =
-    svd_rev(Y, Ȳ.U, zeroslike(Y.S), zeroslike(Y.V))
-∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:S,)}, A::AbstractMatrix) =
-    svd_rev(Y, zeroslike(Y.U), Ȳ.S, zeroslike(Y.V))
-∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:V,)}, A::AbstractMatrix) =
-    svd_rev(Y, zeroslike(Y.U), zeroslike(Y.S), Ȳ.V)
+∇(::typeof(svd), ::Type{Arg{1}}, p, Y::SVD, Ȳ::NamedTuple{(:U,:S,:V)}, A::AbstractMatrix) =
+    svd_rev(Y, Ȳ.U, Ȳ.S, Ȳ.V)
 
 @explicit_intercepts getproperty Tuple{SVD, Symbol} [true, false]
 
 function ∇(::typeof(getproperty), ::Type{Arg{1}}, p, y, ȳ, USV::SVD, x::Symbol)
     if x === :S
-        return (S=vec(ȳ),)
+        return (U=zeroslike(USV.U), S=vec(ȳ), V=zeroslike(USV.V))
     elseif x === :U
-        return (U=reshape(ȳ, size(USV.U)),)
+        return (U=reshape(ȳ, size(USV.U)), S=zeroslike(USV.S), V=zeroslike(USV.V))
     elseif x === :V
-        return (V=reshape(ȳ, size(USV.V)),)
+        return (U=zeroslike(USV.U), S=zeroslike(USV.S), V=reshape(ȳ, size(USV.V)))
     elseif x === :Vt
         throw(ArgumentError("Vt is unsupported; use V and transpose the result"))
     else
         throw(ArgumentError("unrecognized property $x; expected U, S, or V"))
+    end
+end
+
+function ∇(
+    x̄::NamedTuple{(:U,:S,:V)},
+    ::typeof(getproperty),
+    ::Type{Arg{1}},
+    p, y, ȳ,
+    USV::SVD,
+    x::Symbol,
+)
+    # This call does the validation that `x` is a recognized property
+    x̄_update = ∇(getproperty, Arg{1}, p, y, ȳ, USV, x)
+    if x === :S
+        return (U=x̄.U, S=update!(x̄.S, x̄_update.S), V=x̄.V)
+    elseif x === :U
+        return (U=update!(x̄.U, x̄_update.U), S=x̄.S, V=x̄.V)
+    elseif x === :V
+        return (U=x̄.U, S=x̄.S, V=update!(x̄.V, x̄_update.V))
     end
 end
 

@@ -43,4 +43,14 @@
         @test Nabla.eyesubx!(copy(X)) ≈ I - X
         @test Nabla.add!(copy(X), Y) ≈ X + Y
     end
+
+    @testset "Tape updating from multiple components" begin
+        ∇f = ∇() do X
+            U, S, V = svd(X)
+            Y = U * Diagonal(S) * V'
+            sum(Y)
+        end
+        X = [1.0 2.0; 3.0 4.0; 5.0 6.0]
+        @test ∇f(X)[1] ≈ ones(3, 2) atol=1e-5
+    end
 end
