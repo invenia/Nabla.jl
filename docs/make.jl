@@ -6,7 +6,8 @@ makedocs(
     pages=[
         "Home" => "index.md",
         "API" => "pages/api.md",
-        "Custom Sensitivities" => "pages/custom.md"
+        "Custom Sensitivities" => "pages/custom.md",
+        "Details" => "pages/autodiff.md",
     ],
     sitename="Nabla.jl",
     authors="Invenia Labs",
