@@ -39,8 +39,8 @@ then work our way backward through the computation of `f`, at each step computin
 sensitivities (e.g. ``\bar{w}``) in terms of the sensitivities of the steps which depend
 on it.
 
-In Nabla's implemented of RMAD, we write these intermediate values and the operations that
-produced them to what's called a _tape_.
+In Nabla's implementation of RMAD, we write these intermediate values and the operations
+that produced them to what's called a _tape_.
 In literature, the tape in this context is sometimes referred to as a "Wengert list."
 We do this because, by virtue of working in reverse, we may need to revisit computed
 values, and we don't want to have to do each computation again.
@@ -297,8 +297,8 @@ Start by defining the function:
 julia> f(x::Real, y::Real) = x*y + sin(x)
 f (generic function with 1 method)
 ```
-Now we need to `f` that we want Nabla to be able to "intercept" it in order to produce an
-explicit branch on `f` in the overall computational graph.
+Now we need to tell `f` that we want Nabla to be able to "intercept" it in order to produce
+an explicit branch on `f` in the overall computational graph.
 That means that our computational graph from Nabla's perspective is simply
 ```
     x     y
