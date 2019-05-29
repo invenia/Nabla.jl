@@ -1,7 +1,13 @@
 """
-    checkpoint
+    checkpoint(f, args::Tuple)
 
-Do checkpointing.
+Treat `f` as a primitive, whose gradient is computed by running and forwards- and reverse-
+pass of ∇ inside the outer pass. This can have the effect of significantly lowering the
+peak memory usage of a gradient computation at the expense of additional computation.
+
+HEALTH WARNING: If you close over differentiable objects in `f`, you will get incorrect
+results. It is therefore very much recommended to verify your gradients using finite
+differencing whenever code is checkpointed.
 """
 checkpoint(f, args::Tuple) = f(args...)
 
