@@ -1,6 +1,6 @@
 name = "Nabla"
 uuid = "49c96f43-aa6d-5a04-a506-44c7070ebe78"
-version = "0.12.0"
+version = "0.12.1"
 
 [deps]
 DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
