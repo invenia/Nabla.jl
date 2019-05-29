@@ -59,4 +59,7 @@ module Nabla
     include("sensitivities/linalg/factorization/cholesky.jl")
     include("sensitivities/linalg/factorization/svd.jl")
 
+    # Checkpointing
+    include("checkpointing.jl")
+
 end # module Nabla
