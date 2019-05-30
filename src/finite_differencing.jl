@@ -23,7 +23,7 @@ function approximate_Dv(
 )
     return central_5_1(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
 end
-central_5_1 = central_fdm(5, 1; M=5e8)
+central_5_1 = central_fdm(5, 1; bound=5e8)
 approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
     approximate_Dv(f, ȳ, (x,), (v,))
 

@@ -5,18 +5,43 @@ Treat `f` as a primitive, whose gradient is computed by running and forwards- an
 pass of ∇ inside the outer pass. This can have the effect of significantly lowering the
 peak memory usage of a gradient computation at the expense of additional computation.
 
-HEALTH WARNING: If you close over differentiable objects in `f`, you will get incorrect
-results. It is therefore very much recommended to verify your gradients using finite
-differencing whenever code is checkpointed.
+`f` musn't have any fields. In particular, this precludes `f` from being a closure.
 """
-checkpoint(f, args::Tuple) = f(args...)
+@generated function checkpoint(f, args::Tuple)
+    fieldcount(f) > 0 && error("f mustn't have fields.")
+    return :(f(args...))
+end
+@generated function checkpoint(f, args::Tuple, kwargs::NamedTuple)
+    fieldcount(f) > 0 && error("f mustn't have fields.")
+    return :(f(args...; kwargs...))
+end
 
-@explicit_intercepts checkpoint Tuple{Any, Any} [false, true]
+@explicit_intercepts checkpoint Tuple{Any, Tuple} [false, true]
+@explicit_intercepts checkpoint Tuple{Any, Tuple, NamedTuple} [false, true, false]
 
-∇(::typeof(checkpoint), ::Type{Arg{1}}, p, y, ȳ, f, args::Tuple) = nothing
 function ∇(::typeof(checkpoint), ::Type{Arg{2}}, p, y, ȳ, f, args::Tuple)
     args_ = Leaf.(Tape(), args)
     y = f(args_...)
+    if y isa Node
+        ∇f = ∇(y, ȳ)
+        ∇args = map(args_, args) do arg_, arg
+            isassigned(∇f, arg_) ? ∇f[arg_] : zero(arg)
+        end
+    else
+        ∇args = zero.(args)
+    end
+    return ∇args
+end
+
+function ∇(
+    ::typeof(checkpoint),
+    ::Type{Arg{2}},
+    p, y, ȳ, f,
+    args::Tuple,
+    kwargs::NamedTuple,
+)
+    args_ = Leaf.(Tape(), args)
+    y = f(args_...; kwargs...)
     if y isa Node
         ∇f = ∇(y, ȳ)
         ∇args = map(args_, args) do arg_, arg
