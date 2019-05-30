@@ -27,6 +27,7 @@ using LinearAlgebra.BLAS
         λ = x->asum(50, x, 2)
         for _ in 1:10
             x, vx = randn(rng, 100), randn(rng, 100)
+            x .+= sign.(x)
             @test check_errs(asum, randn(rng), x, vx)
             @test check_errs(λ, randn(rng), x, vx)
         end
