@@ -21,9 +21,9 @@ function approximate_Dv(
     x::Tuple{Vararg{∇ArrayOrScalar}},
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
-    return central_5_1(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
+    return FDM.Central(5, 1)(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
 end
-central_5_1 = central_fdm(5, 1; bound=5e8)
+
 approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
     approximate_Dv(f, ȳ, (x,), (v,))
 

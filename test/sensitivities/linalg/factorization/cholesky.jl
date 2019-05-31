@@ -46,7 +46,6 @@
     let rng = MersenneTwister(123456), N = 10
         for _ in 1:10
             B, VB = randn.(Ref(rng), [N, N], [N, N])
-            A, VA = B'B + 1e-6I, VB'VB + 1e-6I
             Ū = UpperTriangular(randn(rng, N, N))
             @test check_errs(B->cholesky(B'B + I).U, Ū, B, 1e-2 .* VB)
         end
