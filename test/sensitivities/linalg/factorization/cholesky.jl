@@ -48,7 +48,7 @@
             B, VB = randn.(Ref(rng), [N, N], [N, N])
             A, VA = B'B + 1e-6I, VB'VB + 1e-6I
             Ū = UpperTriangular(randn(rng, N, N))
-            @test check_errs(X->cholesky(X).U, Ū, A, 1e-2 .* VA)
+            @test check_errs(B->cholesky(B'B + I).U, Ū, B, 1e-2 .* VB)
         end
     end
 
