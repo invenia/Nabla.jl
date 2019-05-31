@@ -12,7 +12,7 @@ peak memory usage of a gradient computation at the expense of additional computa
     return :(f(args...))
 end
 @generated function checkpoint(f, args::Tuple, kwargs::NamedTuple)
-    fieldcount(f) > 0 && error("f mustn't have fields.")
+    fieldcount(f) > 0 && error("f mustn't have fields. Can not checkpoint a closure or functor. Please reformulate as a plain function that does not close over any parameters.")
     return :(f(args...; kwargs...))
 end
 
