@@ -197,7 +197,71 @@ var documenterSearchIndex = {"docs": [
     "page": "Custom Sensitivities",
     "title": "Custom Sensitivities",
     "category": "section",
-    "text": "Coming soon... (you can already add your own sensitivities easily, we just haven\'t written the documentation yet)."
+    "text": "Part of the power of Nabla is its extensibility, specifically in the form of defining custom sensitivities for functions. This is accomplished by defining methods for ∇ that specialize on the function for which you\'d like to define sensitivities.Given a function of the form f(x_1 ldots x_n), we want to be able to compute fracpartial fpartial x_i for all i of interest as efficiently as possible. Defining our own sensitivities barx_i means that f will be taken as a \"unit,\" and its intermediate operations are not written separately to the tape. For more details on that, refer to the Details section of the documentation."
+},
+
+{
+    "location": "pages/custom.html#Intercepting-calls-1",
+    "page": "Custom Sensitivities",
+    "title": "Intercepting calls",
+    "category": "section",
+    "text": "Nabla\'s approach to RMAD is based on operator overloading. Specifically, for each x_i we wish to differentiate, we need a method for f that accepts a Node in position i. There are two primary ways to go about this: @explicit_intercepts and @unionise."
+},
+
+{
+    "location": "pages/custom.html#Nabla.@explicit_intercepts",
+    "page": "Custom Sensitivities",
+    "title": "Nabla.@explicit_intercepts",
+    "category": "macro",
+    "text": "@explicit_intercepts(f::Symbol, type_tuple::Expr, is_node::Expr[, kwargs::Expr])\n@explicit_intercepts(f::Symbol, type_tuple::Expr)\n\nCreate a collection of methods which intecept the function calls to f in which at least one argument is a Node. Types of arguments are specified by the type tuple expression in type_tuple. If there are arguments which are not differentiable, they can be specified by providing a boolean vector is_node which indicates those arguments that are differentiable with true values and those which are not as false. Keyword arguments to add to the function signature can be specified in kwargs, which must be a NamedTuple.\n\n\n\n\n\n"
+},
+
+{
+    "location": "pages/custom.html#@explicit_intercepts-1",
+    "page": "Custom Sensitivities",
+    "title": "@explicit_intercepts",
+    "category": "section",
+    "text": "When f has already been defined, we can extend it to accept Nodes using this macro.@explicit_interceptsAs a trivial example, take sin for scalar values (not matrix sine). We extend it for Nodes asimport Base: sin  # ensure sin can be extended without qualification\n\n@explicit_intercepts sin Tuple{Real}This generates the following code:begin\n    function sin(##367::Node{<:Real})\n        #= REPL[7]:1 =#\n        Branch(sin, (##367,), getfield(##367, :tape))\n    end\nendAnd so calling sin with a Node argument will produce a Branch that holds information about the call.For a nontrivial example, take the sum function, which accepts a function argument that gets mapped over the input prior to reduction by addition, as well as a dims keyword argument that permits summing over a subset of the dimensions of the input. We want to differentiate with respect to the input array, but not with respect to the function argument nor the dimension. (Note that Nabla cannot currently differentiate with respect to keyword arguments.) We can extend this for Nodes asimport Base: sum\n\n@explicit_intercepts(\n    sum,\n    Tuple{Function, AbstractArray{<:Real}},\n    [false, true],\n    (dims=:,),\n)The signature of the call to @explicit_intercepts here may look a bit complex, so let\'s break it down. It\'s saying that we want to intercept calls to sum for methods which accept a Function and an AbstractArray{<:Real}, and that we do not want to differentiate with respect to the function argument (false) but do want to differentiate with respect to the array (true). Furthermore, methods of this form will have the keyword argument dims, which defaults to :, and we\'d like to make sure we\'re able to capture that when we intercept.This macro generates the following code:function _sum(arg1::Function, arg2::AbstractArray{<:Real}, dims=:)\n    #= REPL[6]:1 =#\n    sum(arg1, arg2; dims=dims)\nend\nbegin\n    begin\n        function sum(##365::Function, ##366::Node{<:AbstractArray{<:Real}}; dims=:)\n            #= REPL[6]:1 =#\n            _sum(##365, ##366, dims)\n        end\n        function _sum(##365::Function, ##366::Node{<:AbstractArray{<:Real}}, dims::Any)\n            #= REPL[6]:1 =#\n            Branch(_sum, (##365, ##366, dims), getfield(##366, :tape))\n        end\n    end\nendAs you can see, it defines a new function _sum which has all positional arguments but is otherwise equivalent to sum. It then extends sum to call _sum when passed a Node for the input array, and _sum in turn creates a Branch when it receives a Node. Notice that we do not accept a Node for the function argument; this is by virtue of using false in that position in the call to @explicit_intercepts.The name _sum is generated by an internal function Nabla.kwfname, which generates a name for a function that accepts positional arguments based on one with keyword arguments. Currently the naming scheme is to simply prepend an underscore.warning: Warning\nWhen dealing with functions with keyword arguments, methods for ∇ should be specialized on Nabla.kwfname(f), not f!"
+},
+
+{
+    "location": "pages/custom.html#Nabla.@unionise",
+    "page": "Custom Sensitivities",
+    "title": "Nabla.@unionise",
+    "category": "macro",
+    "text": "@unionise code\n\nTransform code such that each function definition accepts Node objects as arguments, without effecting dispatch in other ways.\n\n\n\n\n\n"
+},
+
+{
+    "location": "pages/custom.html#@unionise-1",
+    "page": "Custom Sensitivities",
+    "title": "@unionise",
+    "category": "section",
+    "text": "If f has not yet been defined and you know off the bat that you want it to be able to work with Nabla, you can annotate its definition with @unionise.@unioniseAs a simple example,@unionise f(x::Matrix, p::Real) = norm(x, p)For each type constrained argument xi in the method definition\'s signature, @unionise changes the type constraint from T to Union{T, Node{<:T}}, allowing f to work with Nodes without needing to define separate methods. In this example, the macro expands the definition tof(x::Union{Matrix, Node{<:Matrix}}, p::Union{Real, Node{<:Real}}) = begin\n        #= REPL[9]:1 =#\n        norm(x, p)\n    end"
+},
+
+{
+    "location": "pages/custom.html#Defining-sensitivities-1",
+    "page": "Custom Sensitivities",
+    "title": "Defining sensitivities",
+    "category": "section",
+    "text": "Now that our function f works with Nodes, we want to define a method for ∇ for each argument xi that we\'re interested in differentiating. Thus, for each argument position i we care about, we\'ll define a method of ∇ that looks like:function Nabla.∇(::typeof(f), ::Type{Arg{i}}, _, y, ȳ, x1, ..., xn)\n    # Compute x̄i\nendThe method signature contains all of the information it needs to compute the derivative:f, the function\nArg{i}, which specifies which of the xi we\'re computing the sensitivity of\n_ (placeholder, typically unused)\ny, the result of y = f(x1, ..., xn)\nȳ, the \"incoming\" sensitivity propagated to this call\nx1, ..., xn, the inputs to fA fully worked example is provided in the Details section of the documentation.As stated earlier, if f accepts keyword arguments then we\'ll need to extend ∇ for Nabla.kwfname(f) rather than f. However, note that kwfname returns a Symbol, not a Function, which means a bit of trickery is involved when forming the method signature. One effective, if not entirely beautiful, way to accomplish it is to use @eval:@eval function Nabla.∇(::typeof($(Nabla.kwfname(f))), ...)\n    # ...\nend"
+},
+
+{
+    "location": "pages/custom.html#Nabla.check_errs",
+    "page": "Custom Sensitivities",
+    "title": "Nabla.check_errs",
+    "category": "function",
+    "text": "check_errs(\n    f,\n    ȳ::∇ArrayOrScalar,\n    x::T,\n    v::T,\n    ε_abs::∇Scalar=1e-10,\n    ε_rel::∇Scalar=1e-7\n)::Bool where T\n\nCheck that the difference between finite differencing directional derivative estimation and RMAD directional derivative computation for function f at x in direction v, for both allocating and in-place modes, has absolute and relative errors of ε_abs and ε_rel respectively, when scaled by reverse-mode sensitivity ȳ.\n\n\n\n\n\n"
+},
+
+{
+    "location": "pages/custom.html#Testing-sensitivities-1",
+    "page": "Custom Sensitivities",
+    "title": "Testing sensitivities",
+    "category": "section",
+    "text": "In order to ensure correctness for custom sensitivity definitions, we can compare the results against those computed by the method of finite differences. The finite differencing itself is implemented in the Julia package FDM, but Nabla defines and exports functionality that permits checking results against finite differencing.The primary workhorse function for this is check_errs.check_errs"
 },
 
 {
@@ -221,7 +285,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Details",
     "title": "What is RMAD?",
     "category": "section",
-    "text": "A comprehensive introduction to AD is out of the scope of this document. For that, the reader may be interested in books such as Evaluating Derivatives by Griewank and Walther. To give a sense of how Nabla works, we\'ll briefly give a high-level overview of RMAD.Say you\'re evaluating a function y = f(x) with the goal of computing the derivative of the output with respect to the input, or, in other words, the sensitivity of the output to changes in the input. Pick an arbitrary intermediate step in the computation of f, and suppose it has the form w = g(u v) for some intermediate variables u and v and function g. We denote the derivative of u with respect to the input x as dotu. In FMAD, this is typically the quantity of interest. In RMAD, we want the derivative of the output y with respect to (each element of) the intermediate variable u, which we\'ll denote baru.Giles (2008) shows us that we can compute the sensitivity of y to changes in u and v in reverse mode asbaru = left( fracpartial gpartial u right)^intercal barw quad\nbarv = left( fracpartial gpartial v right)^intercal barwTo arrive at the desired derivative, we start with the identitybary = fracpartial ypartial y = 1then work our way backward through the computation of f, at each step computing the sensitivities (e.g. barw) in terms of the sensitivities of the steps which depend on it.In Nabla\'s implemented of RMAD, we write these intermediate values and the operations that produced them to what\'s called a tape. In literature, the tape in this context is sometimes referred to as a \"Wengert list.\" We do this because, by virtue of working in reverse, we may need to revisit computed values, and we don\'t want to have to do each computation again. At the end, we simply sum up the values we\'ve stored to the tape."
+    "text": "A comprehensive introduction to AD is out of the scope of this document. For that, the reader may be interested in books such as Evaluating Derivatives by Griewank and Walther. To give a sense of how Nabla works, we\'ll briefly give a high-level overview of RMAD.Say you\'re evaluating a function y = f(x) with the goal of computing the derivative of the output with respect to the input, or, in other words, the sensitivity of the output to changes in the input. Pick an arbitrary intermediate step in the computation of f, and suppose it has the form w = g(u v) for some intermediate variables u and v and function g. We denote the derivative of u with respect to the input x as dotu. In FMAD, this is typically the quantity of interest. In RMAD, we want the derivative of the output y with respect to (each element of) the intermediate variable u, which we\'ll denote baru.Giles (2008) shows us that we can compute the sensitivity of y to changes in u and v in reverse mode asbaru = left( fracpartial gpartial u right)^intercal barw quad\nbarv = left( fracpartial gpartial v right)^intercal barwTo arrive at the desired derivative, we start with the identitybary = fracpartial ypartial y = 1then work our way backward through the computation of f, at each step computing the sensitivities (e.g. barw) in terms of the sensitivities of the steps which depend on it.In Nabla\'s implementation of RMAD, we write these intermediate values and the operations that produced them to what\'s called a tape. In literature, the tape in this context is sometimes referred to as a \"Wengert list.\" We do this because, by virtue of working in reverse, we may need to revisit computed values, and we don\'t want to have to do each computation again. At the end, we simply sum up the values we\'ve stored to the tape."
 },
 
 {
@@ -285,7 +349,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Details",
     "title": "Defining a custom sensitivity",
     "category": "section",
-    "text": "Generally speaking, you won\'t need to go through these steps. Instead, if you have expressions for the partial derivatives, as we did above, you can define a custom sensitivity.Start by defining the function:julia> f(x::Real, y::Real) = x*y + sin(x)\nf (generic function with 1 method)Now we need to f that we want Nabla to be able to \"intercept\" it in order to produce an explicit branch on f in the overall computational graph. That means that our computational graph from Nabla\'s perspective is simply    x     y\n     ╲   ╱\n    f(x,y)\n       │\n       zWe do this with the @explicit_intercepts macro, which defines methods for f that accept Node arguments.julia> @explicit_intercepts f Tuple{Real, Real}\nf (generic function with 4 methods)\n\njulia> methods(f)\n# 4 methods for generic function \"f\":\n[1] f(x::Real, y::Real) in Main at REPL[18]:1\n[2] f(363::Real, 364::Node{#s1} where #s1<:Real) in Main at REPL[19]:1\n[3] f(365::Node{#s2} where #s2<:Real, 366::Real) in Main at REPL[19]:1\n[4] f(367::Node{#s3} where #s3<:Real, 368::Node{#s4} where #s4<:Real) in Main at REPL[19]:1Now we define our sensitivities for f as methods of ∇:julia> Nabla.∇(::typeof(f), ::Type{Arg{1}}, _, z, z̄, x, y) = (cos(x) + y)*z̄  # x̄\n\njulia> Nabla.∇(::typeof(f), ::Type{Arg{2}}, _, z, z̄, x, y) = x*z̄  # ȳAnd finally, we can call ∇ on f to compute the partial derivatives:julia> ∇(f)(0.6791074260357777, 0.8284134829000359)\n(1.6065471361170487, 0.6791074260357777)This gives us the same result at which we arrived when doing things manually."
+    "text": "Generally speaking, you won\'t need to go through these steps. Instead, if you have expressions for the partial derivatives, as we did above, you can define a custom sensitivity.Start by defining the function:julia> f(x::Real, y::Real) = x*y + sin(x)\nf (generic function with 1 method)Now we need to tell f that we want Nabla to be able to \"intercept\" it in order to produce an explicit branch on f in the overall computational graph. That means that our computational graph from Nabla\'s perspective is simply    x     y\n     ╲   ╱\n    f(x,y)\n       │\n       zWe do this with the @explicit_intercepts macro, which defines methods for f that accept Node arguments.julia> @explicit_intercepts f Tuple{Real, Real}\nf (generic function with 4 methods)\n\njulia> methods(f)\n# 4 methods for generic function \"f\":\n[1] f(x::Real, y::Real) in Main at REPL[18]:1\n[2] f(363::Real, 364::Node{#s1} where #s1<:Real) in Main at REPL[19]:1\n[3] f(365::Node{#s2} where #s2<:Real, 366::Real) in Main at REPL[19]:1\n[4] f(367::Node{#s3} where #s3<:Real, 368::Node{#s4} where #s4<:Real) in Main at REPL[19]:1Now we define our sensitivities for f as methods of ∇:julia> Nabla.∇(::typeof(f), ::Type{Arg{1}}, _, z, z̄, x, y) = (cos(x) + y)*z̄  # x̄\n\njulia> Nabla.∇(::typeof(f), ::Type{Arg{2}}, _, z, z̄, x, y) = x*z̄  # ȳAnd finally, we can call ∇ on f to compute the partial derivatives:julia> ∇(f)(0.6791074260357777, 0.8284134829000359)\n(1.6065471361170487, 0.6791074260357777)This gives us the same result at which we arrived when doing things manually."
 },
 
 ]}
