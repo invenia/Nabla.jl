@@ -74,12 +74,13 @@ struct Branch{T} <: Node{T}
     val::T
     f
     args::Tuple
+    kwargs::NamedTuple
     tape::Tape
     pos::Int
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, tape, length(tape) + 1)
+    branch = Branch(f(unboxed...; kwargs...), f, args, kwargs.data, tape, length(tape) + 1)
     push!(tape, branch)
     return branch
 end
@@ -127,14 +128,15 @@ function propagate(y::Branch, rvs_tape::Tape)
     tape = Nabla.tape(rvs_tape)
     ȳ, f = tape[pos(y)], getfield(y, :f)
     args = getfield(y, :args)
+    kwargs = getfield(y, :kwargs)
     xs, xids = map(unbox, args), map(pos, args)
     p = preprocess(f, unbox(y), ȳ, xs...)
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
         if xid > 0
             tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...) :
-                ∇(f, Arg{j}, p, unbox(y), ȳ, xs...)
+                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :
+                ∇(f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...)
         end
     end
     return nothing
@@ -181,7 +183,9 @@ output and `ȳ` the reverse-mode sensitivity of `y`.
 
 # This is a fallback method where we don't necessarily know what we'll be adding and whether
 # we can update the value in-place, so we'll try to be clever and dispatch.
-@inline ∇(x̄, f, ::Type{Arg{N}}, args...) where {N} = update!(x̄, ∇(f, Arg{N}, args...))
+@inline function ∇(x̄, f, ::Type{Arg{N}}, args...; kwargs...) where N
+    return update!(x̄, ∇(f, Arg{N}, args...; kwargs...))
+end
 
 # Update regular arrays in-place. Structured array types should not be updated in-place,
 # even though it technically "works" (https://github.com/JuliaLang/julia/issues/31674),
@@ -201,9 +205,9 @@ return the gradient w.r.t. each of the arguments. If `get_output` is `true`, the
 of calling `f` on the given arguments is also returned.
 """
 function ∇(f; get_output::Bool=false)
-    return function(args...)
+    return function(args...; kwargs...)
         args_ = Leaf.(Tape(), args)
-        y = f(args_...)
+        y = f(args_...; kwargs...)
         if y isa Node
             ∇f = ∇(y)
             ∇args = map(args_, args) do arg_, arg
