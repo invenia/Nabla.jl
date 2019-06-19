@@ -75,12 +75,23 @@ struct Branch{T} <: Node{T}
     f
     args::Tuple
     kwargs::NamedTuple
+    rules::Union{Tuple, Nothing}
     tape::Tape
     pos::Int
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, kwargs.data, tape, length(tape) + 1)
+    r = rrule(f, unboxed...; kwargs...)
+    if f === broadcast || r === nothing
+        y = f(unboxed...; kwargs...)
+        rules = nothing
+    else
+        y, rules = r
+        if !(rules isa Tuple)
+            rules = (rules,)
+        end
+    end
+    branch = Branch(y, f, args, kwargs.data, rules, tape, length(tape) + 1)
     push!(tape, branch)
     return branch
 end
@@ -129,14 +140,22 @@ function propagate(y::Branch, rvs_tape::Tape)
     ȳ, f = tape[pos(y)], getfield(y, :f)
     args = getfield(y, :args)
     kwargs = getfield(y, :kwargs)
+    rules = getfield(y, :rules)
     xs, xids = map(unbox, args), map(pos, args)
     p = preprocess(f, unbox(y), ȳ, xs...)
     for j in eachindex(xs)
-        x, xid = xs[j], xids[j]
-        if xid > 0
+        x = xs[j]
+        xid = xids[j]
+        xid > 0 || continue
+        if rules === nothing
             tape[xid] = isassigned(tape, xid) ?
                 ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :
                 ∇(f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...)
+        else
+            rule = rules[j]
+            tape[xid] = isassigned(tape, xid) ?
+                ChainRules.extern(ChainRules.accumulate!(tape[xid], rule, ȳ)) :
+                ChainRules.extern(rule(ȳ))
         end
     end
     return nothing

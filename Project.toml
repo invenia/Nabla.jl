@@ -3,6 +3,7 @@ uuid = "49c96f43-aa6d-5a04-a506-44c7070ebe78"
 version = "0.12.1"
 
 [deps]
+ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
 DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
 DualNumbers = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 FDM = "e25cca7e-83ef-51fa-be6c-dfe2a3123128"
