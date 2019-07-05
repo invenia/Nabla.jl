@@ -128,3 +128,10 @@ function ∇(::typeof(exp), ::Type{Arg{1}}, p, Y, Ȳ, X::AbstractMatrix)
     F = factorize(Uᵀ)
     return real(F \ (Uᵀ * Ȳ / F .* Z) * Uᵀ)
 end
+
+# Ported from autograd, which uses https://mathoverflow.net/questions/25778/analytical-...
+# formula-for-numerical-derivative-of-the-matrix-pseudo-inverse
+import LinearAlgebra: pinv
+@explicit_intercepts pinv Tuple{AbstractMatrix{<:∇Scalar}}
+∇(::typeof(pinv), ::Type{Arg{1}}, p, Y, Ȳ, A::AbstractMatrix) =
+    (-Y*Ȳ'*Y + Y*Y'*Ȳ*(I - A*Y) + (I - Y*A)*Ȳ*Y'*Y)'

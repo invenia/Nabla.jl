@@ -98,4 +98,14 @@
         VA = randn(rng, n, n)
         @test_throws ArgumentError check_errs(exp, randn(rng, n, n), A, VA)
     end
+
+    @testset "pinv" begin
+        rng = MersenneTwister(12345)
+        for n in 3:5, m in 3:5
+            X = randn(rng, n, m)
+            VX = randn(rng, n, m)
+            Ȳ = randn(rng, m, n)
+            @test check_errs(pinv, Ȳ, X, VX)
+        end
+    end
 end
