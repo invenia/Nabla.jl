@@ -5,6 +5,7 @@
 [![codecov.io](https://codecov.io/github/invenia/Nabla.jl/coverage.svg?branch=master)](https://codecov.io/github/invenia/Nabla.jl?branch=master)
 [![Stable Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://invenia.github.io/Nabla.jl/stable)
 [![Latest Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://invenia.github.io/Nabla.jl/latest)
+[![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
 Nabla.jl is a reverse-mode automatic differentiation package targetting machine learning use cases. 
 As such, we have (for example) prioritised support for linear algebra optimisations and higher-order functions over the ability to take higher-order derivatives (Nabla currently only supports first-order derivatives).
