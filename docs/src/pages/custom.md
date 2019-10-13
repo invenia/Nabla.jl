@@ -152,7 +152,7 @@ of the documentation.
 In order to ensure correctness for custom sensitivity definitions, we can compare the
 results against those computed by the method of finite differences.
 The finite differencing itself is implemented in the Julia package
-[FDM](https://github.com/invenia/FDM.jl), but Nabla defines and exports functionality
+[FiniteDifferences.jl](https://github.com/juliadiff/FiniteDifferences.jl), but Nabla defines and exports functionality
 that permits checking results against finite differencing.
 
 The primary workhorse function for this is `check_errs`.

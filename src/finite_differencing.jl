@@ -1,4 +1,4 @@
-using FDM
+using FiniteDifferences
 
 export check_Dv, check_Dv_update, check_errs,
        assert_approx_equal, domain1, domain2, points, in_domain
@@ -21,7 +21,7 @@ function approximate_Dv(
     x::Tuple{Vararg{∇ArrayOrScalar}},
     v::Tuple{Vararg{∇ArrayOrScalar}}
 )
-    return FDM.Central(5, 1)(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
+    return FiniteDifferences.Central(5, 1)(ε -> sum(ȳ .* f((x .+ ε .* v)...)))
 end
 
 approximate_Dv(f, ȳ::∇ArrayOrScalar, x::∇ArrayOrScalar, v::∇ArrayOrScalar) =
