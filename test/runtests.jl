@@ -8,6 +8,8 @@ using Nabla: unbox, pos, tape, oneslike, zeroslike
 ref_equal(a::Ref{T}, b::Ref{T}) where {T} = a[] == b[]
 ref_equal(a::Ref, b::Ref) = false
 
+@testset "Nabla.jl" begin
+
 @testset "Core" begin
     include("core.jl")
     include("code_transformation/util.jl")
@@ -47,4 +49,6 @@ end
     end
 
     include("checkpointing.jl")
+end
+
 end
