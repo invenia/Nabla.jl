@@ -230,7 +230,7 @@ using DiffRules: diffrule, hasdiffrule
     # Check that the number of allocations which happen in the reverse pass of `map` and
     # `broadcast` is invariant of the size of the data structure of which we are
     # mapping / broadcasting.
-    for f in [:map, :broadcast]
+    @testset for f in [:map, :broadcast]
         let
             @eval foo_small() = sum($f(tanh, Leaf(Tape(), randn(10, 10))))
             @eval foo_large() = sum($f(tanh, Leaf(Tape(), randn(10, 100))))
