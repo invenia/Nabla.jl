@@ -234,8 +234,8 @@ using DiffRules: diffrule, hasdiffrule
         let
             @eval foo_small() = sum($f(tanh, Leaf(Tape(), randn(10, 10))))
             @eval foo_large() = sum($f(tanh, Leaf(Tape(), randn(10, 100))))
-            @test allocs(@benchmark foo_small()) == allocs(@benchmark foo_large())
-            @test allocs(@benchmark ∇(foo_small())) == allocs(@benchmark ∇(foo_large()))
+            @test allocs(@benchmark foo_small()) ≈ allocs(@benchmark foo_large()) atol=1
+            @test allocs(@benchmark ∇(foo_small())) ≈ allocs(@benchmark ∇(foo_large())) atol=1
         end
     end
 
