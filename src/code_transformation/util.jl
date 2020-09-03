@@ -41,6 +41,23 @@ function unionise_type(tp::Union{Symbol, Expr})
 end
 
 """
+    node_type(tp::Union{Symbol, Expr})
+
+Returns an expression for the `Node{<:tp}`. e.g.
+`node_type(:Real)` returns `:(Node{<:Real}})`.
+
+Correctly `Varargs{Real}` becomes `:(Varargs{Node{<:Real}})`
+
+This is a lot like [`unionize_type`](ref) but it doesn't permit the original type anymore.
+"""
+function node_type(tp::Union{Symbol, Expr})
+    (_tp, _info) = remove_vararg(tp)
+    tp_clean = (isa(_tp, Expr) && _tp.head == Symbol("<:")) ? _tp.args[1] : _tp
+    return replace_vararg(:(Node{<:$tp_clean}), (_tp, _info))
+end
+
+
+"""
     replace_body(unionall::Union{Symbol, Expr}, replacement::Union{Symbol, Expr})
 
 Replace the body of an expression representing a `UnionAll`. e.g.
@@ -91,6 +108,21 @@ function remove_vararg(typ::Expr)
     if isa_vararg(typ)
         body = get_body(typ)
         new_typ = replace_body(typ, body.args[2])
+
+        # This is a bit ugly:
+        # handle interally `where N` from `typ = :(Vararg{FOO, N} where N)` which results in
+        # `body = :(Vararg{FOO, N})` and `new_type = Foo where N`, we don't need to keep it
+        # at all, the `where N` wasn't doing anything to begin with, so we just strip it out
+        if Meta.isexpr(new_typ, :where, 2) && Meta.isexpr(body, :curly, 3)
+            @assert body.args[1] == :Vararg
+            T = body.args[2]
+            N = body.args[3]
+            if new_typ.args == [T, N]
+                body = :(Vararg{T})
+                new_typ = T
+            end
+        end
+
         vararg_info = length(body.args) == 3 ? body.args[3] : :Vararg
         return new_typ, vararg_info
     else
@@ -107,7 +139,7 @@ Convert `typ` to the `Vararg` containing elements of type `typ` specified by
 replace_vararg(typ::SymOrExpr, vararg_info::Tuple) =
     vararg_info[2] == :nothing ?
         typ :
-        vararg_info[2] == :no_N || vararg_info[2] == :Vararg ?
+        vararg_info[2] == :no_N || vararg_info[2] == :Vararg ?  #TODO: :no_N is impossible now?
             replace_body(typ, :(Vararg{$(get_body(typ))})) :
             replace_body(typ, :(Vararg{$(get_body(typ)), $(vararg_info[2])}))
 

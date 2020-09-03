@@ -63,6 +63,12 @@ skip_line_info(ex) = ex
     @test unionise_sig(:(foo(x::T))) == :(foo($(unionise_arg(:(x::T)))))
     @test unionise_sig(:(foo(x::T) where T)) == :(foo($(unionise_arg(:(x::T)))) where T)
 
+    @test isequal(  # special case for a redudant where N in a Vararg
+        Nabla.unionise_sig(:(x2::(Vararg{Int64, N} where N))),
+        :(x2::Vararg{Union{Int64, Node{<:Int64}}}),
+    )
+
+
     # Test Nabla.unionise_struct. Written in terms of Nabla.unionise_arg.
     @test unionise_struct(:(struct Foo end)) == :(struct Foo end)
     @test unionise_struct(:(struct Foo{T} end)) ==

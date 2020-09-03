@@ -75,4 +75,9 @@
         @test Nabla.parse_is_node(:([true, false])) == [true, false]
         @test_throws ArgumentError Nabla.parse_is_node(:((true, false)))
     end
+
+    @testset "node_type" begin
+        @test Nabla.node_type(:(Vararg{Int64, N} where N)) == :(Vararg{Node{<:Int64}})
+        @test Nabla.node_type(:Float32) == :(Node{<:Float32})
+    end
 end

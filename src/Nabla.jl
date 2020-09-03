@@ -1,9 +1,12 @@
 __precompile__()
 
 module Nabla
-
-    using SpecialFunctions
+    using ChainRules
+    using ChainRulesCore
+    using ExprTools: ExprTools
     using LinearAlgebra
+    using Random
+    using SpecialFunctions
     using Statistics
 
     # Some aliases used repeatedly throughout the package.
@@ -25,6 +28,9 @@ module Nabla
         end
     end
 
+    # Link up to ChainRulesCore so rules are generated when new rrules are declared.
+    __init__() = on_new_rule(generate_overload, rrule)
+
     # Meta-programming utilities specific to Nabla.
     include("code_transformation/util.jl")
     include("code_transformation/differentiable.jl")
@@ -38,6 +44,9 @@ module Nabla
     # Finite differencing functionality - only used in tests. Would be good to move this
     # into a separate module at some point.
     include("finite_differencing.jl")
+
+    # Sensitivities via ChainRules
+    include("sensitivities/chainrules.jl")
 
     # Sensitivities for the basics.
     include("sensitivities/indexing.jl")

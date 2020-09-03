@@ -77,10 +77,17 @@ struct Branch{T} <: Node{T}
     kwargs::NamedTuple
     tape::Tape
     pos::Int
+    pullback  # if we have a rrule pullback for this it is stored here
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, kwargs.data, tape, length(tape) + 1)
+
+    # We could check for an `rrule` here if we wanted but we don't,
+    # because we should never reach this point if we have an rrule
+    primal_val = f(unboxed...; kwargs...)
+    pullback = nothing
+
+    branch = Branch(primal_val, f, args, kwargs.data, tape, length(tape) + 1, pullback)
     push!(tape, branch)
     return branch
 end
@@ -126,16 +133,18 @@ one(n::Node) = one(unbox(n))
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
     tape = Nabla.tape(rvs_tape)
-    ȳ, f = tape[pos(y)], getfield(y, :f)
+    ȳ = tape[pos(y)]
+    f = getfield(y, :f)
     args = getfield(y, :args)
     kwargs = getfield(y, :kwargs)
-    xs, xids = map(unbox, args), map(pos, args)
-    p = preprocess(f, unbox(y), ȳ, xs...)
+    xs = map(unbox, args)
+    xids = map(pos, args)
+    p = preprocess(f, y, ȳ, args...)  # inlining CSE will avoid unboxing twice.
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
         if xid > 0
             tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :
+                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :  # maybe-inplace version
                 ∇(f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...)
         end
     end
@@ -172,11 +181,14 @@ computing the gradient of `y` w.r.t. each of the elements in the `Tape`.
 
 
     ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
-    ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
 
 To implement a new reverse-mode sensitivity for the `N^{th}` argument of function `f`. p
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
+
+∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
+This is the optionally inplace version of `∇` that should, if implemented, mutate
+x̄ to have the gradient added to it.
 """
 ∇(y::Node, ȳ) = propagate(tape(y), reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(unbox(y)))

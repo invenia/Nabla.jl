@@ -26,7 +26,7 @@ end
         end
 
         unary_check(f, x) = check_errs(eval(f), ȳ, x, v)
-        for (package, f) in Nabla.unary_sensitivities
+        @testset "$package.$f" for (package, f) in Nabla.unary_sensitivities
             domain = domain1(eval(f))
             domain === nothing && error("Could not determine domain for $f.")
             lb, ub = domain
@@ -37,7 +37,7 @@ end
             end
         end
 
-        for (package, f) in Nabla.binary_sensitivities
+        @testset "$package.$f" for (package, f) in Nabla.binary_sensitivities
 
             # This is a hack. Sensitivities added in Nabla don't persist upon reloading the
             # package, so we can't query them here. It happens to be the case that all such

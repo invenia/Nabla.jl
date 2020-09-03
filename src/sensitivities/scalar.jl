@@ -28,15 +28,15 @@ for (package, f, arity) in diffrules()
     if arity == 1
         push!(unary_sensitivities, (package, f))
         ∂f∂x = diffrule(package, f, :x)
-        @eval @explicit_intercepts $f Tuple{∇Scalar}
-        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
-        @eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $∂f∂x
+        #@eval @explicit_intercepts $f Tuple{∇Scalar}
+        #@eval @inline ∇(::typeof($f), ::Type{Arg{1}}, p, y, ȳ, x::∇Scalar) = ȳ * $∂f∂x
+        #@eval @inline ∇(::typeof($f), ::Type{Arg{1}}, x::∇Scalar) = $∂f∂x
     elseif arity == 2
         push!(binary_sensitivities, (package, f))
         ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
-        @eval @explicit_intercepts $f Tuple{∇Scalar, ∇Scalar}
-        @eval ∇(::typeof($f), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂x
-        @eval ∇(::typeof($f), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂y
+        #@eval @explicit_intercepts $f Tuple{∇Scalar, ∇Scalar}
+        #@eval ∇(::typeof($f), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂x
+        #@eval ∇(::typeof($f), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Scalar) = z̄ * $∂f∂y
     else
         error("Cannot implement sensitivity for $package.$f: arity $arity not supported.")
     end
