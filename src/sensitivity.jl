@@ -1,5 +1,5 @@
 using Base.Meta
-export Arg, add_∇, add_∇!, ∇, preprocess, @explicit_intercepts, @union_intercepts
+export Arg, ∇, preprocess, @explicit_intercepts, @union_intercepts
 
 """
     @union_intercepts f type_tuple invoke_type_tuple [kwargs]
