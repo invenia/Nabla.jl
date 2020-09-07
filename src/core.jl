@@ -197,21 +197,9 @@ x̄ to have the gradient added to it.
 ∇(y::Node, ȳ) = propagate(tape(y), reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(unbox(y)))
 
-# This is a fallback method where we don't necessarily know what we'll be adding and whether
-# we can update the value in-place, so we'll try to be clever and dispatch.
 @inline function ∇(x̄, f, ::Type{Arg{N}}, args...; kwargs...) where N
-    return update!(x̄, ∇(f, Arg{N}, args...; kwargs...))
+    return ChainRulesCore.add!!(x̄, ∇(f, Arg{N}, args...; kwargs...))
 end
-
-# Update regular arrays in-place. Structured array types should not be updated in-place,
-# even though it technically "works" (https://github.com/JuliaLang/julia/issues/31674),
-# so we'll only permit mutating addition for `Array`s, e.g. `Vector` and `Matrix`.
-# Mixed array and scalar adds should not occur, as sensitivities should always have the
-# same shape, so we won't bother allowing e.g. updating an array with a scalar on the RHS.
-update!(x̄::Array{T,N}, y::AbstractArray{S,N}) where {T,S,N} = x̄ .+= y
-
-# Fall back to using regular addition
-update!(x̄, y) = x̄ + y
 
 """
     ∇(f; get_output::Bool=false)
