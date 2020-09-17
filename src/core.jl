@@ -133,6 +133,10 @@ isapprox(n::Node, f::Node) = unbox(n) ≈ unbox(f)
 zero(n::Node) = zero(unbox(n))
 one(n::Node) = one(unbox(n))
 
+# Let the user get the `size` and `length` of `Node`s.
+Base.size(x::Node, dims...) = size(unbox(x), dims...)
+Base.length(x::Node) = length(unbox(x))
+
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
