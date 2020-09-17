@@ -220,7 +220,8 @@ function ∇(f; get_output::Bool=false)
         else
             ∇args = zero.(args)
         end
-        return get_output ? (y, ∇args) : ∇args
+        ∇args_public = map(unthunk, ∇args)
+        return get_output ? (y, ∇args_public) : ∇args_public
     end
 end
 
