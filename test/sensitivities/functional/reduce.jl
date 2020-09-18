@@ -20,7 +20,7 @@
                     # Test +.
                     x_ = Leaf(Tape(), x)
                     s = functional(f, +, x_)
-                    @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+                    @test ∇(s)[x_] ≈ derivative_via_frule.(f, x)
                 end
 
                 # Some composite sensitivities.
@@ -34,7 +34,7 @@
                     x_ = Leaf(Tape(), x)
                     s = functional(f, +, x_)
                     @test unbox(s) ≈ functional(f, +, x)
-                    @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
+                    @test ∇(s)[x_] ≈ map(xn->ForwardDiff.derivative(f, xn), x)
                 end
             end
         end
@@ -74,7 +74,7 @@
                 x_ = Leaf(Tape(), x)
                 s = sum(f, x_)
                 @test unbox(s) == sum(f, x)
-                @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+                @test ∇(s)[x_] ≈ derivative_via_frule.(f, x)
             end
 
             # Some composite functions.
@@ -88,7 +88,7 @@
                 x_ = Leaf(Tape(), x)
                 s = sum(f, x_)
                 @test unbox(s) == sum(f, x)
-                @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
+                @test ∇(s)[x_] ≈ map(xn->ForwardDiff.derivative(f, xn), x)
             end
         end
     end

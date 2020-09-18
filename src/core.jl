@@ -1,5 +1,3 @@
-using DualNumbers
-
 import Base: push!, length, show, getindex, setindex!, eachindex, isassigned,
              isapprox, zero, one, lastindex
 
@@ -26,7 +24,7 @@ function show(io::IO, t::Tape)
         end
     end
 end
-@inline getindex(t::Tape, n::Int) = getindex(tape(t), n)
+@inline getindex(t::Tape, n::Int) = unthunk(getindex(tape(t), n))
 @inline getindex(t::Tape, node::Node) = getindex(t, pos(node))
 @inline lastindex(t::Tape) = length(t)
 @inline setindex!(t::Tape, x, n::Int) = (tape(t)[n] = x; t)
@@ -278,18 +276,20 @@ for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
-# Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
-# a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
-# The coefficient of this scaling could be improved by implementing a version of DualNumbers
-# which computes from multiple seeds at the same time.
+# Bare-bones FMAD implementation based on internals of ForwardDiff.
+# Accepts a Tuple of args and returns a Tuple of gradients.
+# Currently scales almost exactly linearly with the number of inputs.
+# The coefficient of this scaling could be improved by fully utilizing ForwardDiff
+# and computing from multiple seeds at the same time.
 function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
     dual_call = Expr(:call, :f)
     for m in 1:Base.length(x.parameters)
-        push!(dual_call.args, n == m ? :(Dual(x[$m], 1)) : :(x[$m]))
+        push!(dual_call.args, n == m ? :(ForwardDiff.Dual(x[$m], 1)) : :(x[$m]))
     end
-    return :(dualpart($dual_call))
+    return :(first(ForwardDiff.partials($dual_call)))
 end
 @generated fmad(f, x, n) = dual_call_expr(f, x, n)
+
 function fmad_expr(f, x::Type{<:Tuple})
     body = Expr(:tuple)
     for n in 1:Base.length(x.parameters)

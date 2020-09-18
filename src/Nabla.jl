@@ -4,6 +4,7 @@ module Nabla
     using ChainRules
     using ChainRulesCore
     using ExprTools: ExprTools
+    using ForwardDiff: ForwardDiff
     using LinearAlgebra
     using Random
     using SpecialFunctions

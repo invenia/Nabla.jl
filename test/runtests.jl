@@ -1,12 +1,20 @@
 using Nabla
-using Test, LinearAlgebra, Statistics, Random
-using Distributions, BenchmarkTools, SpecialFunctions, DualNumbers
+using Test, LinearAlgebra, Statistics, Random, ForwardDiff
+using Distributions, BenchmarkTools, SpecialFunctions
 
 using Nabla: unbox, pos, tape, oneslike, zeroslike
 
 # Helper function for comparing `Ref`s, since they don't compare equal under `==`
 ref_equal(a::Ref{T}, b::Ref{T}) where {T} = a[] == b[]
 ref_equal(a::Ref, b::Ref) = false
+
+# for comparing against scalar rules
+derivative_via_frule(f, x) = last(Nabla.frule((Nabla.NO_FIELDS, 1.0), f, x))
+# Sensiblity checkes that his is defined right
+@test derivative_via_frule(cos, 0) == 0
+@test derivative_via_frule(sin, 0) == 1
+@test derivative_via_frule(sin, 1.2) == derivative_via_frule(sin, 2π + 1.2)
+
 
 @testset "Nabla.jl" begin
 

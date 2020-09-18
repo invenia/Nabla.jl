@@ -1,6 +1,6 @@
 # Implementation of sensitivities for unary linalg optimisations.
 _ϵ, lb, ub = 3e-2, -3.0, 3.0
-unary_linalg_optimisations = [
+unary_linalg_optimisations = [#==
     (:-,          ∇Array,  ∇Array,  :(-Ȳ),                               (lb, ub)),
     (:tr,         ∇Array,  ∇Scalar, :(Diagonal(fill!(similar(X), Ȳ))),   (lb, ub)),
     (:inv,        ∇Array,  ∇Array,  :(-transpose(Y) * Ȳ * transpose(Y)), (lb, ub)),
@@ -11,6 +11,7 @@ unary_linalg_optimisations = [
     (:adjoint,    ∇Array,  ∇Array,  :(adjoint(Ȳ)),                       (lb, ub)),
     (:norm,       ∇Array,  ∇Scalar, :(Ȳ ./ Y .* abs2.(X) ./ X),          (lb, ub)),
     (:norm,       ∇Scalar, ∇Scalar, :(Ȳ * sign(X)),                      (lb, ub))
+    ==#
 ]
 for (f, T_In, T_Out, X̄, bounds) in unary_linalg_optimisations
     if f === :-

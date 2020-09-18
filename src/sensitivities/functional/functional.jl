@@ -21,8 +21,6 @@ end
 ∇(::typeof(map), ::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
     _∇(map, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(map), arg::Type{Arg{N}}, p, y, ȳ, f::Function, A::∇Array...) where N =
-    hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
-        map((yn, ȳn, An...)->∇(f, Arg{N}, p, yn, ȳn, An...), y, ȳ, A...) :
         map((ȳn, An...)->ȳn * fmad(f, An, Val{N}), ȳ, A...)
 
 # Implementation of sensitivities w.r.t. `broadcast`.
@@ -94,6 +92,20 @@ broadcastsum(f, add::Bool, z::Ref{<:Number}, As...) = broadcastsum(f, add, z[], 
 ∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
     _∇(broadcast, Arg{N-1}, p, y, ȳ, f, A...)
 _∇(::typeof(broadcast), ::Type{Arg{N}}, p, y, ȳ, f, A...) where N =
-    hasmethod(∇, Tuple{typeof(f), Type{Arg{N}}, Any, Any, Any, map(eltype, A)...}) ?
-        broadcastsum((yn, ȳn, xn...)->∇(f, Arg{N}, p, yn, ȳn, xn...), false, A[N], y, ȳ, A...) :
         broadcastsum((ȳn, xn...)->ȳn * fmad(f, xn, Val{N}), false, A[N], ȳ, A...)
+
+# Division from the right by a scalar.
+import Base: /
+@eval @explicit_intercepts $(Symbol("/")) Tuple{∇Array, ∇Scalar}
+@inline ∇(::typeof(/), ::Type{Arg{1}}, p, z, z̄, x::∇Scalar, y::∇Array) =
+    ∇(broadcast, Arg{2}, p, z, z̄, /, x, y)
+@inline ∇(::typeof(/), ::Type{Arg{2}}, p, z, z̄, x::∇Scalar, y::∇Array) =
+    ∇(broadcast, Arg{3}, p, z, z̄, /, x, y)
+
+# Division from the left by a scalar.
+import Base: \
+@eval @explicit_intercepts $(Symbol("\\")) Tuple{∇Scalar, ∇Array}
+@inline ∇(::typeof(\), ::Type{Arg{1}}, p, z, z̄, x::∇Array, y::∇Scalar) =
+    ∇(broadcast, Arg{2}, p, z, z̄, \, x, y)
+@inline ∇(::typeof(\), ::Type{Arg{2}}, p, z, z̄, x::∇Array, y::∇Scalar) =
+    ∇(broadcast, Arg{3}, p, z, z̄, \, x, y)

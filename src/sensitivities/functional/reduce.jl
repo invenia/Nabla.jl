@@ -5,9 +5,8 @@ for f in (:mapfoldl, :mapfoldr)
     @eval begin
         import Base: $f
         @explicit_intercepts $f $type_tuple [false, false, true] #(init=0,)
-        ∇(::typeof($f), ::Type{Arg{3}}, p, y, ȳ, f, ::$plustype, A::∇ArrayOrScalar) =
-            hasmethod(∇, Tuple{typeof(f), Type{Arg{1}}, Real}) ?
-                broadcast(An->ȳ * ∇(f, Arg{1}, An), A) :
-                broadcast(An->ȳ * fmad(f, (An,), Val{1}), A)
+        function ∇(::typeof($f), ::Type{Arg{3}}, p, y, ȳ, f, ::$plustype, A::∇ArrayOrScalar)
+            return ȳ .* ForwardDiff.derivative.(f, A)
+        end
     end
 end
