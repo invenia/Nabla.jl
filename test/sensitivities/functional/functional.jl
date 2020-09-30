@@ -134,7 +134,7 @@ using DiffRules: diffrule, hasdiffrule
             z2_ = broadcast(/, x_, y_)
             @test unbox(z_) == x ./ y
             @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
-            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = 5.0, randn(rng, 5), Tape()
@@ -142,7 +142,7 @@ using DiffRules: diffrule, hasdiffrule
             z_ = x_ \ y_
             z2_ = broadcast(\, x_, y_)
             @test unbox(z_) == x .\ y
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
             @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
 
