@@ -2,61 +2,6 @@ import LinearAlgebra: det, logdet, diagm, Diagonal, diag
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
 
-@explicit_intercepts diag Tuple{∇AbstractMatrix}
-function ∇(
-    ::typeof(diag),
-    ::Type{Arg{1}},
-    p,
-    y::∇AbstractVector,
-    ȳ::∇AbstractVector,
-    x::∇AbstractMatrix,
-)
-    x̄ = zeroslike(x)
-    x̄[diagind(x̄)] = ȳ
-    return x̄
-end
-function ∇(
-    x̄::∇AbstractMatrix,
-    ::typeof(diag),
-    ::Type{Arg{1}},
-    p,
-    y::∇AbstractVector,
-    ȳ::∇AbstractVector,
-    x::∇AbstractMatrix,
-)
-    x̄_diag = view(x̄, diagind(x̄))
-    x̄_diag .+= ȳ
-    return x̄
-end
-
-@explicit_intercepts diag Tuple{∇AbstractMatrix, Integer} [true, false]
-function ∇(
-    ::typeof(diag),
-    ::Type{Arg{1}},
-    p,
-    y::∇AbstractVector,
-    ȳ::∇AbstractVector,
-    x::∇AbstractMatrix,
-    k::Integer,
-)
-    x̄ = zeroslike(x)
-    x̄[diagind(x̄, k)] = ȳ
-    return x̄
-end
-function ∇(
-    x̄::∇AbstractMatrix,
-    ::typeof(diag),
-    ::Type{Arg{1}},
-    p,
-    y::∇AbstractVector,
-    ȳ::∇AbstractVector,
-    x::∇AbstractMatrix,
-    k::Integer,
-)
-    x̄_diag = view(x̄, diagind(x̄, k))
-    x̄_diag .+= ȳ
-    return x̄
-end
 
 @explicit_intercepts Diagonal Tuple{∇AbstractVector}
 function ∇(
@@ -108,37 +53,6 @@ function ∇(
     return X̄
 end
 
-@explicit_intercepts det Tuple{Diagonal{<:∇Scalar}}
-∇(::typeof(det), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::∇ScalarDiag) =
-    Diagonal(ȳ .* y ./ X.diag)
-function ∇(
-    X̄::∇ScalarDiag,
-    ::typeof(det),
-    ::Type{Arg{1}},
-    p,
-    y::∇Scalar,
-    ȳ::∇Scalar,
-    X::∇ScalarDiag,
-)
-    broadcast!((x̄, x, y, ȳ)->x̄ + ȳ * y / x, X̄.diag, X̄.diag, X.diag, y, ȳ)
-    return X̄
-end
-
-@explicit_intercepts logdet Tuple{Diagonal{<:∇Scalar}}
-∇(::typeof(logdet), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::∇ScalarDiag) =
-    Diagonal(ȳ ./ X.diag)
-function ∇(
-    X̄::∇ScalarDiag,
-    ::typeof(logdet),
-    ::Type{Arg{1}},
-    p,
-    y::∇Scalar,
-    ȳ::∇Scalar,
-    X::∇ScalarDiag,
-)
-    broadcast!((x̄, x, ȳ)->x̄ + ȳ / x, X̄.diag, X̄.diag, X.diag, ȳ)
-    return X̄
-end
 
 # NOTE: diagm can't go through the @explicit_intercepts machinery directly because as of
 # Julia 0.7, its methods are not sufficiently straightforward; we need to dispatch on one
