@@ -35,15 +35,6 @@
         @test V isa Branch{<:Adjoint}
     end
 
-    @testset "Helper functions" begin
-        rng = MersenneTwister(12345)
-        X = randn(rng, 10, 10)
-        Y = randn(rng, 10, 10)
-        @test Nabla.mulsubtrans!(copy(X), Y) ≈ Y .* (X - X')
-        @test Nabla.eyesubx!(copy(X)) ≈ I - X
-        @test Nabla.add!(copy(X), Y) ≈ X + Y
-    end
-
     @testset "Tape updating from multiple components" begin
         ∇f = ∇() do X
             U, S, V = svd(X)
