@@ -1,13 +1,13 @@
+#using InteractiveUtils
+
 function generate_overload(sig)
     opT, argTs = Iterators.peel(ExprTools.parameters(sig))
     opT <: Core.Builtin && return false  # can't do operater overloading for builtins
-    opT <: Function || return false  # not handling non-functions
 
-    fieldcount(opT) == 0 || return false # not handling functors
+    isabstracttype(opT) || fieldcount(opT) == 0 || return false # not handling functors
     isempty(argTs) && return false  # we are an operator overloading AD, need operands
 
-
-    nameof(opT.name.module) == :NaNMath  && return false # Don't care about NaNMath
+    opT isa DataType && nameof(opT.name.module) == :NaNMath  && return false # Don't care about NaNMath
 
     # Ignore functions that have complex ranges. This may change when Nabla supports complex
     # numbers.
@@ -15,10 +15,12 @@ function generate_overload(sig)
         SpecialFunctions.hankelh1, SpecialFunctions.hankelh2,
         log1p, rem2pi, mod, atan, rem,
     ))  && return false
+    opT <: Type{<:Complex} && return false  # skip complex constructor
 
     # Ingore functions because have better Nabla specific version.
     opT ∈ typeof.((
-        isapprox, size, length,
+        isapprox, size, length, isassigned,
+        Base.Broadcast.combine_styles,  #TODO should i keep this?
     )) && return false
 
 
@@ -31,7 +33,7 @@ function generate_overload(sig)
         @inline $(∇_declaration(signature_def))
         $(overload_declarations!(signature_def, original_signature_args)...)
     end
-    #@show fdef
+    #opT <: Type && @show fdef
     eval(fdef)
     return true
 end
@@ -68,8 +70,8 @@ function overload_declarations!(signature_def, original_signature_args)
 
     signature_def[:kwargs] = [:(kwargs...)]
     signature_def[:body] = quote
-        #@show op
         args = $(_args_tuple(signature_def[:args]))
+       # @show InteractiveUtils.@which rrule(op, unbox.(args)...)
         primal_val, pullback = rrule(op, unbox.(args)...; kwargs...)
         tape = get_tape(args)
 
@@ -112,7 +114,11 @@ function preprocess_declaration(signature_def)
     preprocess_def = Dict{Symbol, Any}(
         :name => :preprocess,
         :args => [op, :($y::Branch), ȳ, args...],
-        :body => quote $y.pullback($ȳ) end,
+        :body => quote
+            pullback = getfield($y, :pullback)  # avoid issues with getproperty overloading
+            @assert(pullback !== nothing, "pullback not set, probably because different code path used for preprocess vs for ∇. Probably need to delete a defination for ∇")
+            return pullback($ȳ)
+        end,
     )
 
     where_params = get(signature_def, :whereparams, nothing)
@@ -141,6 +147,7 @@ function ∇_declaration(signature_def)
         :args => [op, :(::Type{Arg{$N}}), p, y, ȳ, args...],
         :whereparams => [N; get(signature_def, :whereparams, [])],
         :body => quote $p[$N+1] end,
+        :kwargs => [:(kwargs...)],
     )
     return ExprTools.combinedef(∇_def)
 end
