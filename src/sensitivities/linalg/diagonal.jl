@@ -2,30 +2,6 @@ import LinearAlgebra: det, logdet, diagm, Diagonal, diag
 
 const ∇ScalarDiag = Diagonal{<:∇Scalar}
 
-
-@explicit_intercepts Diagonal Tuple{∇AbstractVector}
-function ∇(
-    ::Type{Diagonal},
-    ::Type{Arg{1}},
-    p,
-    Y::∇ScalarDiag,
-    Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector,
-)
-    return copyto!(similar(x), diag(Ȳ))
-end
-function ∇(
-    x̄::∇AbstractVector,
-    ::Type{Diagonal},
-    ::Type{Arg{1}},
-    p,
-    Y::∇ScalarDiag,
-    Ȳ::∇AbstractMatrix,
-    x::∇AbstractVector,
-)
-    return broadcast!(+, x̄, x̄, diag(Ȳ))
-end
-
 @explicit_intercepts Diagonal Tuple{∇AbstractMatrix}
 function ∇(
     ::Type{Diagonal},
@@ -62,8 +38,12 @@ end
 # _diagm when it receives arguments that are nodes. _diagm can go through the intercepts
 # machinery, so it knows how to deal.
 
+# TODO: Possibly we should overload `Pair` so that it constructs a `Node{Pair}` then this
+# would hit sentitivities that we have defined via ChainRules.
+
 _diagm(x::∇AbstractVector, k::Integer=0) = diagm(k => x)
 LinearAlgebra.diagm(x::Pair{<:Integer, <:Node{<:∇AbstractVector}}) = _diagm(last(x), first(x))
+
 
 @explicit_intercepts _diagm Tuple{∇AbstractVector}
 function ∇(
