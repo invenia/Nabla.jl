@@ -1,37 +1,3 @@
-# Use BLAS.gemm for strided matrix-matrix multiplication sensitivites. Don't bother with
-# BLAS for matrix-vector stuff yet. Definitely an optimisation that we might want to
-# consider at some point in the future though.
-const RS = StridedMatrix{<:∇Scalar}
-const RST = Transpose{<:∇Scalar, RS}
-const RSA = Adjoint{<:∇Scalar, RS}
-strided_matmul = [
-    (RS,  RS,  'N', 'C', :Ȳ, :B, 'C', 'N', :A, :Ȳ),
-    (RST, RS,  'N', 'T', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
-    (RS,  RST, 'N', 'N', :Ȳ, :B, 'T', 'N', :Ȳ, :A),
-    (RST, RST, 'T', 'T', :B, :Ȳ, 'T', 'T', :Ȳ, :A),
-    (RSA, RS,  'N', 'C', :B, :Ȳ, 'N', 'N', :A, :Ȳ),
-    (RS,  RSA, 'N', 'N', :Ȳ, :B, 'C', 'N', :Ȳ, :A),
-    (RSA, RSA, 'C', 'C', :B, :Ȳ, 'C', 'C', :Ȳ, :A),
-]
-import Base: *
-for (TA, TB, tCA, tDA, CA, DA, tCB, tDB, CB, DB) in strided_matmul
-
-    # Add intercepts and export names.
-    @eval @explicit_intercepts $(Symbol("*")) Tuple{$TA, $TB}
-
-    # Define allocating and non-allocating sensitivities for each output.
-    alloc_Ā = :(LinearAlgebra.BLAS.gemm($tCA, $tDA, $CA, $DA))
-    alloc_B̄ = :(LinearAlgebra.BLAS.gemm($tCB, $tDB, $CB, $DB))
-    no_alloc_Ā = :(LinearAlgebra.BLAS.gemm!($tCA, $tDA, 1., $CA, $DA, 1., Ā))
-    no_alloc_B̄ = :(LinearAlgebra.BLAS.gemm!($tCB, $tDB, 1., $CB, $DB, 1., B̄))
-
-    # Add sensitivity definitions.
-    @eval ∇(::typeof(*), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $alloc_Ā
-    @eval ∇(::typeof(*), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $alloc_B̄
-    @eval ∇(Ā, ::typeof(*), ::Type{Arg{1}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $no_alloc_Ā
-    @eval ∇(B̄, ::typeof(*), ::Type{Arg{2}}, p, Y::RS, Ȳ::RS, A::$TA, B::$TB) = $no_alloc_B̄
-end
-
 # # Not every permutation of transpositions makes sense for matrix-vector multiplication. This
 # # list just includes those which make sense.
 # strided_matvecmul = [
