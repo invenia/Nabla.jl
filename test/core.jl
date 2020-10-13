@@ -100,8 +100,8 @@
 
 end # testset Tape
 
-# Check that functions involving `isapprox` can be differentiated
-let
+
+@testset "Check that functions involving `isapprox` can be differentiated" begin
     f(x) = x ≈ 5.0 ? 1.0 : 3.0 * x
     g(x) = 5.0 * x
     h(x) = g(x) ≈ 25.0 ? x : f(x) + g(x)
@@ -121,8 +121,7 @@ let
     @test ∇f(6.0, 5.0) == (3.0, 0.0)
 end
 
-# Check that functions with extra, unused variables can be differentiated
-let
+@testset "Check that functions with extra, unused variables can be differentiated" begin
     f(a,b,c,d) = a*c
     ∇f = ∇(f)
     g(a,b) = 12
@@ -133,8 +132,7 @@ let
     @test ∇g(1,2) == (0,0)
 end
 
-# Check that functions with `zero` and `one` can be differentiated
-let
+@testset "Check that functions with `zero` and `one` can be differentiated" begin
     f(a) = zero(a)
     g(a) = one(a)
     h(a) = zero(3 * a) + one(4 * a)
@@ -148,8 +146,7 @@ let
     @test ∇h(8) == (0,)
 end
 
-# Check that the convenience implementation of ∇ works as intended.
-let
+@testset "Check that the convenience implementation of ∇ works as intended." begin
     f(x, y) = 2x + y
     ∇f = ∇(f)
     ∇f_out = ∇(f; get_output=true)
@@ -170,8 +167,7 @@ end
     @test ∇(unbox, get_output=true)(2) == (2, (0,))
 end
 
-# Tests for zero'd and one'd containers.
-let
+@testset "Tests for zero'd and one'd containers." begin
     import Nabla: zerod_container, oned_container
     @test zerod_container(1.0) == 0.0
     @test zerod_container(1) == 0
