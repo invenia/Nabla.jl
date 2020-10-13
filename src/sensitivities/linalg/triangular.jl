@@ -4,22 +4,12 @@ const ∇ScalarLT = LowerTriangular{<:∇Scalar}
 const ∇ScalarUT = UpperTriangular{<:∇Scalar}
 
 for (ctor, T) in zip([:LowerTriangular, :UpperTriangular], [:∇ScalarLT, :∇ScalarUT])
-
-    @eval @explicit_intercepts $ctor Tuple{∇AbstractMatrix}
-    @eval ∇(::Type{$ctor}, ::Type{Arg{1}}, p, Y::$T, Ȳ::$T, X::∇AbstractMatrix) = Matrix(Ȳ)
-    @eval ∇(
-        X̄::∇AbstractMatrix,
-        ::Type{$ctor},
-        ::Type{Arg{1}},
-        p,
-        Y::$T,
-        Ȳ::$T,
-        X::∇AbstractMatrix,
-    ) = broadcast!(+, X̄, X̄, Ȳ)
-
+    #== TODO: a lot of this need to move to ChainRules to make sure the types are right.
     @eval @explicit_intercepts det Tuple{$T}
     @eval ∇(::typeof(det), ::Type{Arg{1}}, p, y::∇Scalar, ȳ::∇Scalar, X::$T) =
         Diagonal(ȳ .* y ./ view(X, diagind(X)))
+
+
 
     # Optimisation for in-place updates.
     @eval function ∇(
@@ -83,4 +73,5 @@ for (ctor, T) in zip([:LowerTriangular, :UpperTriangular], [:∇ScalarLT, :∇Sc
         X̄.diag .+= ȳ ./ view(X, diagind(X))
         return X̄
     end
+    ==#
 end
