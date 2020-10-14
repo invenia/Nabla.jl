@@ -19,23 +19,44 @@
     trand(rng::AbstractRNG, ::Type{<:Adjoint}) = Adjoint(rand(rng, N, N))
 
     @testset "Unary sensitivities" begin
+        _ϵ, lb, ub = 3e-2, -3.0, 3.0
+        unary_linalg_optimisations = [
+            (-,          ∇Array,  (lb, ub)),
+            (tr,         ∇Array,  (lb, ub)),
+            (inv,        ∇Array,  (lb, ub)),
+            (det,        ∇Array,  (_ϵ, ub)),
+            (logdet,     ∇Array,  (_ϵ, ub)),
+            (transpose,  ∇Array,  (lb, ub)),
+            (adjoint,    ∇Scalar, (_ϵ, ub)),
+            (adjoint,    ∇Array,  (lb, ub)),
+            (norm,       ∇Array,  (lb, ub)),
+            (norm,       ∇Scalar, (lb, ub)),
+        ]
+
         rng = MersenneTwister(123)
-        @testset "$f" for (f, T_In, T_Out, X̄, bounds) in Nabla.unary_linalg_optimisations
+        @testset "$f" for (f, T_In, bounds) in unary_linalg_optimisations
             for _ in 1:5
                 Z = trand(rng, T_In) .* (bounds[2] .- bounds[1]) .+ bounds[1]
                 X = Z'Z + 1e-6 * one(Z)
-                Ȳ, V = eval(f)(X), trandn(rng, T_In)
-                @test check_errs(eval(f), Ȳ, X, 1e-1 .* V)
+                Ȳ, V = f(X), trandn(rng, T_In)
+                @test check_errs(f, Ȳ, X, 1e-1 .* V)
             end
         end
     end
 
     @testset "Binary sensitivities" begin
         rng = MersenneTwister(2)
-        @testset "$f" for (f, T_A, T_B, T_Y, Ā, B̄) in Nabla.binary_linalg_optimisations
+        binary_linalg_optimisations = [
+            (*, ∇Array, ∇Array,),
+            (/, ∇Array, ∇Array,),
+            (\, ∇Array, ∇Array,),
+            (norm, ∇Array, ∇Scalar,),
+            (norm, ∇Scalar, ∇Scalar,),
+        ]
+        @testset "$f" for (f, T_A, T_B) in binary_linalg_optimisations
             for _ in 1:5
                 A, B, VA, VB = trandn.(Ref(rng), (T_A, T_B, T_A, T_B))
-                @test check_errs(eval(f), eval(f)(A, B), (A, B), (VA, VB))
+                @test check_errs(f, eval(f)(A, B), (A, B), (VA, VB))
             end
         end
     end
