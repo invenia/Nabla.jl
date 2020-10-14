@@ -136,8 +136,8 @@ one(n::Node) = one(unbox(n))
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
-    tape = Nabla.tape(rvs_tape)
-    ȳ = tape[pos(y)]
+    ȳ = rvs_tape[y]  # the gradient we are going to propagate through the operation in y
+    d_tape = Nabla.tape(rvs_tape)  # strips off the Tape abstration leaving a plain Vector
     f = getfield(y, :f)
     args = getfield(y, :args)
     kwargs = getfield(y, :kwargs)
@@ -147,8 +147,8 @@ function propagate(y::Branch, rvs_tape::Tape)
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
         if xid > 0
-            tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :  # maybe-inplace version
+            d_tape[xid] = isassigned(d_tape, xid) ?
+                ∇(d_tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :  # maybe-inplace version
                 ∇(f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...)
         end
     end
