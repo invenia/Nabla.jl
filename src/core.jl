@@ -61,23 +61,27 @@ show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(unbox(tape))")
 show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(unbox(tape)))")
 
 """
-A Branch is a Node with parents (args).
+A `Branch` is a Node with parents (args).
 
 Fields:
-val - the value of this node produced in the forward pass.
+val::T - the value of this node produced in the forward pass.
 f - the function used to generate this Node.
 args - Values indicating which elements in the tape will require updating by this node.
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
+pullback::B - if there is a custom primate rule (a `ChainRulesCore.rrule`) then this holds
+    the pullback to propagates gradients back through the operation, if there is not a rule
+    then this is set to `nothing`.
+    It also maybe set to `nothing` by legacy Nabla rules that have not moved to ChainRules.
 """
-struct Branch{T} <: Node{T}
+struct Branch{T, B} <: Node{T}
     val::T
     f
     args::Tuple
     kwargs::NamedTuple
     tape::Tape
     pos::Int
-    pullback  # if we have a rrule pullback for this it is stored here
+    pullback::B  # if we have a rrule pullback for this it is stored here
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
