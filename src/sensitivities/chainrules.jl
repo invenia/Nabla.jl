@@ -17,7 +17,7 @@ function generate_overload(sig)
     ))  && return false
     opT <: Type{<:Complex} && return false  # skip complex constructor
 
-    # Ingore functions because have better Nabla specific version.
+    # Ignore these functions because they have better Nabla specific versions.
     opT ∈ typeof.((
         isapprox, size, length, isassigned,
         Base.Broadcast.combine_styles,  #TODO should i keep this?
@@ -33,7 +33,7 @@ function generate_overload(sig)
         @inline $(∇_declaration(signature_def))
         $(overload_declarations!(signature_def, original_signature_args)...)
     end
-    #opT <: Type && @show fdef
+    opT <: typeof(svd) && @show fdef
     eval(fdef)
     return true
 end
@@ -137,6 +137,7 @@ function ∇_declaration(signature_def)
     # For readability lets name all the parts, NB: this is being a bit too cute.
     op = signature_def[:name]
     args = signature_def[:args]
+
     N = gensym(:N)
     p = gensym(:p)
     y = :(::Any)
@@ -146,7 +147,7 @@ function ∇_declaration(signature_def)
         :name => :∇,
         :args => [op, :(::Type{Arg{$N}}), p, y, ȳ, args...],
         :whereparams => [N; get(signature_def, :whereparams, [])],
-        :body => quote $p[$N+1] end,
+        :body => quote $p[$N+1] end,  # skip dself
         :kwargs => [:(kwargs...)],
     )
     return ExprTools.combinedef(∇_def)

@@ -6,16 +6,8 @@ for i = 1:7
     @eval @explicit_intercepts getindex $T $is_node
 end
 
-function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
-    Ā[inds...] += ȳ
-    return Ā
-end
-function ∇(Ā, ::typeof(getindex), ::Type{Arg{1}}, p, y::AbstractArray, ȳ::AbstractArray, A, inds...)
-    @views Ā[inds...] .+= reshape(ȳ, size(y)...)
-    return Ā
-end
-function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A, inds...)
-    return ∇(zerod_container(A), getindex, Arg{1}, p, y, ȳ, A, inds...)
+function ∇(::typeof(getindex), ::Type{Arg{1}}, p, y, ȳ, A::Ref)
+    return Ref(ȳ)
 end
 
 # # Implementation of reverse-mode sensitivities for `view`. Not currently in use because
