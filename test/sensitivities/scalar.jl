@@ -1,5 +1,3 @@
-using DiffRules: diffrule, hasdiffrule
-
 @testset "Scalar domains" begin
     @test in_domain(sin, 10.)
     @test in_domain(cos, 10.)
@@ -25,9 +23,9 @@ end
             @test ∇(identity, Arg{1}, 5.0) == 1.0
         end
 
-        unary_check(f, x) = check_errs(eval(f), ȳ, x, v)
-        @testset "$package.$f" for (package, f) in Nabla.unary_sensitivities
-            domain = domain1(eval(f))
+        unary_check(f, x) = check_errs(f, ȳ, x, v)
+        @testset "$f" for f in UNARY_SCALAR_SENSITIVITIES
+            domain = domain1(f)
             domain === nothing && error("Could not determine domain for $f.")
             lb, ub = domain
             randx = () -> rand(rng) * (ub - lb) + lb
@@ -37,21 +35,10 @@ end
             end
         end
 
-        @testset "$package.$f" for (package, f) in Nabla.binary_sensitivities
-
-            # This is a hack. Sensitivities added in Nabla don't persist upon reloading the
-            # package, so we can't query them here. It happens to be the case that all such
-            # sensitivities are differentiable in both arguments, so we can just set them
-            # to "not-NaN" in such cases.
-            if hasdiffrule(package, f, 2)
-                ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
-            else
-                ∂f∂x, ∂f∂y = :∂f∂x, :∂f∂y
-            end
-
-            if ∂f∂x == :NaN && ∂f∂y != :NaN
-                # Assume that the first argument is integer-valued.
-                domain = domain1(y -> eval(f)(0, y))
+        @testset "$f" for f in BINARY_SCALAR_SENSITIVITIES
+            if f in ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES
+                # First argument is not differentiable, it is integer-valued.
+                domain = domain1(y -> f(0, y))
                 domain === nothing && error("Could not determine domain for $f.")
                 lb, ub = domain
                 randx = () -> rand(rng, 0:5)
@@ -59,32 +46,18 @@ end
 
                 for _ in 1:10
                     x = randx()
-                    @test check_errs(y -> eval(f)(x, y), ȳ, randy(), v)
+                    @test check_errs(y -> f(x, y), ȳ, randy(), v)
                 end
-            elseif ∂f∂x != :NaN && ∂f∂y == :NaN
-                # Assume that the second argument is integer-valued.
-                domain = domain1(x -> eval(f)(x, 0))
-                domain === nothing && error("Could not determine domain for $f.")
-                lb, ub = domain
-                randx = () -> rand(rng) * (ub - lb) + lb
-                randy = () -> rand(rng, 0:5)
-
-                for _ in 1:10
-                    y = randy()
-                    @test check_errs(x -> eval(f)(x, y), randx(), ȳ, v)
-                end
-            elseif ∂f∂x != :NaN && ∂f∂y != :NaN
-                domain = domain2(eval(f))
+            else # Both arguments are differentiable
+                domain = domain2(f)
                 domain === nothing && error("Could not determine domain for $f.")
                 (x_lb, x_ub), (y_lb, y_ub) = domain
                 randx = () -> rand(rng) * (x_ub - x_lb) + x_lb
                 randy = () -> rand(rng) * (y_ub - y_lb) + y_lb
 
                 for _ in 1:10
-                    @test check_errs(eval(f), z̄, (randx(), randy()), (v, v))
+                    @test check_errs(f, z̄, (randx(), randy()), (v, v))
                 end
-            else
-                error("Cannot test $f: $f is not differentiable in either argument.")
             end
         end
 

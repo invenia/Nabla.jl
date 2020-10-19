@@ -1,6 +1,3 @@
-using SpecialFunctions
-using DiffRules: diffrule, hasdiffrule
-
 @testset "Functional" begin
     let rng = MersenneTwister(123456)
         import Nabla.fmad
@@ -20,12 +17,12 @@ using DiffRules: diffrule, hasdiffrule
             s = broadcast(f, x_)
             return ∇(s, oneslike(unbox(s)))[x_] ≈ derivative_via_frule.(f, x)
         end
-        @testset "$package.$f" for (package, f) in Nabla.unary_sensitivities
-            domain = domain1(eval(f))
+        @testset "$f" for f in UNARY_SCALAR_SENSITIVITIES
+            domain = domain1(f)
             domain === nothing && error("Could not determine domain for $f.")
             x_dist = Uniform(domain...)
             x = rand(rng, x_dist, 100)
-            @test check_unary_broadcast(eval(f), x)
+            @test check_unary_broadcast(f, x)
         end
 
         # Check that `broadcast` returns the correct gradient under each implemented binary
@@ -66,26 +63,18 @@ using DiffRules: diffrule, hasdiffrule
 #            @test ∇s[x_] ≈ ∇x
 #            @test ∇s[y_] ≈ ∇y
         end
-        @testset "$package.$f" for (package, f) in Nabla.binary_sensitivities
-
-            # TODO: More care needs to be taken to test the following.
-            if hasdiffrule(package, f, 2)
-                ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
-            else
-                ∂f∂x, ∂f∂y = :∂f∂x, :∂f∂y
-            end
-
+        @testset "$f" for f in BINARY_SCALAR_SENSITIVITIES
             # TODO: Implement the edge cases for functions differentiable in only either
             # argument.
-            (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
-            domain = domain2(eval(f))
+            f in  ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES && continue
+            domain = domain2(f)
             domain === nothing && error("Could not determine domain for $f.")
             (x_lb, x_ub), (y_lb, y_ub) = domain
             x_dist, y_dist = Uniform(x_lb, x_ub), Uniform(y_lb, y_ub)
             x, y = rand(rng, x_dist, 100), rand(rng, y_dist, 100)
-            check_binary_broadcast(eval(f), x, y)
-            check_binary_broadcast(eval(f), rand(rng, x_dist), y)
-            check_binary_broadcast(eval(f), x, rand(rng, y_dist))
+            check_binary_broadcast(f, x, y)
+            check_binary_broadcast(f, rand(rng, x_dist), y)
+            check_binary_broadcast(f, x, rand(rng, y_dist))
         end
         #
         let # Ternary functions (because it's useful to check I guess.)
@@ -161,12 +150,12 @@ using DiffRules: diffrule, hasdiffrule
             @test unbox(z_) == f.(x)
             @test ∇(z_)[x_] == ∇(broadcast(f, x_))[x_]
         end
-        for (package, f) in Nabla.unary_sensitivities
-            domain = domain1(eval(f))
+        for f in UNARY_SCALAR_SENSITIVITIES
+            domain = domain1(f)
             domain === nothing && error("Could not determine domain for $f.")
             x_dist = Uniform(domain...)
-            check_unary_dot(eval(f), rand(rng, x_dist))
-            check_unary_dot(eval(f), rand(rng, x_dist, 100))
+            check_unary_dot(f, rand(rng, x_dist))
+            check_unary_dot(f, rand(rng, x_dist, 100))
         end
 
         # Check that the dot notation works as expected for all of the binary functions in
@@ -185,30 +174,25 @@ using DiffRules: diffrule, hasdiffrule
             @test ∇(z_)[x_] == ∇(broadcast(f, x_, y_))[x_]
             @test ∇(z_)[y_] == ∇(broadcast(f, x_, y_))[y_]
         end
-        for (package, f) in Nabla.binary_sensitivities
+        for f in BINARY_SCALAR_SENSITIVITIES
             # TODO: More care needs to be taken to test the following.
-            f in [:atan, :mod, :rem] && continue
-            if hasdiffrule(package, f, 2)
-                ∂f∂x, ∂f∂y = diffrule(package, f, :x, :y)
-            else
-                ∂f∂x, ∂f∂y = :∂f∂x, :∂f∂y
-            end
+            f in [atan, mod, rem] && continue
             # TODO: Implement the edge cases for functions differentiable in only either
             # argument.
-            (∂f∂x == :NaN || ∂f∂y == :NaN) && continue
-            domain = domain2(eval(f))
+            f in ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES && continue
+            domain = domain2(f)
             domain === nothing && error("Could not determine domain for $f.")
             (x_lb, x_ub), (y_lb, y_ub) = domain
             x_distr = Uniform(x_lb, x_ub)
             y_distr = Uniform(y_lb, y_ub)
             x = rand(rng, x_distr, 100)
             y = rand(rng, y_distr, 100)
-            check_binary_dot(eval(f), x, y)
-            check_binary_dot(eval(f), rand(rng, x_distr), y)
-            check_binary_dot(eval(f), x, rand(rng, y_distr))
-            check_binary_dot(eval(f), Ref(rand(rng, x_distr)), y)
-            check_binary_dot(eval(f), x, Ref(rand(rng, y_distr)))
-            check_binary_dot(eval(f), rand(rng, x_distr), rand(rng, y_distr))
+            check_binary_dot(f, x, y)
+            check_binary_dot(f, rand(rng, x_distr), y)
+            check_binary_dot(f, x, rand(rng, y_distr))
+            check_binary_dot(f, Ref(rand(rng, x_distr)), y)
+            check_binary_dot(f, x, Ref(rand(rng, y_distr)))
+            check_binary_dot(f, rand(rng, x_distr), rand(rng, y_distr))
         end
 
         # test with other broadcast styles

@@ -15,6 +15,31 @@ derivative_via_frule(f, x) = last(Nabla.frule((Nabla.NO_FIELDS, 1.0), f, x))
 @test derivative_via_frule(sin, 0) == 1
 @test derivative_via_frule(sin, 1.2) == derivative_via_frule(sin, 2π + 1.2)
 
+# These are the core scalar sensitives Nabla expects to have defined
+# we test against them both for sensitives/scalar.jl and in sensitivities/functional.jl
+
+const UNARY_SCALAR_SENSITIVITIES = [
+    # Base:
+    +, -, abs, abs2, acos, acosd, acosh, acot, acotd, acoth, acsc, acscd, acsch, asec,
+    asecd, asech, asin, asind, asinh, atand, atanh, cbrt, cos, cosd, cosh, cospi, cot,cotd,
+    coth, csc, cscd, csch, deg2rad, exp, exp10, exp2, expm1, inv, log, log10, log2,
+    rad2deg, sec, secd, sech, sin, sind, sinh, sinpi, sqrt, tan, tand, tanh, transpose,
+    # SpecialFunctions.jl:
+    airyai, airyaiprime, airybi, airybiprime, besselj0, besselj1, bessely0, bessely1,
+    dawson, digamma, erf, erfc, erfcinv, erfcx, erfi, erfinv, gamma, invdigamma, lgamma,
+    trigamma,
+]
+
+const BINARY_SCALAR_SENSITIVITIES = [
+    # Base:
+    *, +, -, /, \, ^, hypot, max, min,
+    # SpecialFunctions.jl:
+    besseli, besselj, besselk, bessely, beta, lbeta, polygamma,
+]
+
+const ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES = [
+    besseli, besselj, besselk, bessely, polygamma
+]
 
 @testset "Nabla.jl" begin
 
