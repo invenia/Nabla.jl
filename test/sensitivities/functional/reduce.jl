@@ -1,17 +1,14 @@
 @testset "Reduce" begin
     let rng = MersenneTwister(123456)
-        import Nabla.fmad
-
         # Check that `mapreduce`, `mapfoldl`and `mapfoldr` work as expected with all unary
         # functions, some composite functions which use FMAD under both `+` and `*`.
         let N = 3
             for functional in (mapreduce, mapfoldl, mapfoldr)
 
                 # Sensitivities implemented in Base.
-                for (package, f) in Nabla.unary_sensitivities
+                for f in UNARY_SCALAR_SENSITIVITIES
 
                     # Generate some data and get the function to be mapped.
-                    f = eval(f)
                     domain = domain1(f)
                     domain === nothing && error("Could not determine domain for $f.")
                     lb, ub = domain
@@ -24,7 +21,7 @@
                 end
 
                 # Some composite sensitivities.
-                composite_functions = (x->5x, x->1 / (1 + x), x->10+x)
+               composite_functions = (x->5x, x->1 / (1 + x), x->10+x)
                 for f in composite_functions
 
                     # Generate some data.
@@ -47,7 +44,6 @@
         # Check that `reduce`, `foldl` and `foldr` work as expected for `+` and `*`.
         let
             for functional in (reduce, foldl, foldr)
-
                 # Test `+`.
                 x = randn(rng, 100)
                 x_ = Leaf(Tape(), x)
@@ -61,10 +57,8 @@
         # and some composite functions which use FMAD.
         let N = 5
             # Sensitivities implemented in Base.
-            for (package, f) in Nabla.unary_sensitivities
-
+            for f in UNARY_SCALAR_SENSITIVITIES
                 # Generate some data and get the function to be mapped.
-                f = eval(f)
                 domain = domain1(f)
                 domain === nothing && error("Could not determine domain for $f.")
                 lb, ub = domain
