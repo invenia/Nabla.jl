@@ -26,7 +26,7 @@ const UNARY_SCALAR_SENSITIVITIES = [
     rad2deg, sec, secd, sech, sin, sind, sinh, sinpi, sqrt, tan, tand, tanh, transpose,
     # SpecialFunctions.jl:
     airyai, airyaiprime, airybi, airybiprime, besselj0, besselj1, bessely0, bessely1,
-    dawson, digamma, erf, erfc, erfcinv, erfcx, erfi, erfinv, gamma, invdigamma, lgamma,
+    dawson, digamma, erf, erfc, erfcinv, erfcx, erfi, erfinv, gamma, invdigamma, loggamma,
     trigamma,
 ]
 
@@ -34,7 +34,7 @@ const BINARY_SCALAR_SENSITIVITIES = [
     # Base:
     *, +, -, /, \, ^, hypot, max, min,
     # SpecialFunctions.jl:
-    besseli, besselj, besselk, bessely, beta, lbeta, polygamma,
+    besseli, besselj, besselk, bessely, beta, polygamma,
 ]
 
 const ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES = [
