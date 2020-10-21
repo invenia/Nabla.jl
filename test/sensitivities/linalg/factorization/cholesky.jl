@@ -1,6 +1,4 @@
 @testset "Cholesky" begin
-
-    import Nabla: level2partition, level3partition
     # Check sensitivities for lower-triangular version.
     let rng = MersenneTwister(123456), N = 10
         for _ in 1:10
