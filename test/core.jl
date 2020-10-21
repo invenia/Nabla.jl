@@ -102,23 +102,28 @@ end # testset Tape
 
 
 @testset "Check that functions involving `isapprox` can be differentiated" begin
-    f(x) = x ≈ 5.0 ? 1.0 : 3.0 * x
-    g(x) = 5.0 * x
-    h(x) = g(x) ≈ 25.0 ? x : f(x) + g(x)
-    ∇f = ∇(f)
-    ∇h = ∇(h)
-    @test ∇f(5.0) == (0.0,)
-    @test ∇f(6.0) == (3.0,)
-    @test ∇h(5.0) == (1.0,)
-    @test ∇h(6.0) == (8.0,)
-    f(x) = x ≈ [5.0] ? 1.0 : 3.0 * sum(x)
-    ∇f = ∇(f)
-    @test ∇f([5.0]) == ([0.0],)
-    @test ∇f([6.0]) == ([3.0],)
-    f(x, y) = x ≈ y ? 2y : 3x
-    ∇f = ∇(f)
-    @test ∇f(5.0, 5.0) == (0.0, 2.0)
-    @test ∇f(6.0, 5.0) == (3.0, 0.0)
+    @testset "First" begin
+        f(x) = x ≈ 5.0 ? 1.0 : 3.0 * x
+        g(x) = 5.0 * x
+        h(x) = g(x) ≈ 25.0 ? x : f(x) + g(x)
+        ∇f = ∇(f)
+        ∇h = ∇(h)
+        @test ∇f(5.0) == (0.0,)
+        @test ∇f(6.0) == (3.0,)
+        @test ∇h(5.0) == (1.0,)
+        @test ∇h(6.0) == (8.0,)
+    end
+
+    @testset "Second" begin
+        f(x) = x ≈ [5.0] ? 1.0 : 3.0 * sum(x)
+        ∇f = ∇(f)
+        @test ∇f([5.0]) == ([0.0],)
+        @test ∇f([6.0]) == ([3.0],)
+        f(x, y) = x ≈ y ? 2y : 3x
+        ∇f = ∇(f)
+        @test ∇f(5.0, 5.0) == (0.0, 2.0)
+        @test ∇f(6.0, 5.0) == (3.0, 0.0)
+    end
 end
 
 @testset "Check that functions with extra, unused variables can be differentiated" begin
