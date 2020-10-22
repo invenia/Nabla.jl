@@ -40,32 +40,13 @@ The real code evaluated is a little more complex with macro-hygine and handling 
 various complicated type-signatures, including multiple arguments.
 
 It does not generate any code for `rrules` for primal functions that Nabla does not support.
-These include: builtin functions, functors, functions without any positional arguments, and functions for working with complex numbers. It also includes a short list of non-differentiable functions that Nabla has special cases for outside of AD such as `size`
+See [`should_use_rrule`](@ref) for more details on what rules we do not use.
 
-This function returns true or false as to wether or not code was generated. While this has no actual effect in itself, it can be useful for checking how many rules Nabla supports.
+This function returns true or false as to wether or not code was generated. While this has
+no actual effect in itself, it can be useful for checking how many rules Nabla supports.
 """
 function generate_overload(sig)
-    opT, argTs = Iterators.peel(ExprTools.parameters(sig))
-    opT <: Core.Builtin && return false  # can't do operator overloading for builtins
-
-    isabstracttype(opT) || fieldcount(opT) == 0 || return false  # not handling functors
-    isempty(argTs) && return false  # we are an operator overloading AD, need operands
-
-    opT isa DataType && nameof(opT.name.module) == :NaNMath  && return false  # Don't care about NaNMath
-
-    # Ignore functions that have complex ranges. This may change when Nabla supports complex
-    # numbers.
-    opT ∈ typeof.((
-        SpecialFunctions.hankelh1, SpecialFunctions.hankelh2,
-        log1p, rem2pi, mod, atan, rem,
-    ))  && return false
-    opT <: Type{<:Complex} && return false  # skip complex constructor
-
-    # Ignore these functions because they have better Nabla specific versions.
-    opT ∈ typeof.((
-        isapprox, size, length, isassigned,
-        Base.Broadcast.combine_styles,  #TODO should i keep this?
-    )) && return false
+    should_use_rrule(sig) || return false
 
     original_signature_def = build_def(sig)
     unionized_signature_def = copy(original_signature_def)
@@ -81,6 +62,47 @@ function generate_overload(sig)
     eval(fdef)
 
     return true
+end
+
+"""
+    should_use_rrule(sig)
+
+Should we make use of the chainrules `rrule` for the primal function with the given
+signature tuple type (`sig`).
+
+We do not use rules for:
+    - builtin functions
+    - functors / closures
+    - functions without any positional arguments
+    - functions from the `NaNMath` module
+    - functions for working with complex numbers.
+    - Nondifferentiable functions that we define directly on `Node`s better (like `size`)
+"""
+function should_use_rrule(sig)
+    opT, argTs = Iterators.peel(ExprTools.parameters(sig))
+    opT <: Core.Builtin && return false  # can't do operator overloading for builtins
+
+    isabstracttype(opT) || fieldcount(opT) == 0 || return false  # not handling functors
+    isempty(argTs) && return false  # we are an operator overloading AD, need operands
+
+    # Don't care about NaNMath
+    opT isa DataType && nameof(opT.name.module) == :NaNMath  && return false
+
+    # Ignore functions that have complex ranges. This may change when Nabla supports complex
+    # numbers.
+    opT ∈ typeof.((
+        SpecialFunctions.hankelh1, SpecialFunctions.hankelh2,
+        log1p, rem2pi, mod, atan, rem,
+    ))  && return false
+    opT <: Type{<:Complex} && return false  # skip complex constructor
+
+    # Ignore these functions because they have better Nabla specific versions.
+    opT ∈ typeof.((
+        isapprox, size, length, isassigned,
+        Base.Broadcast.combine_styles,  #TODO should i keep this?
+    )) && return false
+
+    return true  # no exclusion applies
 end
 
 """
