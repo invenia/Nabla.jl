@@ -48,7 +48,7 @@ end
                     x = randx()
                     @test check_errs(y -> f(x, y), ȳ, randy(), v)
                 end
-            else # Both arguments are differentiable
+            else  # Both arguments are differentiable
                 domain = domain2(f)
                 domain === nothing && error("Could not determine domain for $f.")
                 (x_lb, x_ub), (y_lb, y_ub) = domain

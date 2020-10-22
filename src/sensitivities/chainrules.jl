@@ -38,6 +38,11 @@ end
 
 The real code evaluated is a little more complex with macro-hygine and handling for
 various complicated type-signatures, including multiple arguments.
+
+It does not generate any code for `rrules` for primal functions that Nabla does not support.
+These include: builtin functions, functors, functions without any positional arguments, and functions for working with complex numbers. It also includes a short list of non-differentiable functions that Nabla has special cases for outside of AD such as `size`
+
+This function returns true or false as to wether or not code was generated. While this has no actual effect in itself, it can be useful for checking how many rules Nabla supports.
 """
 function generate_overload(sig)
     opT, argTs = Iterators.peel(ExprTools.parameters(sig))
@@ -46,7 +51,7 @@ function generate_overload(sig)
     isabstracttype(opT) || fieldcount(opT) == 0 || return false  # not handling functors
     isempty(argTs) && return false  # we are an operator overloading AD, need operands
 
-    opT isa DataType && nameof(opT.name.module) == :NaNMath  && return false # Don't care about NaNMath
+    opT isa DataType && nameof(opT.name.module) == :NaNMath  && return false  # Don't care about NaNMath
 
     # Ignore functions that have complex ranges. This may change when Nabla supports complex
     # numbers.
@@ -74,6 +79,7 @@ function generate_overload(sig)
     # for debugging uncomment and edit the below to look at the generated code
     # opT <: typeof(identity) && @show fdef
     eval(fdef)
+
     return true
 end
 
@@ -151,7 +157,7 @@ function overload_declarations!(signature_def)
     # we need to generate a version of this for each place that an arg could be
     n_args = length(original_signature_args)
     definitions = Expr[]
-    for swap_mask in Iterators.product(ntuple(_->(true,false), n_args)...)
+    for swap_mask in Iterators.product(ntuple(_->(true, false), n_args)...)
         any(swap_mask) || continue  # don't generate if not swapping anything.
         signature_def[:args] = map(swap_mask, original_signature_args) do swap, orig_arg
             if swap
