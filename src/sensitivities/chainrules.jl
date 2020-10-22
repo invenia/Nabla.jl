@@ -1,4 +1,3 @@
-#using InteractiveUtils
 
 """
     generate_overload(sig)
@@ -42,9 +41,9 @@ various complicated type-signatures, including multiple arguments.
 """
 function generate_overload(sig)
     opT, argTs = Iterators.peel(ExprTools.parameters(sig))
-    opT <: Core.Builtin && return false  # can't do operater overloading for builtins
+    opT <: Core.Builtin && return false  # can't do operator overloading for builtins
 
-    isabstracttype(opT) || fieldcount(opT) == 0 || return false # not handling functors
+    isabstracttype(opT) || fieldcount(opT) == 0 || return false  # not handling functors
     isempty(argTs) && return false  # we are an operator overloading AD, need operands
 
     opT isa DataType && nameof(opT.name.module) == :NaNMath  && return false # Don't care about NaNMath
@@ -62,7 +61,6 @@ function generate_overload(sig)
         isapprox, size, length, isassigned,
         Base.Broadcast.combine_styles,  #TODO should i keep this?
     )) && return false
-
 
     original_signature_def = build_def(sig)
     unionized_signature_def = copy(original_signature_def)
@@ -125,7 +123,6 @@ Given a `signature_def` dictionary as returned by [`build_def`](@ref) this retur
 the ASTs for the overloads of the primal functions to accept `Nabla.Node`s.
 The `signature_def` should *not* have been unionized, as this function will instead generate
 1 method for each position a node could be in.
-
 Note: this mutate `signature_def` and so should not be called if others functions also need
 to use it after.
 """
@@ -138,7 +135,6 @@ function overload_declarations!(signature_def)
     @assert(signature_def[:name].args[1] == :op)
 
     original_signature_args = signature_def[:args]
-
     signature_def[:kwargs] = [:(kwargs...)]
     signature_def[:body] = quote
         args = $(_args_tuple(original_signature_args))
@@ -297,7 +293,6 @@ function _truely_rename_unionall(@nospecialize(u))
     nv = TypeVar(gensym(var.name), var.lb, var.ub)
     return UnionAll(nv, body{nv})
 end
-
 
 
 # Find a tape, ds might be Nodes or might be something else.

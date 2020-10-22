@@ -79,7 +79,7 @@ struct Branch{T, B} <: Node{T}
     kwargs::NamedTuple
     tape::Tape
     pos::Int
-    pullback::B  # if we have a rrule pullback for this it is stored here
+    pullback::B
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)

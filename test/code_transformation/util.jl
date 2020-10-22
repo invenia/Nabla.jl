@@ -77,7 +77,9 @@
     end
 
     @testset "node_type" begin
+        # special case for a redudant local where N in a Vararg
         @test Nabla.node_type(:(Vararg{Int64, N} where N)) == :(Vararg{Node{<:Int64}})
+        
         @test Nabla.node_type(:Float32) == :(Node{<:Float32})
     end
 end
