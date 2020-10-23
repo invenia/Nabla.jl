@@ -42,7 +42,7 @@ various complicated type-signatures, including multiple arguments.
 It does not generate any code for `rrules` for primal functions that Nabla does not support.
 See [`should_use_rrule`](@ref) for more details on what rules we do not use.
 
-This function returns true or false as to wether or not code was generated. While this has
+This function returns true or false as to whether or not code was generated. While this has
 no actual effect in itself, it can be useful for checking how many rules Nabla supports.
 """
 function generate_overload(sig)

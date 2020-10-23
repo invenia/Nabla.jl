@@ -102,7 +102,7 @@ end # testset Tape
 
 
 @testset "Check that functions involving `isapprox` can be differentiated" begin
-    @testset "First" begin
+    @testset "Test Case 1" begin
         f(x) = x ≈ 5.0 ? 1.0 : 3.0 * x
         g(x) = 5.0 * x
         h(x) = g(x) ≈ 25.0 ? x : f(x) + g(x)
@@ -114,7 +114,7 @@ end # testset Tape
         @test ∇h(6.0) == (8.0,)
     end
 
-    @testset "Second" begin
+    @testset "Test Case 2" begin
         f(x) = x ≈ [5.0] ? 1.0 : 3.0 * sum(x)
         ∇f = ∇(f)
         @test ∇f([5.0]) == ([0.0],)

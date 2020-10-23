@@ -67,10 +67,10 @@ f - the function used to generate this Node.
 args - Values indicating which elements in the tape will require updating by this node.
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
-pullback::B - if there is a custom primate rule (a `ChainRulesCore.rrule`) then this holds
-    the pullback to propagates gradients back through the operation, if there is not a rule
+pullback::B - if there is a custom primative rule (a `ChainRulesCore.rrule`) then this holds
+    the pullback to propagate gradients back through the operation. If there is not a rule
     then this is set to `nothing`.
-    It also maybe set to `nothing` by legacy Nabla rules that have not moved to ChainRules.
+    It may also be set to `nothing` by legacy Nabla rules that have not moved to ChainRules.
 """
 struct Branch{T, B} <: Node{T}
     val::T

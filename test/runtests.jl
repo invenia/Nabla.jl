@@ -1,8 +1,14 @@
 using Nabla
-using Test, LinearAlgebra, Statistics, Random, ForwardDiff
-using Distributions, BenchmarkTools, SpecialFunctions
-
 using Nabla: unbox, pos, tape, oneslike, zeroslike
+using BenchmarkTools
+using Distributions
+using ForwardDiff
+using LinearAlgebra
+using Random
+using SpecialFunctions
+using Statistics
+using Test
+
 
 # Helper function for comparing `Ref`s, since they don't compare equal under `==`
 ref_equal(a::Ref{T}, b::Ref{T}) where {T} = a[] == b[]

@@ -66,7 +66,7 @@
         @testset "$f" for f in BINARY_SCALAR_SENSITIVITIES
             # TODO: Implement the edge cases for functions differentiable in only either
             # argument.
-            f in  ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES && continue
+            f in ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES && continue
             domain = domain2(f)
             domain === nothing && error("Could not determine domain for $f.")
             (x_lb, x_ub), (y_lb, y_ub) = domain

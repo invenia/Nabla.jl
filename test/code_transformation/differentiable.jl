@@ -68,7 +68,6 @@ skip_line_info(ex) = ex
         :(x2::Vararg{Union{Int64, Node{<:Int64}}}),
     )
 
-
     # Test Nabla.unionise_struct. Written in terms of Nabla.unionise_arg.
     @test unionise_struct(:(struct Foo end)) == :(struct Foo end)
     @test unionise_struct(:(struct Foo{T} end)) ==

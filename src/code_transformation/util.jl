@@ -48,7 +48,7 @@ Returns an expression for the `Node{<:tp}`. e.g.
 
 Correctly `Varargs{Real}` becomes `:(Varargs{Node{<:Real}})`
 
-This is a lot like [`unionize_type`](ref) but it doesn't permit the original type anymore.
+This is a lot like [`unionise_type`](ref) but it doesn't permit the original type anymore.
 """
 function node_type(tp::Union{Symbol, Expr})
     (_tp, _info) = remove_vararg(tp)

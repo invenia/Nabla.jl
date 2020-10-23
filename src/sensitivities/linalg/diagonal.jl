@@ -39,7 +39,7 @@ end
 # machinery, so it knows how to deal.
 
 # TODO: Possibly we should overload `Pair` so that it constructs a `Node{Pair}` then this
-# would hit sentitivities that we have defined via ChainRules.
+# would hit sensitivities that we have defined via ChainRules.
 
 _diagm(x::∇AbstractVector, k::Integer=0) = diagm(k => x)
 LinearAlgebra.diagm(x::Pair{<:Integer, <:Node{<:∇AbstractVector}}) = _diagm(last(x), first(x))
