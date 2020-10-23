@@ -19,7 +19,7 @@
         @test getfield(U, :f) == Base.getproperty
         @test unbox(U) ≈ cholesky(X_).U
 
-        @test_throws Exception ∇(X->cholesky(X).info)(X_)
+        @test_throws MethodError ∇(X->cholesky(X).info)(X_)
     end
 
     let
