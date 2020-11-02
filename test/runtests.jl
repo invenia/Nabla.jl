@@ -32,8 +32,7 @@ const UNARY_SCALAR_SENSITIVITIES = [
     rad2deg, sec, secd, sech, sin, sind, sinh, sinpi, sqrt, tan, tand, tanh, transpose,
     # SpecialFunctions.jl:
     airyai, airyaiprime, airybi, airybiprime, besselj0, besselj1, bessely0, bessely1,
-    dawson, digamma, erf, erfc, erfcinv, erfcx, erfi, erfinv, gamma, invdigamma, loggamma,
-    trigamma,
+    dawson, digamma, erf, erfc, erfcinv, erfcx, erfi, erfinv, gamma, invdigamma, trigamma,
 ]
 
 const BINARY_SCALAR_SENSITIVITIES = [
