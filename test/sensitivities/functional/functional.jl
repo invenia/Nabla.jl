@@ -33,11 +33,7 @@
             s = broadcast(f, x_, y_)
             o = oneslike(unbox(s))
             ∇s = ∇(s, o)
-#            ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), unbox(s), o, x, y))
-#            ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), unbox(s), o, x, y)
             @test broadcast(f, x, y) == unbox(s)
-#            @test ∇s[x_] ≈ ∇x
-#            @test ∇s[y_] ≈ ∇y
         end
         function check_binary_broadcast(f, x::Real, y)
             tape = Tape()
@@ -45,11 +41,7 @@
             s = broadcast(f, x_, y_)
             o = oneslike(unbox(s))
             ∇s = ∇(s, o)
-#            ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), unbox(s), o, x, y))
-#            ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), unbox(s), o, x, y)
             @test broadcast(f, x, y) == unbox(s)
-#            @test ∇s[x_] ≈ ∇x
-#            @test ∇s[y_] ≈ ∇y
         end
         function check_binary_broadcast(f, x, y::Real)
             tape = Tape()
@@ -57,11 +49,7 @@
             s = broadcast(f, x_, y_)
             o = oneslike(unbox(s))
             ∇s = ∇(s, o)
-#            ∇x = sum(broadcast((z, z̄, x, y)->∇(f, Arg{1}, nothing, z, z̄, x, y), unbox(s), o, x, y))
-#            ∇y = broadcast((z, z̄, x, y)->∇(f, Arg{2}, nothing, z, z̄, x, y), unbox(s), o, x, y)
             @test broadcast(f, x, y) == unbox(s)
-#            @test ∇s[x_] ≈ ∇x
-#            @test ∇s[y_] ≈ ∇y
         end
         @testset "$f" for f in BINARY_SCALAR_SENSITIVITIES
             # TODO: Implement the edge cases for functions differentiable in only either
