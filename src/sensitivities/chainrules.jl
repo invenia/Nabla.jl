@@ -77,6 +77,8 @@ We do not use rules for:
     - functions from the `NaNMath` module
     - functions for working with complex numbers.
     - Nondifferentiable functions that we define directly on `Node`s better (like `size`)
+    - Nondifferentiable functions that are never used in practice and that cause a lot of
+      compiler invalidations and so cause a large increase in loading time.
 """
 function should_use_rrule(sig)
     opT, argTs = Iterators.peel(ExprTools.parameters(sig))
@@ -100,6 +102,17 @@ function should_use_rrule(sig)
     opT ∈ typeof.((
         isapprox, size, length, isassigned,
         Base.Broadcast.combine_styles,  #TODO should i keep this?
+    )) && return false
+
+    # Ignore these functions because in practice they are never used and defining them cause
+    # a ton of compiler invalidations, making loading slow.
+    opT ∈ typeof.((
+        string, repr, print, println, write, readlines, eachline, Core.print, Core.println,
+        isequal, ==, in, haskey,
+        isnothing, ismissing, isfile,
+        isbitstype, isbits, isabstracttype, isconcretetype,
+        startswith, endswith, join, joinpath, normpath, chomp,
+        schedule,  # this one is huge, causes over 2500 invalidations
     )) && return false
 
     return true  # no exclusion applies
