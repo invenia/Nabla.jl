@@ -141,7 +141,7 @@ Dict{Symbol, Any} with 3 entries:
 ```
 """
 function build_def(orig_sig)
-    sig = _truely_rename_unionall(orig_sig)  # TODO ExprTools possibly should do this for `signature(::Method)`` also
+    sig = _truly_rename_unionall(orig_sig)  # TODO ExprTools possibly should do this for `signature(::Method)`` also
     def = Dict{Symbol, Any}()
 
     opT = ExprTools.parameters(sig)[1]
@@ -308,23 +308,23 @@ function _args_tuple(arg_exprs)
 end
 
 """
-    _truely_rename_unionall(@nospecialize(u))
+    _truly_rename_unionall(@nospecialize(u))
 
 For `u` being a `UnionAll` this replaces every `TypeVar` with  a new one with a `gensym`ed
 names. This is useful for manual macro-hygine.
 
 Example:
 ```
-julia> Nabla._truely_rename_unionall(Array{T, N} where {T<:Number, N})
+julia> Nabla._truly_rename_unionall(Array{T, N} where {T<:Number, N})
 Array{var"##T#2881", var"##N#2880"} where var"##N#2880" where var"##T#2881"<:Number
 ```
 
-Note that the similar `Base.rename_unionall`, does not `gensym` the names just replaces the
-instances with new one with identical names.
+Note that the similar `Base.rename_unionall`, though `Base.rename_unionall` does not
+`gensym` the names just replaces the instances with new instances with identical names.
 """
-function _truely_rename_unionall(@nospecialize(u))
+function _truly_rename_unionall(@nospecialize(u))
     isa(u,UnionAll) || return u
-    body = _truely_rename_unionall(u.body)
+    body = _truly_rename_unionall(u.body)
     if body === u.body
         body = u
     else
