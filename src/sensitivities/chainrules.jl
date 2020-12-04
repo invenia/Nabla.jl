@@ -282,7 +282,7 @@ function _args_tuple(arg_exprs)
             Texpr = Texpr.args[1]
         end
         # Needs to be after removing `where`
-        if Meta.isexpr(Texpr, :curly) # remove `{T, N}` from `Vararg{T,N```
+        if Meta.isexpr(Texpr, :curly)  # remove `{T, N}` from `Vararg{T,N}`
             Texpr = Texpr.args[1]
         end
         if Texpr == :Vararg

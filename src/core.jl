@@ -192,8 +192,9 @@ To implement a new reverse-mode sensitivity for the `N^{th}` argument of functio
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
 
-∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
-This is the optionally inplace version of `∇` that should, if implemented, mutate
+    ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
+
+This is the optional in-place version of `∇` that should, if implemented, mutate
 x̄ to have the gradient added to it.
 """
 ∇(y::Node, ȳ) = propagate(tape(y), reverse_tape(y, ȳ))

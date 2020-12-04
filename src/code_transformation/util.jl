@@ -46,7 +46,7 @@ end
 Returns an expression for the `Node{<:tp}`. e.g.
 `node_type(:Real)` returns `:(Node{<:Real}})`.
 
-Correctly `Varargs{Real}` becomes `:(Varargs{Node{<:Real}})`
+Correctly `:(Vararg{Real})` becomes `:(Vararg{Node{<:Real}})`
 
 This is a lot like [`unionise_type`](ref) but it doesn't permit the original type anymore.
 """

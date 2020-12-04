@@ -21,7 +21,7 @@
                 end
 
                 # Some composite sensitivities.
-               composite_functions = (x->5x, x->1 / (1 + x), x->10+x)
+                composite_functions = (x->5x, x->1 / (1 + x), x->10+x)
                 for f in composite_functions
 
                     # Generate some data.
