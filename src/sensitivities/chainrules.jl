@@ -152,7 +152,7 @@ function build_def(orig_sig)
     def[:args] = Expr.(:(::), arg_names, arg_types)
     def[:whereparams] = ExprTools.where_parameters(sig)
 
-    def = Dict{Symbol, Any}(k => v for (k, v) in def if v !== nothing)  # filter out nonfields.
+    filter!(kv->last(kv)!==nothing, def)  # filter out nonfields.
     return def
 end
 
