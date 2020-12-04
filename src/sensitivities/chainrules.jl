@@ -147,7 +147,6 @@ function build_def(orig_sig)
     opT = ExprTools.parameters(sig)[1]
     def[:name] = :(op::$opT)
 
-    explicit_tvars = Core.TypeName[]#ExprTools.extract_tvars(sig)
     arg_types = ExprTools.name_of_type.(ExprTools.argument_types(sig))
     arg_names = [Symbol(:x, ii) for ii in eachindex(arg_types)]  #TODO: should we pass the arg_names in?
     def[:args] = Expr.(:(::), arg_names, arg_types)
