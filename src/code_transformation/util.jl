@@ -113,13 +113,16 @@ function remove_vararg(typ::Expr)
         # handle interally `where N` from `typ = :(Vararg{FOO, N} where N)` which results in
         # `body = :(Vararg{FOO, N})` and `new_type = Foo where N`, we don't need to keep it
         # at all, the `where N` wasn't doing anything to begin with, so we just strip it out
-        if Meta.isexpr(new_typ, :where, 2) && Meta.isexpr(body, :curly, 3)
+        if Meta.isexpr(new_typ, :where) && Meta.isexpr(body, :curly, 3)
             @assert body.args[1] == :Vararg
             T = body.args[2]
             N = body.args[3]
-            if new_typ.args == [T, N]
+            if new_typ.args == [T, N]  # ($T where $N)
                 body = :(Vararg{T})
                 new_typ = T
+            elseif T == new_typ.args[1] && N ∈ new_typ.args[2:end]  # ($T where {?, $N, ?})
+                body = :(Vararg{T})
+                filter!(!isequal(N), new_typ.args)
             end
         end
 
