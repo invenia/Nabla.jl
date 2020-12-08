@@ -35,15 +35,19 @@ const UNARY_SCALAR_SENSITIVITIES = [
     dawson, digamma, erf, erfc, erfcinv, erfcx, erfi, erfinv, gamma, invdigamma, trigamma,
 ]
 
-const BINARY_SCALAR_SENSITIVITIES = [
+const DIFF_IN_FIRST_ANND_SECOND_ARG_SENSITIVITIES = [ #Base
     # Base:
     *, +, -, /, \, ^, hypot, max, min,
     # SpecialFunctions.jl:
-    besseli, besselj, besselk, bessely, beta, polygamma,
+    beta,
 ]
-
 const ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES = [
-    besseli, besselj, besselk, bessely, polygamma
+    # SpecialFunctions.jl:
+    besseli, besselj, besselk, bessely, polygamma,
+]
+const BINARY_SCALAR_SENSITIVITIES = [
+    DIFF_IN_FIRST_ANND_SECOND_ARG_SENSITIVITIES;
+    ONLY_DIFF_IN_SECOND_ARG_SENSITIVITIES;
 ]
 
 @testset "Nabla.jl" begin
