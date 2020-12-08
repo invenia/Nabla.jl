@@ -20,11 +20,11 @@ function Base.identity(x1::Node{<:Any}; kwargs...)
 end
 
 @inline function preprocess(
-    op::typeof(identity), y::Branch, ȳ, x1::Union{Any, Node{<:Any}}
+    op::typeof(identity), y::Branch, ȳ, x1::Union{Any, Node{<:Any}}
 )
     pullback = getfield(y, :pullback)
         @assert pullback !== nothing "pullback not set, ..."
-    return pullback(ȳ)
+    return pullback(ȳ)
 end
 
 

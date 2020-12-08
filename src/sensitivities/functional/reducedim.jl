@@ -42,12 +42,12 @@ end
 function ∇(
     ::typeof(sum),
     ::Type{Arg{2}},
-    p, y, ȳ,
+    p, y, ȳ,
     ::typeof(abs2),
     A::AbstractArray{<:Real};
     dims=:,
 )
-    return 2ȳ .* A
+    return 2ȳ .* A
 end
 
 @explicit_intercepts(
