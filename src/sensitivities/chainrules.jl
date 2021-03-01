@@ -167,7 +167,7 @@ Note: this mutate `signature_def` and so should not be called if others function
 to use it after.
 """
 function overload_declarations!(signature_def)
-    # Our manual macro-hygine is not complete here.
+    # Our manual macro-hygiene is not complete here.
     # the argument names and `op`, `tape` `args`, `kwargs` etc could conflict with
     # where-params. but for sake of outputting readable code we are not gensyming everything
     # chance of conflict seems low as where-params are normally upper-case.
