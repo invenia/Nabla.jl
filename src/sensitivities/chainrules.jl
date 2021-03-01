@@ -32,11 +32,11 @@ end
     op::typeof(identity), ::Type{Arg{N}}, p, ::Any, ::Any, x1::Union{Any, Node{<:Any}};
     kwargs...
 ) where N
-    return p[N + 1]  # skip dself (N==1) and we don't support functors
+    return p[N + 1]  # skip dself (N==1) as we don't support functors
 end
 ```
 
-The real code evaluated is a little more complex with macro-hygine and handling for
+The real code evaluated is a little more complex with macro-hygiene and handling for
 various complicated type-signatures, including multiple arguments.
 
 It does not generate any code for `rrules` for primal functions that Nabla does not support.
@@ -76,8 +76,8 @@ We do not use rules for:
     - functions without any positional arguments
     - functions from the `NaNMath` module
     - functions for working with complex numbers.
-    - Nondifferentiable functions that we define directly on `Node`s better (like `size`)
-    - Nondifferentiable functions that are never used in practice and that cause a lot of
+    - Non-differentiable functions that we define directly on `Node`s better (like `size`)
+    - Non-differentiable functions that are never used in practice and that cause a lot of
       compiler invalidations and so cause a large increase in loading time.
 """
 function should_use_rrule(sig)
