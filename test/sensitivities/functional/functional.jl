@@ -83,8 +83,8 @@
             z_ = x_ .+ y_
             z2_ = broadcast(+, x_, y_)
             @test unbox(z_) == x .+ y
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
-            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
@@ -92,8 +92,8 @@
             z_ = x_ * y_
             z2_ = broadcast(*, x_, y_)
             @test unbox(z_) == x .* y
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
-            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
@@ -101,8 +101,8 @@
             z_ = x_ .- y_
             z2_ = broadcast(-, x_, y_)
             @test unbox(z_) == x .- y
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
-            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
             x, y, tape = randn(rng, 5), 5.0, Tape()
@@ -110,7 +110,7 @@
             z_ = x_ / y_
             z2_ = broadcast(/, x_, y_)
             @test unbox(z_) == x ./ y
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
             @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         let
@@ -120,7 +120,7 @@
             z2_ = broadcast(\, x_, y_)
             @test unbox(z_) == x .\ y
             @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
-            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
 
         # Check that dot notation works as expected for all unary function in Nabla for both
@@ -130,13 +130,13 @@
             z_ = f.(x_)
             z2_ = broadcast(f, x_)
             @test unbox(z_) == f.(x)
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
         end
         function check_unary_dot(f, x::∇Scalar)
             x_ = Leaf(Tape(), x)
             z_ = f.(x_)
             @test unbox(z_) == f.(x)
-            @test ∇(z_)[x_] == ∇(broadcast(f, x_))[x_]
+            @test ∇(z_)[x_] ≈ ∇(broadcast(f, x_))[x_]
         end
         for f in UNARY_SCALAR_SENSITIVITIES
             domain = domain1(f)
@@ -153,14 +153,14 @@
             z_ = f.(x_, y_)
             z2_ = broadcast(f, x_, y_)
             @test unbox(z_) == f.(x, y)
-            @test ∇(z_, oneslike(unbox(z_)))[x_] == ∇(z2_, oneslike(unbox(z2_)))[x_]
-            @test ∇(z_, oneslike(unbox(z_)))[y_] == ∇(z2_, oneslike(unbox(z2_)))[y_]
+            @test ∇(z_, oneslike(unbox(z_)))[x_] ≈ ∇(z2_, oneslike(unbox(z2_)))[x_]
+            @test ∇(z_, oneslike(unbox(z_)))[y_] ≈ ∇(z2_, oneslike(unbox(z2_)))[y_]
         end
         function check_binary_dot(f, x::∇Scalar, y::∇Scalar)
             x_, y_ = Leaf.(Tape(), (x, y))
             z_ = f.(x_, y_)
-            @test ∇(z_)[x_] == ∇(broadcast(f, x_, y_))[x_]
-            @test ∇(z_)[y_] == ∇(broadcast(f, x_, y_))[y_]
+            @test ∇(z_)[x_] ≈ ∇(broadcast(f, x_, y_))[x_]
+            @test ∇(z_)[y_] ≈ ∇(broadcast(f, x_, y_))[y_]
         end
         for f in BINARY_SCALAR_SENSITIVITIES
             # TODO: More care needs to be taken to test the following.
