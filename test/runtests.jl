@@ -1,6 +1,7 @@
 using Nabla
 using Nabla: unbox, pos, tape, oneslike, zeroslike
 using BenchmarkTools
+using ChainRulesCore
 using Distributions
 using ForwardDiff
 using LinearAlgebra
@@ -15,7 +16,7 @@ ref_equal(a::Ref{T}, b::Ref{T}) where {T} = a[] == b[]
 ref_equal(a::Ref, b::Ref) = false
 
 # for comparing against scalar rules
-derivative_via_frule(f, x) = last(Nabla.frule((Nabla.NO_FIELDS, 1.0), f, x))
+derivative_via_frule(f, x) = last(frule((NoTangent(), 1.0), f, x))
 # Sensiblity checkes that his is defined right
 @test derivative_via_frule(cos, 0) == 0
 @test derivative_via_frule(sin, 0) == 1

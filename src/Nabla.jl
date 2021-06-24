@@ -3,6 +3,7 @@ __precompile__()
 module Nabla
     using ChainRules
     using ChainRulesCore
+    using ChainRulesOverloadGeneration
     using ExprTools: ExprTools
     using ForwardDiff: ForwardDiff
     using LinearAlgebra

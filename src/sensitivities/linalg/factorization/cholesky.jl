@@ -34,7 +34,7 @@ function ∇(
     ::Type{Arg{1}},
     p,
     C::Cholesky,
-    X̄::Composite{<:Cholesky},
+    X̄::Tangent{<:Cholesky},
     X::Union{UpperTriangular, LowerTriangular},
     uplo::Union{Char, Symbol},
     info::Integer,
