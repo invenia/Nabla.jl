@@ -8,6 +8,7 @@
             @test check_errs(X->svd(X).U, randn(rng, n, k), A, VA)
             @test check_errs(X->svd(X).S, randn(rng, k), A, VA)
             @test check_errs(X->svd(X).V, randn(rng, m, k), A, VA)
+            @test check_errs(X->svd(X).Vt, randn(rng, k, m), A, VA)
         end
     end
 
@@ -15,7 +16,6 @@
         rng = MersenneTwister(12345)
         A = randn(rng, 5, 3)
         V̄t = randn(rng, 3, 3)
-        @test_throws ArgumentError check_errs(X->svd(X).Vt, V̄t, A, A)
         @test_throws ErrorException check_errs(X->svd(X).whoops, V̄t, A, A)
     end
 
