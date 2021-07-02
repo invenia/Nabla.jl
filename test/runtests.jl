@@ -82,7 +82,6 @@ end
         include("sensitivities/linalg/uniformscaling.jl")
         include("sensitivities/linalg/diagonal.jl")
         include("sensitivities/linalg/triangular.jl")
-        include("sensitivities/linalg/strided.jl")
         include("sensitivities/linalg/blas.jl")
 
         @testset "Factorisations" begin

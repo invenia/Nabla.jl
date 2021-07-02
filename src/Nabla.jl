@@ -59,7 +59,6 @@ module Nabla
     # Linear algebra optimisations.
     include("sensitivities/linalg/generic.jl")
     include("sensitivities/linalg/symmetric.jl")
-    include("sensitivities/linalg/strided.jl")
     include("sensitivities/linalg/blas.jl")
     include("sensitivities/linalg/diagonal.jl")
     include("sensitivities/linalg/factorization/cholesky.jl")
