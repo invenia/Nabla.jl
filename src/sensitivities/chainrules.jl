@@ -104,7 +104,7 @@ function should_use_rrule(sig)
 
     # Ignore these functions because they have better Nabla specific versions.
     opT ∈ typeof.((
-        isapprox, axes, size, length, isassigned,
+        isapprox, axes, size, length, isassigned, one, zero,
         Base.Broadcast.combine_styles,  #TODO should i keep this?
     )) && return false
 
