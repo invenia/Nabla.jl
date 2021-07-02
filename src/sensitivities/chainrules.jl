@@ -77,6 +77,12 @@ We do not use rules for:
     - Non-differentiable functions that we define directly on `Node`s better (like `size`)
     - Non-differentiable functions that are never used in practice and that cause a lot of
       compiler invalidations and so cause a large increase in loading time.
+
+Finally this excludes function that at time of last update Nabla had its own rules for
+because ChainRules didn't support them.
+Generally, for this category once they are added to ChainRules, we should change to using
+them from there. This requires also deleting the code from Nabla that provides those rules
+currently, so that there is no clash.
 """
 function should_use_rrule(sig)
     opT, argTs = Iterators.peel(ExprTools.parameters(sig))
@@ -113,9 +119,36 @@ function should_use_rrule(sig)
         schedule,  # this one is huge, causes over 2500 invalidations
     )) && return false
 
+    # Rules currently implemented directly in Nabla, but that could use ChainRules in future
+    sig <: Union{
+        Tuple{typeof(+),AbstractArray,LinearAlgebra.UniformScaling},
+        Tuple{typeof(+),LinearAlgebra.UniformScaling,AbstractArray},
+        Tuple{typeof(/),Number,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.symm),Char,Char,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.symm),Char,Char,Number,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.symv),Char,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.symv),Char,Number,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.trmm),Char,Char,Char,Char,Number,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.trmv),Char,Char,Char,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.trsm),Char,Char,Char,Char,Number,AbstractArray,AbstractArray},
+        Tuple{typeof(LinearAlgebra.BLAS.trsv),Char,Char,Char,AbstractArray,AbstractArray},
+        Tuple{typeof(Statistics.mean),Function,AbstractArray},
+        Tuple{typeof(\),AbstractArray,Number},
+        Tuple{typeof(broadcast),Any,Vararg},
+        Tuple{typeof(copy),Any},
+        Tuple{typeof(float),Any},
+        Tuple{typeof(getindex),Ref},
+        Tuple{typeof(kron),AbstractArray,AbstractArray},
+        Tuple{typeof(map),Function,Vararg},
+        Tuple{typeof(mapfoldl),Any,Union{typeof(+), typeof(Base.add_sum)},Union{Number,AbstractArray}},
+        Tuple{typeof(mapfoldr),Any,Union{typeof(+), typeof(Base.add_sum)},Union{Number,AbstractArray}},
+        Tuple{typeof(mapreduce),Any,Union{typeof(+), typeof(Base.add_sum)},AbstractArray},
+        Tuple{typeof(sum),Function,AbstractArray},
+        Tuple{typeof(sum),typeof(abs2),AbstractArray},
+    } && return false
+
     return true  # no exclusion applies
 end
-
 """
     overload_declarations!(original_signature_def)
 
