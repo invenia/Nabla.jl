@@ -54,7 +54,7 @@
                          randn(rng, 10, 10, 10), randn(rng, 10, 10, 10))
 
         # Issue #123
-        x6_ = float.(1:10)
+        x6_ = collect(1.0:10.0)
         tens = (fill(10.0, (10,)), fill(10.0, (10,)))
         @test ∇(x->sum(sum(x, dims=2)))(x6_) == (oneslike(x6_),)
         @test ∇((x, y)->sum(sum(x, dims=2) .+ sum(y, dims=2)'))(x6_, x6_) == tens
