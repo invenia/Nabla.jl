@@ -69,8 +69,6 @@ module Nabla
 
 
     # Link up to ChainRulesCore so rules are generated when new rrules are declared.
-    # NB: I originally thought I should be putting this in the `__init__`
-    # But it seems fine if I don't, and it loads like 10x faster.
     on_new_rule(generate_overload, rrule)
 
 end # module Nabla
