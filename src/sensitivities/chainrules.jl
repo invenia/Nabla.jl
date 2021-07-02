@@ -48,7 +48,7 @@ no actual effect in itself, it can be useful for checking how many rules Nabla s
 function generate_overload(sig)
     should_use_rrule(sig) || return false
 
-    original_signature_def = build_def(sig)
+    original_signature_def = ExprTools.signature(sig; extra_hygiene=true)
     unionized_signature_def = copy(original_signature_def)
     unionized_signature_def[:args] = unionise_sig.(original_signature_def[:args])
 
@@ -57,8 +57,6 @@ function generate_overload(sig)
         @inline $(∇_declaration(unionized_signature_def))
         $(overload_declarations!(original_signature_def)...)
     end
-    # for debugging uncomment and edit the below to look at the generated code
-    # opT <: typeof(identity) && @show fdef
     eval(fdef)
 
     return true
@@ -119,47 +117,9 @@ function should_use_rrule(sig)
 end
 
 """
-    build_def(sig)
-
-Like `ExprTools.signature` but on a signature type-tuple, not a Method.
-For `sig` being a tuple-type representing a methods type signature, this generates a
-dictionary that can be passes to `ExprTools.combinedef` to define that function,
-Provided that you assign the `:body` key on the dictionary first.
-
-For example:
-```julia
-julia> Nabla.build_def(Tuple{typeof(identity), Any})
-Dict{Symbol, Any} with 2 entries:
-  :name => :(op::typeof(identity))
-  :args => Expr[:(x1::Any)]
-
-julia> Nabla.build_def(Tuple{typeof(+), Vector{T}, Vector{T}} where T<:Number)
-Dict{Symbol, Any} with 3 entries:
-  :name        => :(op::typeof(+))
-  :args        => Expr[:(x1::Array{var"##T#5492", 1}), :(x2::Array{var"##T#5492", 1})]
-  :whereparams => Any[:(var"##T#5492" <: Number)]
-```
-"""
-function build_def(orig_sig)
-    sig = _truly_rename_unionall(orig_sig)  # TODO ExprTools possibly should do this for `signature(::Method)`` also
-    def = Dict{Symbol, Any}()
-
-    opT = ExprTools.parameters(sig)[1]
-    def[:name] = :(op::$opT)
-
-    arg_types = ExprTools.name_of_type.(ExprTools.argument_types(sig))
-    arg_names = [Symbol(:x, ii) for ii in eachindex(arg_types)]  #TODO: should we pass the arg_names in?
-    def[:args] = Expr.(:(::), arg_names, arg_types)
-    def[:whereparams] = ExprTools.where_parameters(sig)
-
-    filter!(kv->last(kv)!==nothing, def)  # filter out nonfields.
-    return def
-end
-
-"""
     overload_declarations!(original_signature_def)
 
-Given a `signature_def` dictionary as returned by [`build_def`](@ref) this returns
+Given a `signature_def` dictionary as returned by `ExprTools.signature` this returns
 the ASTs for the overloads of the primal functions to accept `Nabla.Node`s.
 The `signature_def` should *not* have been unionized, as this function will instead generate
 1 method for each position a node could be in.
@@ -177,7 +137,7 @@ function overload_declarations!(signature_def)
     original_signature_args = signature_def[:args]
     signature_def[:kwargs] = [:(kwargs...)]
     signature_def[:body] = quote
-        args = $(_args_tuple(original_signature_args))
+        args = $(ExprTools.args_tuple_expr(original_signature_args))
         # uncommenting the below to is useful for debugging what rrule is being hit.
         # @show InteractiveUtils.@which rrule(op, unbox.(args)...)
         primal_val, pullback = rrule(op, unbox.(args)...; kwargs...)
@@ -188,7 +148,7 @@ function overload_declarations!(signature_def)
         return branch
     end
 
-    # we need to generate a version of this for each place that an arg could be
+    # we need to generate a version of this for each place that an arg could be a Node
     n_args = length(original_signature_args)
     definitions = Expr[]
     for swap_mask in Iterators.product(ntuple(_->(true, false), n_args)...)
@@ -274,64 +234,6 @@ function ∇_declaration(signature_def)
         :kwargs => [:(kwargs...)],
     )
     return ExprTools.combinedef(∇_def)
-end
-
-
-"""
-    _args_tuple(arg_exprs)
-
-For `arg_exprs` being a list of arguments expressions from a signature, of a form
-such as `[:(x::Int), :(y::Float64), :(z::Vararg)]`, returns a tuple expresion containing all
-of them by name; while correctly handling splatting, for things that are `Vararg` typed.
-e.g for the prior example `:((x, y, z...))`
-"""
-function _args_tuple(arg_exprs)
-    ret = Expr(:tuple)
-    ret.args = map(arg_exprs) do arg
-        @assert Meta.isexpr(arg, :(::), 2)
-        arg_name, Texpr = arg.args
-        if Meta.isexpr(Texpr, :where)  # remove where from `Vararg{T, N} where {T, N}`
-            Texpr = Texpr.args[1]
-        end
-        # Needs to be after removing `where`
-        if Meta.isexpr(Texpr, :curly)  # remove `{T, N}` from `Vararg{T,N}`
-            Texpr = Texpr.args[1]
-        end
-        if Texpr == :Vararg
-            return :($arg_name...)
-        else
-            return arg_name
-        end
-    end
-    return ret
-end
-
-"""
-    _truly_rename_unionall(@nospecialize(u))
-
-For `u` being a `UnionAll` this replaces every `TypeVar` with  a new one with a `gensym`ed
-names. This is useful for manual macro-hygine.
-
-Example:
-```
-julia> Nabla._truly_rename_unionall(Array{T, N} where {T<:Number, N})
-Array{var"##T#2881", var"##N#2880"} where var"##N#2880" where var"##T#2881"<:Number
-```
-
-Note that the similar `Base.rename_unionall`, though `Base.rename_unionall` does not
-`gensym` the names just replaces the instances with new instances with identical names.
-"""
-function _truly_rename_unionall(@nospecialize(u))
-    isa(u,UnionAll) || return u
-    body = _truly_rename_unionall(u.body)
-    if body === u.body
-        body = u
-    else
-        body = UnionAll(u.var, body)
-    end
-    var = u.var::TypeVar
-    nv = TypeVar(gensym(var.name), var.lb, var.ub)
-    return UnionAll(nv, body{nv})
 end
 
 
