@@ -1,9 +1,14 @@
 __precompile__()
 
 module Nabla
-
-    using SpecialFunctions
+    using ChainRules
+    using ChainRulesCore
+    using ChainRulesOverloadGeneration
+    using ExprTools: ExprTools
+    using ForwardDiff: ForwardDiff
     using LinearAlgebra
+    using Random
+    using SpecialFunctions
     using Statistics
 
     # Some aliases used repeatedly throughout the package.
@@ -39,10 +44,12 @@ module Nabla
     # into a separate module at some point.
     include("finite_differencing.jl")
 
+    # Sensitivities via ChainRules
+    include("sensitivities/chainrules.jl")
+
     # Sensitivities for the basics.
     include("sensitivities/indexing.jl")
     include("sensitivities/scalar.jl")
-    include("sensitivities/array.jl")
 
     # Sensitivities for functionals.
     include("sensitivities/functional/functional.jl")
@@ -52,14 +59,16 @@ module Nabla
     # Linear algebra optimisations.
     include("sensitivities/linalg/generic.jl")
     include("sensitivities/linalg/symmetric.jl")
-    include("sensitivities/linalg/strided.jl")
     include("sensitivities/linalg/blas.jl")
     include("sensitivities/linalg/diagonal.jl")
-    include("sensitivities/linalg/triangular.jl")
     include("sensitivities/linalg/factorization/cholesky.jl")
     include("sensitivities/linalg/factorization/svd.jl")
 
     # Checkpointing
     include("checkpointing.jl")
+
+
+    # Link up to ChainRulesCore so rules are generated when new rrules are declared.
+    on_new_rule(generate_overload, rrule)
 
 end # module Nabla

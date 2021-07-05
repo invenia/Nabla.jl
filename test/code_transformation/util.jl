@@ -48,6 +48,13 @@
     @test Nabla.remove_vararg(:Real) == (:Real, :nothing)
     @test Nabla.remove_vararg(:(Vararg{T} where T)) == (:(T where T), :Vararg)
     @test Nabla.remove_vararg(:(Vararg{T, N} where T<:Real)) == (:(T where T<:Real), :N)
+    # Redundant local `where N` (rather than leaving the `N` to be outside in the sig)
+    @test Nabla.remove_vararg(:(Vararg{Real, N} where N)) == (:Real, :Vararg)
+    @test Nabla.remove_vararg(:(Vararg{T, N} where {N,T})) == (:(T where T), :Vararg)
+    @test Nabla.remove_vararg(:(Vararg{T, N} where {T<:Real, N})) == (:(T where T<:Real), :Vararg)
+    # This case doesn't work but never occurs in practice
+    @test_broken Nabla.remove_vararg(:(Vararg{T, N} where T where N)) == (:(T where T), :Vararg)
+
 
     # Test Nabla.replace_vararg.
     @test Nabla.replace_vararg(:(U{T, N{T}}), (:V, :nothing)) == :(U{T, N{T}})
@@ -74,5 +81,12 @@
         @test Nabla.parse_is_node(:([true])) == [true]
         @test Nabla.parse_is_node(:([true, false])) == [true, false]
         @test_throws ArgumentError Nabla.parse_is_node(:((true, false)))
+    end
+
+    @testset "node_type" begin
+        # special case for a redudant local where N in a Vararg
+        @test Nabla.node_type(:(Vararg{Int64, N} where N)) == :(Vararg{Node{<:Int64}})
+
+        @test Nabla.node_type(:Float32) == :(Node{<:Float32})
     end
 end

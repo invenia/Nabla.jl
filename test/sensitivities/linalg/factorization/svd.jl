@@ -8,6 +8,7 @@
             @test check_errs(X->svd(X).U, randn(rng, n, k), A, VA)
             @test check_errs(X->svd(X).S, randn(rng, k), A, VA)
             @test check_errs(X->svd(X).V, randn(rng, m, k), A, VA)
+            @test check_errs(X->svd(X).Vt, randn(rng, k, m), A, VA)
         end
     end
 
@@ -15,7 +16,6 @@
         rng = MersenneTwister(12345)
         A = randn(rng, 5, 3)
         V̄t = randn(rng, 3, 3)
-        @test_throws ArgumentError check_errs(X->svd(X).Vt, V̄t, A, A)
         @test_throws ErrorException check_errs(X->svd(X).whoops, V̄t, A, A)
     end
 
@@ -33,15 +33,6 @@
         @test U isa Branch{<:Matrix}
         @test S isa Branch{<:Vector}
         @test V isa Branch{<:Adjoint}
-    end
-
-    @testset "Helper functions" begin
-        rng = MersenneTwister(12345)
-        X = randn(rng, 10, 10)
-        Y = randn(rng, 10, 10)
-        @test Nabla.mulsubtrans!(copy(X), Y) ≈ Y .* (X - X')
-        @test Nabla.eyesubx!(copy(X)) ≈ I - X
-        @test Nabla.add!(copy(X), Y) ≈ X + Y
     end
 
     @testset "Tape updating from multiple components" begin

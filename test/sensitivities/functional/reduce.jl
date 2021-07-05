@@ -1,17 +1,14 @@
 @testset "Reduce" begin
     let rng = MersenneTwister(123456)
-        import Nabla.fmad
-
         # Check that `mapreduce`, `mapfoldl`and `mapfoldr` work as expected with all unary
         # functions, some composite functions which use FMAD under both `+` and `*`.
         let N = 3
             for functional in (mapreduce, mapfoldl, mapfoldr)
 
                 # Sensitivities implemented in Base.
-                for (package, f) in Nabla.unary_sensitivities
+                for f in UNARY_SCALAR_SENSITIVITIES
 
                     # Generate some data and get the function to be mapped.
-                    f = eval(f)
                     domain = domain1(f)
                     domain === nothing && error("Could not determine domain for $f.")
                     lb, ub = domain
@@ -20,7 +17,7 @@
                     # Test +.
                     x_ = Leaf(Tape(), x)
                     s = functional(f, +, x_)
-                    @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+                    @test ∇(s)[x_] ≈ derivative_via_frule.(f, x)
                 end
 
                 # Some composite sensitivities.
@@ -34,7 +31,7 @@
                     x_ = Leaf(Tape(), x)
                     s = functional(f, +, x_)
                     @test unbox(s) ≈ functional(f, +, x)
-                    @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
+                    @test ∇(s)[x_] ≈ map(xn->ForwardDiff.derivative(f, xn), x)
                 end
             end
         end
@@ -47,7 +44,6 @@
         # Check that `reduce`, `foldl` and `foldr` work as expected for `+` and `*`.
         let
             for functional in (reduce, foldl, foldr)
-
                 # Test `+`.
                 x = randn(rng, 100)
                 x_ = Leaf(Tape(), x)
@@ -61,10 +57,8 @@
         # and some composite functions which use FMAD.
         let N = 5
             # Sensitivities implemented in Base.
-            for (package, f) in Nabla.unary_sensitivities
-
+            for f in UNARY_SCALAR_SENSITIVITIES
                 # Generate some data and get the function to be mapped.
-                f = eval(f)
                 domain = domain1(f)
                 domain === nothing && error("Could not determine domain for $f.")
                 lb, ub = domain
@@ -74,7 +68,7 @@
                 x_ = Leaf(Tape(), x)
                 s = sum(f, x_)
                 @test unbox(s) == sum(f, x)
-                @test ∇(s)[x_] ≈ ∇.(f, Arg{1}, x)
+                @test ∇(s)[x_] ≈ derivative_via_frule.(f, x)
             end
 
             # Some composite functions.
@@ -88,7 +82,7 @@
                 x_ = Leaf(Tape(), x)
                 s = sum(f, x_)
                 @test unbox(s) == sum(f, x)
-                @test ∇(s)[x_] ≈ map(x->fmad(f, (x,), Val{1}), x)
+                @test ∇(s)[x_] ≈ map(xn->ForwardDiff.derivative(f, xn), x)
             end
         end
     end

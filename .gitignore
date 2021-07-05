@@ -1,7 +1,11 @@
+*.pdf
+*.DS_Store
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
-*.pdf
-*.DS_Store
 Manifest.toml
-docs/build/
+docs/build
+docs/site
+docs/src/assets/chainrules.css
+docs/src/assets/indigo.css
+.vscode/settings.json

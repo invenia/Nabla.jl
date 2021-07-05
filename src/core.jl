@@ -1,5 +1,3 @@
-using DualNumbers
-
 import Base: push!, length, show, getindex, setindex!, eachindex, isassigned,
              isapprox, zero, one, lastindex
 
@@ -26,7 +24,7 @@ function show(io::IO, t::Tape)
         end
     end
 end
-@inline getindex(t::Tape, n::Int) = getindex(tape(t), n)
+@inline getindex(t::Tape, n::Int) = unthunk(getindex(tape(t), n))
 @inline getindex(t::Tape, node::Node) = getindex(t, pos(node))
 @inline lastindex(t::Tape) = length(t)
 @inline setindex!(t::Tape, x, n::Int) = (tape(t)[n] = x; t)
@@ -61,26 +59,37 @@ show(io::IO, tape::Leaf{T}) where T = print(io, "Leaf{$T} $(unbox(tape))")
 show(io::IO, tape::Leaf{T}) where T<:AbstractArray = print(io, "Leaf{$T} $(size(unbox(tape)))")
 
 """
-A Branch is a Node with parents (args).
+A `Branch` is a Node with parents (args).
 
 Fields:
-val - the value of this node produced in the forward pass.
+val::T - the value of this node produced in the forward pass.
 f - the function used to generate this Node.
 args - Values indicating which elements in the tape will require updating by this node.
 tape - The Tape to which this Branch is assigned.
 pos - the location of this Branch in the tape to which it is assigned.
+pullback::B - if there is a custom primative rule (a `ChainRulesCore.rrule`) then this holds
+    the pullback to propagate gradients back through the operation. If there is not a rule
+    then this is set to `nothing`.
+    It may also be set to `nothing` by legacy Nabla rules that have not moved to ChainRules.
 """
-struct Branch{T} <: Node{T}
+struct Branch{T, B} <: Node{T}
     val::T
     f
     args::Tuple
     kwargs::NamedTuple
     tape::Tape
     pos::Int
+    pullback::B
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, kwargs.data, tape, length(tape) + 1)
+
+    # We could check for an `rrule` here if we wanted but we don't,
+    # because we should never reach this point if we have an rrule
+    primal_val = f(unboxed...; kwargs...)
+    pullback = nothing
+
+    branch = Branch(primal_val, f, args, kwargs.data, tape, length(tape) + 1, pullback)
     push!(tape, branch)
     return branch
 end
@@ -122,20 +131,26 @@ isapprox(n::Node, f::Node) = unbox(n) ≈ unbox(f)
 zero(n::Node) = zero(unbox(n))
 one(n::Node) = one(unbox(n))
 
+# Let the user get the `size` and `length` of `Node`s.
+Base.size(x::Node, dims...) = size(unbox(x), dims...)
+Base.length(x::Node) = length(unbox(x))
+
 # Leafs do nothing, Branches compute their own sensitivities and update others.
 @inline propagate(y::Leaf, rvs_tape::Tape) = nothing
 function propagate(y::Branch, rvs_tape::Tape)
-    tape = Nabla.tape(rvs_tape)
-    ȳ, f = tape[pos(y)], getfield(y, :f)
+    ȳ = rvs_tape[y]  # the gradient we are going to propagate through the operation in y
+    d_tape = Nabla.tape(rvs_tape)  # strips off the Tape abstration leaving a plain Vector
+    f = getfield(y, :f)
     args = getfield(y, :args)
     kwargs = getfield(y, :kwargs)
-    xs, xids = map(unbox, args), map(pos, args)
-    p = preprocess(f, unbox(y), ȳ, xs...)
+    xs = map(unbox, args)
+    xids = map(pos, args)
+    p = preprocess(f, y, ȳ, args...)  # inlining CSE will avoid unboxing twice.
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
         if xid > 0
-            tape[xid] = isassigned(tape, xid) ?
-                ∇(tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :
+            d_tape[xid] = isassigned(d_tape, xid) ?
+                ∇(d_tape[xid], f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...) :  # maybe-inplace version
                 ∇(f, Arg{j}, p, unbox(y), ȳ, xs...; kwargs...)
         end
     end
@@ -172,30 +187,22 @@ computing the gradient of `y` w.r.t. each of the elements in the `Tape`.
 
 
     ∇(f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
-    ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
 
 To implement a new reverse-mode sensitivity for the `N^{th}` argument of function `f`. p
 is the output of `preprocess`. `x1`, `x2`,... are the inputs to the function, `y` is its
 output and `ȳ` the reverse-mode sensitivity of `y`.
+
+    ∇(x̄, f::Function, ::Type{Arg{N}}, p, y, ȳ, x...)
+
+This is the optional in-place version of `∇` that should, if implemented, mutate
+x̄ to have the gradient added to it.
 """
 ∇(y::Node, ȳ) = propagate(tape(y), reverse_tape(y, ȳ))
 @inline ∇(y::Node{<:∇Scalar}) = ∇(y, one(unbox(y)))
 
-# This is a fallback method where we don't necessarily know what we'll be adding and whether
-# we can update the value in-place, so we'll try to be clever and dispatch.
 @inline function ∇(x̄, f, ::Type{Arg{N}}, args...; kwargs...) where N
-    return update!(x̄, ∇(f, Arg{N}, args...; kwargs...))
+    return ChainRulesCore.add!!(x̄, ∇(f, Arg{N}, args...; kwargs...))
 end
-
-# Update regular arrays in-place. Structured array types should not be updated in-place,
-# even though it technically "works" (https://github.com/JuliaLang/julia/issues/31674),
-# so we'll only permit mutating addition for `Array`s, e.g. `Vector` and `Matrix`.
-# Mixed array and scalar adds should not occur, as sensitivities should always have the
-# same shape, so we won't bother allowing e.g. updating an array with a scalar on the RHS.
-update!(x̄::Array{T,N}, y::AbstractArray{S,N}) where {T,S,N} = x̄ .+= y
-
-# Fall back to using regular addition
-update!(x̄, y) = x̄ + y
 
 """
     ∇(f; get_output::Bool=false)
@@ -216,7 +223,8 @@ function ∇(f; get_output::Bool=false)
         else
             ∇args = zero.(args)
         end
-        return get_output ? (y, ∇args) : ∇args
+        ∇args_public = map(unthunk, ∇args)
+        return get_output ? (y, ∇args_public) : ∇args_public
     end
 end
 
@@ -269,18 +277,20 @@ for T in (:Diagonal, :UpperTriangular, :LowerTriangular)
     @eval @inline randned_container(x::$T{<:Real}) = $T(randn(eltype(x), size(x)...))
 end
 
-# Bare-bones FMAD implementation based on DualNumbers. Accepts a Tuple of args and returns
-# a Tuple of gradients. Currently scales almost exactly linearly with the number of inputs.
-# The coefficient of this scaling could be improved by implementing a version of DualNumbers
-# which computes from multiple seeds at the same time.
+# Bare-bones FMAD implementation based on internals of ForwardDiff.
+# Accepts a Tuple of args and returns a Tuple of gradients.
+# Currently scales almost exactly linearly with the number of inputs.
+# The coefficient of this scaling could be improved by fully utilizing ForwardDiff
+# and computing from multiple seeds at the same time.
 function dual_call_expr(f, x::Type{<:Tuple}, ::Type{Type{Val{n}}}) where n
     dual_call = Expr(:call, :f)
     for m in 1:Base.length(x.parameters)
-        push!(dual_call.args, n == m ? :(Dual(x[$m], 1)) : :(x[$m]))
+        push!(dual_call.args, n == m ? :(ForwardDiff.Dual(x[$m], 1)) : :(x[$m]))
     end
-    return :(dualpart($dual_call))
+    return :(first(ForwardDiff.partials($dual_call)))
 end
 @generated fmad(f, x, n) = dual_call_expr(f, x, n)
+
 function fmad_expr(f, x::Type{<:Tuple})
     body = Expr(:tuple)
     for n in 1:Base.length(x.parameters)

@@ -20,7 +20,15 @@
         @test ∇(y, oneslike(unbox(y)))[x] == [0, 1, 2]
     end
 
-    @testset "Ref" begin
+    @testset "Ref indexed by []" begin
         @test ref_equal(∇(getindex)(Ref(4))[1], Ref(1))
+    end
+
+    @testset "Tuple indexed by Int" begin
+        leaf = Leaf(Tape(), tuple(5, 6, 7))
+        y = getindex(leaf, 1)
+        @test unbox(y) == 5
+        # Nabla has never supported getindex(::Tuple, ::Int)
+        @test_broken ∇(y, one(unbox(y)))[leaf] == (1, 0, 0)
     end
 end
