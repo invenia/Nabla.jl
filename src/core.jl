@@ -145,9 +145,11 @@ function propagate(y::Branch, rvs_tape::Tape)
     kwargs = getfield(y, :kwargs)
     xs = map(unbox, args)
     xids = map(pos, args)
-    p = ȳ isa AbstractZero ?
-        (NoTangent(), ntuple(_ -> ȳ, length(args))...) :
+    p = if ȳ isa AbstractZero
+        (NoTangent(), ntuple(_ -> ȳ, length(args))...)
+    else
         preprocess(f, y, ȳ, args...)  # inlining CSE will avoid unboxing twice.
+    end
 
     for j in eachindex(xs)
         x, xid = xs[j], xids[j]
