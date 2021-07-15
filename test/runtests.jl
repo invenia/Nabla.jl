@@ -2,6 +2,7 @@ using Nabla
 using Nabla: unbox, pos, tape, oneslike, zeroslike
 using BenchmarkTools
 using ChainRulesCore
+using ChainRulesOverloadGeneration
 using Distributions
 using ForwardDiff
 using LinearAlgebra

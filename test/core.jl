@@ -233,7 +233,7 @@ end
         return y, myfunc_pullback
     end
 
-    Nabla.generate_overload(Tuple{typeof(myfunc), Any, Any})
+    ChainRulesOverloadGeneration.refresh_rules()
 
     a = [1.0, 2.0, 3.0]
     i = 1
