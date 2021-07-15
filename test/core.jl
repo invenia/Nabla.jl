@@ -224,23 +224,23 @@ Nabla.∇(::typeof(quad), ::Type{Arg{2}}, p, Y, Ȳ, A::Matrix, B::Matrix) = A*B
 end
 
 @testset "rrules can deal with ZeroTangent()" begin
-    myfunc2(i, j) = i + j
+    myfunc(i, j) = i + j
 
-    function ChainRulesCore.rrule(::typeof(myfunc2), i, j)
-        y = myfunc2(i, j)
+    function ChainRulesCore.rrule(::typeof(myfunc), i, j)
+        y = myfunc(i, j)
         # the pullback can't deal with ZeroTangent() (make sure Nabla deals with this)
-        myfunc2_pullback(dy::Number) = NoTangent(), dy, dy
-        return y, myfunc2_pullback
+        myfunc_pullback(dy::Number) = NoTangent(), dy, dy
+        return y, myfunc_pullback
     end
 
-    Nabla.generate_overload(Tuple{typeof(myfunc2), Any, Any})
+    Nabla.generate_overload(Tuple{typeof(myfunc), Any, Any})
 
     a = [1.0, 2.0, 3.0]
     i = 1
     j = 2
     a_, i_, j_ = Leaf.(Tape(), (a, i, j))
 
-    r_ = getindex(a_, myfunc2(i_, j_))
+    r_ = getindex(a_, myfunc(i_, j_))
     ∇r_ = ∇(r_)
 end
 

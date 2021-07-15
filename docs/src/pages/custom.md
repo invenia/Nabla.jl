@@ -7,6 +7,9 @@
     These sensitivities can be added in your own package, or for Base/StdLib functions they can be added to [ChainRules.jl](https://github.com/JuliaDiff/ChainRules.jl/).
     To define custom sensitivities using ChainRulesCore, define a `ChainRulesCore.rrule(f, args...; kwargs...)`.
     See the [ChainRules project's documentation for more information](https://www.juliadiff.org/ChainRulesCore.jl/stable/).
+    
+    After you define an `rrule`, e.g. for `myfunc(i, j)`, you also need to generate Nabla overloads by calling `Nabla.generate_overload(Tuple{typeof(myfunc), Any, Any})`.
+
     **If you are defining your custom sensitivities using ChainRulesCore then you do not need to read this page**, and can consider it as documenting a legacy feature.
     
     This page exists to describe how Nabla works, and how sensitivities can be directly defined for Nabla.
