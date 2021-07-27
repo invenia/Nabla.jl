@@ -167,7 +167,7 @@ end
 
 @testset "get_output" begin
     y = ∇(-, get_output=true)(2)
-    @test y isa Tuple{Branch{Int}, Tuple{Int}}
+    @test y isa Tuple{Branch{Int}, Tuple{Real}}
     @test last(y) == (-1,)
     @test ∇(unbox, get_output=true)(2) == (2, (0,))
 end
