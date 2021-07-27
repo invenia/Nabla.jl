@@ -79,8 +79,12 @@ end
         @test Y isa Branch{Vector{Float64}}
         @test unbox(Y) == Float64[1,2,3,4]
 
-        # In expressions
-        @test ∇(x->2x)(1) === (2,)
+        # In expressions.
         @test ∇(x->2*float(x))(1) === (2.0,)
+        
+        # Note that actually float or no float out is the same as
+        # integers always have floating point derivatives
+        @test ∇(x->2x)(1) === (2.0,) 
+        
     end
 end
