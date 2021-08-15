@@ -223,4 +223,25 @@ Nabla.∇(::typeof(quad), ::Type{Arg{2}}, p, Y, Ȳ, A::Matrix, B::Matrix) = A*B
     @test oldvals[2:end] ≈ newvals[2:end]
 end
 
+@testset "rrules can deal with ZeroTangent()" begin
+    myfunc(i, j) = i + j
+
+    function ChainRulesCore.rrule(::typeof(myfunc), i, j)
+        y = myfunc(i, j)
+        # the pullback can't deal with ZeroTangent() (make sure Nabla deals with this)
+        myfunc_pullback(dy::Number) = NoTangent(), dy, dy
+        return y, myfunc_pullback
+    end
+
+    ChainRulesOverloadGeneration.refresh_rules()
+
+    a = [1.0, 2.0, 3.0]
+    i = 1
+    j = 2
+    a_, i_, j_ = Leaf.(Tape(), (a, i, j))
+
+    r_ = getindex(a_, myfunc(i_, j_))
+    ∇r_ = ∇(r_)
+end
+
 end # testset "core"
