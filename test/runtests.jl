@@ -63,6 +63,7 @@ end
 @testset "Sensitivities" begin
     include("finite_differencing.jl")
 
+    include("sensitivities/ambiguity_resolution.jl")
     # Test sensitivities for the basics.
     include("sensitivities/indexing.jl")
     include("sensitivities/scalar.jl")

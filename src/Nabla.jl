@@ -47,6 +47,10 @@ module Nabla
     # Sensitivities via ChainRules
     include("sensitivities/chainrules.jl")
 
+    # Overloads we added to solve ambiguitities (probably caused by ChainRules)
+    include("sensitivities/ambiguity_resolution.jl")
+
+    
     # Sensitivities for the basics.
     include("sensitivities/indexing.jl")
     include("sensitivities/scalar.jl")
