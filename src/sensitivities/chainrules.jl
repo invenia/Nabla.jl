@@ -77,6 +77,7 @@ We do not use rules for:
     - Non-differentiable functions that we define directly on `Node`s better (like `size`)
     - Non-differentiable functions that are never used in practice and that cause a lot of
       compiler invalidations and so cause a large increase in loading time.
+    - functions that cause Nabla issues that we don't use.
 
 Finally this excludes function that at time of last update Nabla had its own rules for
 because ChainRules didn't support them.
@@ -146,6 +147,17 @@ function should_use_rrule(sig)
         Tuple{typeof(sum),Function,AbstractArray},
         Tuple{typeof(sum),typeof(abs2),AbstractArray},
     } && return false
+
+
+    # Functions that cause Nabla to have issues and that we don't use
+    sig <: Union{
+        Tuple{Type{<:Array}, AbstractArray},  # Nabla support for constructors is limitted
+    } && return false
+    
+    opT ∈ typeof.((
+        Base.vect,  # currently having an issue with this being defined twice.
+                    # TODO: debug why and if ever we need this
+    )) && return false
 
     return true  # no exclusion applies
 end
