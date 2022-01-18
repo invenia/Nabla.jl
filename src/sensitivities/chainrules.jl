@@ -14,7 +14,7 @@ function Base.identity(x1::Node{<:Any}; kwargs...)
     args = (x1,)
     (primal_val, pullback) = rrule(op, unbox.(args)...; kwargs...)
     tape = get_tape(args)
-    branch = Branch(primal_val, op, args, kwargs.data, tape, length(tape) + 1, pullback)
+    branch = Branch(primal_val, op, args, values(kwargs), tape, length(tape) + 1, pullback)
     push!(tape, branch)
     return branch
 end
@@ -153,7 +153,7 @@ function should_use_rrule(sig)
     sig <: Union{
         Tuple{Type{<:Array}, AbstractArray},  # Nabla support for constructors is limitted
     } && return false
-    
+
     opT ∈ typeof.((
         Base.vect,  # currently having an issue with this being defined twice.
                     # TODO: debug why and if ever we need this
@@ -188,7 +188,9 @@ function overload_declarations!(signature_def)
         primal_val, pullback = rrule(op, unbox.(args)...; kwargs...)
         tape = get_tape(args)
 
-        branch = Branch(primal_val, op, args, kwargs.data, tape, length(tape) + 1, pullback)
+        branch = Branch(
+            primal_val, op, args, values(kwargs), tape, length(tape) + 1, pullback
+        )
         push!(tape, branch)
         return branch
     end
