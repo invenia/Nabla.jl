@@ -196,10 +196,18 @@ function overload_declarations!(signature_def)
     end
 
     # we need to generate a version of this for each place that an arg could be a Node
+    is_varadic = isa_vararg(original_signature_args[end].args[2])
     n_args = length(original_signature_args)
     definitions = Expr[]
     for swap_mask in Iterators.product(ntuple(_->(true, false), n_args)...)
         any(swap_mask) || continue  # don't generate if not swapping anything.
+        
+        # Also don't generate if swapping only final varadic argument
+        # as this could be a emptry varadic argument and thus result in type-pirating
+        # original function.
+        is_varadic && count(swap_mask) == 1 && swap_mask[end] && continue
+
+        # Generate new methods with signatures for each position that could be a Node
         signature_def[:args] = map(swap_mask, original_signature_args) do swap, orig_arg
             if swap
                 @assert Meta.isexpr(orig_arg, :(::), 2)
@@ -210,7 +218,7 @@ function overload_declarations!(signature_def)
         end
         push!(definitions, ExprTools.combinedef(signature_def))
     end
-
+    
     return definitions
 end
 
