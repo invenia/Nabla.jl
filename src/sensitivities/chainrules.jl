@@ -248,8 +248,12 @@ function preprocess_declaration(signature_def)
         :args => [op, :($y::Branch), ȳ, args...],
         :body => quote
             pullback = getfield($y, :pullback)  # avoid issues with getproperty overloading
-            @assert(pullback !== nothing, "pullback not set, probably because different code path used for preprocess vs for ∇. Probably need to delete a defination for ∇")
-            return pullback($ȳ)
+            if pullback === nothing
+                @debug "pullback not set, probably because different code path used for preprocess vs for ∇. Probably need to delete a defination for ∇"
+                return nothing
+            else
+                return pullback($ȳ)
+            end
         end,
     )
 
