@@ -218,7 +218,6 @@ function overload_declarations!(signature_def)
         end
         push!(definitions, ExprTools.combinedef(signature_def))
     end
-    
     return definitions
 end
 
