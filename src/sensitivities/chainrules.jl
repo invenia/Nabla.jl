@@ -154,11 +154,6 @@ function should_use_rrule(sig)
         Tuple{Type{<:Array}, AbstractArray},  # Nabla support for constructors is limitted
     } && return false
 
-    opT ∈ typeof.((
-        Base.vect,  # currently having an issue with this being defined twice.
-                    # TODO: debug why and if ever we need this
-    )) && return false
-
     return true  # no exclusion applies
 end
 """
