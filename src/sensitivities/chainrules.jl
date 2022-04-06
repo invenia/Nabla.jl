@@ -14,7 +14,7 @@ function Base.identity(x1::Node{<:Any}; kwargs...)
     args = (x1,)
     (primal_val, pullback) = rrule(op, unbox.(args)...; kwargs...)
     tape = get_tape(args)
-    branch = Branch(primal_val, op, args, kwargs.data, tape, length(tape) + 1, pullback)
+    branch = Branch(primal_val, op, args, values(kwargs), tape, length(tape) + 1, pullback)
     push!(tape, branch)
     return branch
 end
@@ -77,6 +77,7 @@ We do not use rules for:
     - Non-differentiable functions that we define directly on `Node`s better (like `size`)
     - Non-differentiable functions that are never used in practice and that cause a lot of
       compiler invalidations and so cause a large increase in loading time.
+    - functions that cause Nabla issues that we don't use.
 
 Finally this excludes function that at time of last update Nabla had its own rules for
 because ChainRules didn't support them.
@@ -147,6 +148,12 @@ function should_use_rrule(sig)
         Tuple{typeof(sum),typeof(abs2),AbstractArray},
     } && return false
 
+
+    # Functions that cause Nabla to have issues and that we don't use
+    sig <: Union{
+        Tuple{Type{<:Array}, AbstractArray},  # Nabla support for constructors is limitted
+    } && return false
+
     return true  # no exclusion applies
 end
 """
@@ -176,16 +183,26 @@ function overload_declarations!(signature_def)
         primal_val, pullback = rrule(op, unbox.(args)...; kwargs...)
         tape = get_tape(args)
 
-        branch = Branch(primal_val, op, args, kwargs.data, tape, length(tape) + 1, pullback)
+        branch = Branch(
+            primal_val, op, args, values(kwargs), tape, length(tape) + 1, pullback
+        )
         push!(tape, branch)
         return branch
     end
 
     # we need to generate a version of this for each place that an arg could be a Node
+    is_varadic = isa_vararg(original_signature_args[end].args[2])
     n_args = length(original_signature_args)
     definitions = Expr[]
     for swap_mask in Iterators.product(ntuple(_->(true, false), n_args)...)
         any(swap_mask) || continue  # don't generate if not swapping anything.
+        
+        # Also don't generate if swapping only final varadic argument
+        # as this could be a emptry varadic argument and thus result in type-pirating
+        # original function.
+        is_varadic && count(swap_mask) == 1 && swap_mask[end] && continue
+
+        # Generate new methods with signatures for each position that could be a Node
         signature_def[:args] = map(swap_mask, original_signature_args) do swap, orig_arg
             if swap
                 @assert Meta.isexpr(orig_arg, :(::), 2)
@@ -196,7 +213,6 @@ function overload_declarations!(signature_def)
         end
         push!(definitions, ExprTools.combinedef(signature_def))
     end
-
     return definitions
 end
 
@@ -226,8 +242,12 @@ function preprocess_declaration(signature_def)
         :args => [op, :($y::Branch), ȳ, args...],
         :body => quote
             pullback = getfield($y, :pullback)  # avoid issues with getproperty overloading
-            @assert(pullback !== nothing, "pullback not set, probably because different code path used for preprocess vs for ∇. Probably need to delete a defination for ∇")
-            return pullback($ȳ)
+            if pullback === nothing
+                @debug "pullback not set, probably because different code path used for preprocess vs for ∇. Probably need to delete a defination for ∇"
+                return nothing
+            else
+                return pullback($ȳ)
+            end
         end,
     )
 
