@@ -196,7 +196,7 @@ function overload_declarations!(signature_def)
     definitions = Expr[]
     for swap_mask in Iterators.product(ntuple(_->(true, false), n_args)...)
         any(swap_mask) || continue  # don't generate if not swapping anything.
-        
+
         # Also don't generate if swapping only final varadic argument
         # as this could be a emptry varadic argument and thus result in type-pirating
         # original function.
