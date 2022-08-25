@@ -80,7 +80,12 @@ struct Branch{T} <: Node{T}
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, kwargs.data, tape, length(tape) + 1)
+    # We could check for an `rrule` here if we wanted but we don't,
+    # because we should never reach this point if we have an rrule
+    primal_val = f(unboxed...; kwargs...)
+    pullback = nothing
+
+    branch = Branch(primal_val, f, args, values(kwargs), tape, length(tape) + 1, pullback)
     push!(tape, branch)
     return branch
 end
