@@ -85,7 +85,10 @@ function Branch(f, args::Tuple, tape::Tape; kwargs...)
     primal_val = f(unboxed...; kwargs...)
     pullback = nothing
 
-    branch = Branch(primal_val, f, args, values(kwargs), tape, length(tape) + 1, pullback)
+    if VERSION >= v"1.8.0"
+        branch = Branch(primal_val, f, args, values(kwargs), tape, length(tape) + 1, pullback)
+    else
+        branch = Branch(primal_val, f, args, kwargs.data, tape, length(tape) + 1, pullback)
     push!(tape, branch)
     return branch
 end
