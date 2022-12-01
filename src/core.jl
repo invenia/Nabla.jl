@@ -80,7 +80,9 @@ struct Branch{T} <: Node{T}
 end
 function Branch(f, args::Tuple, tape::Tape; kwargs...)
     unboxed = unbox.(args)
-    branch = Branch(f(unboxed...; kwargs...), f, args, kwargs.data, tape, length(tape) + 1)
+    branch = Branch(
+        f(unboxed...; kwargs...), f, args, getfield(kwargs, :data), tape, length(tape) + 1
+    )
     push!(tape, branch)
     return branch
 end
