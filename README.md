@@ -5,6 +5,12 @@
 [![Stable Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://invenia.github.io/Nabla.jl/stable)
 [![Latest Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://invenia.github.io/Nabla.jl/latest)
 
+# No Longer Maintained
+
+This project is no longer actively maintained, as it has been thoroughly superceeded by other AD projects in the Julia ecosystem.
+
+# README
+
 Nabla.jl is a reverse-mode automatic differentiation package targetting machine learning use cases.
 As such, we have (for example) prioritised support for linear algebra optimisations and higher-order functions over the ability to take higher-order derivatives (Nabla currently only supports first-order derivatives).
 
