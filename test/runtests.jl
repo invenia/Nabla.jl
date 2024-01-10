@@ -94,4 +94,9 @@ end
     include("checkpointing.jl")
 end
 
+@testset "examples" begin
+    # make sure the examples don't throw errors
+    include("../examples/asymmetric_quadratic.jl")
+end
+
 end
